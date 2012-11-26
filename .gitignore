@@ -1,0 +1,13 @@
+*.swp
+*.old
+*.pyc
+*.egg
+*-stamp
+build
+/*.cfg.default
+/man
+MANIFEST
+trace
+/*.egg-info
+/dist
+/Nagios-Plugin-*
