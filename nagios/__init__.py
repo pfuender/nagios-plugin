@@ -13,11 +13,6 @@ __contact__ = 'frank.brehm@profitbricks.com'
 __version__ = '0.1.0-1'
 __license__ = 'GPL3'
 
-@property
-def bla():
-    """Test."""
-    return 99
-
 #==============================================================================
 
 class BaseNagiosError(Exception):

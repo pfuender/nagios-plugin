@@ -12,6 +12,10 @@ Following modules are supported:
 
  - nagios
    - classes:
+     - BaseNagiosError
+   - decorators:
+     - constant
+   - objects:
      - state
        - readonly properties:
          - ok
@@ -20,12 +24,6 @@ Following modules are supported:
          - unknown
          - dependent
  - nagios.plugin
-   - constants:
-     - OK
-     - WARNING
-     - CRITICAL
-     - UNKNOWN
-     - DEPENDENT
    - classes:
      - NagiosPlugin
      - NagiosPluginError
