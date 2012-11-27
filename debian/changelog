@@ -1,8 +1,9 @@
 python-nagios-plugin (0.2.0-1) unstable; urgency=low
 
   * Version bump
+  * worked on nagios/plugin/range.py
 
- -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 27 Nov 2012 13:11:57 +0100
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 27 Nov 2012 14:49:59 +0100
 
 python-nagios-plugin (0.1.1-1) unstable; urgency=low
 
