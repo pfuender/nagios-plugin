@@ -43,7 +43,7 @@ class NagiosRangeError(BaseNagiosError):
 #==============================================================================
 class InvalidRangeError(NagiosRangeError):
     """
-    A special exception, which is raised, if an invaldid range string was found.
+    A special exception, which is raised, if an invalid range string was found.
     """
 
     #--------------------------------------------------------------------------
@@ -63,6 +63,31 @@ class InvalidRangeError(NagiosRangeError):
         """Typecasting into a string for error output."""
 
         return "Wrong range %r." % (self.wrong_range)
+
+#==============================================================================
+class InvalidRangeValueError(NagiosRangeError):
+    """
+    A special exception, which is raised, if an invalid value should be checked
+    against the current range object.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, value):
+        """
+        Constructor.
+
+        @param value: the wrong value, whiche lead to this exception.
+        @type value: object
+
+        """
+
+        self.value = value
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """Typecasting into a string for error output."""
+
+        return "Wrong value %r to check against a range." % (self.value)
 
 #==============================================================================
 class NagiosRange(object):
@@ -282,6 +307,64 @@ class NagiosRange(object):
         self._start = start
         self._end = end
         self._initialized = True
+
+    #--------------------------------------------------------------------------
+    def check_range(self, value):
+        """Wrapper method for self.check()."""
+
+    #--------------------------------------------------------------------------
+    def check(self, value):
+        """
+        Checks the given value against the current range.
+
+        @raise NagiosRangeError: if the current range is not initialized
+        @raise InvalidRangeValueError: if the given value is not a number
+
+        @param value: the value to check against the current range
+        @type value: int or long or float
+
+        @return: the value is inside the range or not.
+                 if self.invert_match is True, then this retur value is reverted
+        @rtype: bool
+
+        """
+
+        if not self.initialized:
+            raise NagiosRangeError("The current NagiosRange object is not " +
+                    "initialized.")
+
+        if not (isinstance(value, int) or isinstance(value, long) or
+                isinstance(value, float)):
+            raise InvalidRangeValueError(value)
+
+        my_true = True
+        my_false = False
+        if self.invert_match:
+            my_true = False
+            my_false = True
+
+        if self.start is not None and self.end is not None:
+            if self.start <= value and value <= self.end:
+                return my_true
+            else:
+                return my_false
+
+        if self.start is not None and self.end is None:
+            if value >= self.start:
+                return my_true
+            else:
+                return my_false
+
+        if self.start is None and self.end is not None:
+            if value <= self.end:
+                return my_true
+            else:
+                return my_false
+
+        raise NagiosRangeError("This point should never been reached in " +
+                "checking a value against a range.")
+
+        return my_false
 
 #==============================================================================
 
