@@ -1,0 +1,26 @@
+This work was packaged for Debian by:
+
+    Frank Brehm <frank.brehm@profitbricks.com> on Tue, 27 Nov 2012 11:24:44 +0100
+
+It was downloaded from git!
+
+Upstream Author:
+
+	Frank Brehm (<frank.brehm@profitbricks.com>)
+
+Copyright:
+
+    <Copyright (C) 2012 Frank Brehm + Profitbricks>
+
+The base module for Nagios check plugins written in Python
+is licensed under the GNU LESSER GENERAL PUBLIC LICENSE version 3,
+see "/usr/share/common-licenses/LGPL-3".
+
+License:
+	
+The Debian packaging is:
+
+    Copyright (C) 2012 Holger Levsen <holger@debian.org>
+
+and is licensed under the GPL version 3,
+see "/usr/share/common-licenses/GPL-3".

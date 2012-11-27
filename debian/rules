@@ -1,0 +1,107 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+BIN_PKGNAME := python-nagios-plugin
+DOC_PKGNAME := python-nagios-plugin-doc
+
+INSTALL_DIR := $(CURDIR)/debian/$(BIN_PKGNAME)
+DOC_DIR     := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
+
+build: build-stamp
+
+build-stamp:
+	$(info )
+	$(info ########################)
+	$(info Building ...)
+	$(info )
+
+	dh_testdir
+	python setup.py build
+	touch build-stamp
+
+clean:
+	$(info )
+	$(info ########################)
+	$(info Cleaning ...)
+	$(info )
+
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -rf build
+	-find . -name '*.py[co]' | xargs rm -f
+	dh_clean
+	rm -rf python-blockdevs.egg-info
+	rm -rf build
+	rm -rf man
+
+install: build
+	$(info )
+	$(info ########################)
+	$(info Installing ...)
+	$(info )
+
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	dh_install
+
+	#@echo ""
+	#@echo "Installing man pages ..."
+	#mkdir -p man
+	#help2man -n scstadm -s 8 -o man/scstadm.8 --no-info bin/scstadm
+
+	#@echo ""
+	#@echo "Generate and install default configuration file ..."
+	#bin/scstadmd --default-config > scstadm.cfg.default
+	#install -d $(INSTALL_DIR)/etc/scstadm
+	#install -m 0644 scstadm.cfg.default $(INSTALL_DIR)/etc/scstadm/
+
+	@echo ""
+	@echo "Installing Python stuff ..."
+	python setup.py install --force --root=$(INSTALL_DIR) --no-compile -O0 --install-layout=deb
+
+	@echo ""
+	@echo "Documentation ..."
+	mkdir -p $(DOC_DIR)/html
+	mkdir -p $(DOC_DIR)/pdf
+
+	epydoc --html -v -o $(DOC_DIR)/html $(CURDIR)/pb_blockdev
+	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/pb_blockdev
+
+	dh_link
+
+# Build architecture-independent files here.
+binary-indep: build install
+	$(info )
+	$(info ########################)
+	$(info Installing architecture-independent files ...)
+	$(info )
+
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+	dh_installchangelogs
+	dh_installdebconf
+	#dh_installman
+	dh_pysupport
+	#dh_installinit --name=ppd --restart-after-upgrade
+	#dh_installlogrotate --name vncproxy
+	#dh_installcron
+	dh_compress -X.py -X.pdf
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+# Build architecture-dependent files here.
+binary-arch: build install
+# We have nothing to do by default.
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure
