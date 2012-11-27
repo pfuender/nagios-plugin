@@ -34,7 +34,7 @@ clean:
 	rm -rf build
 	-find . -name '*.py[co]' | xargs rm -f
 	dh_clean
-	rm -rf python-blockdevs.egg-info
+	rm -rf nagios.egg-info
 	rm -rf build
 	rm -rf man
 
@@ -70,8 +70,8 @@ install: build
 	mkdir -p $(DOC_DIR)/html
 	mkdir -p $(DOC_DIR)/pdf
 
-	epydoc --html -v -o $(DOC_DIR)/html $(CURDIR)/pb_blockdev
-	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/pb_blockdev
+	epydoc --html -v -o $(DOC_DIR)/html $(CURDIR)/nagios
+	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/nagios
 
 	dh_link
 
