@@ -28,7 +28,7 @@ __version__ = '0.2.0'
 log = logging.getLogger(__name__)
 
 match_num_val = r'[+-]?\d+(?:\.\d*)?'
-match_range = r'^(\@)?(?:(' + match_num_val + r'|~):)?(' + match_num_val + r')?$'
+match_range = r'^(\@)?(?:(' + match_num_val + r'|~)?:)?(' + match_num_val + r')?$'
 
 re_ws = re.compile(r'\s+')
 re_dot = re.compile(r'\.')
