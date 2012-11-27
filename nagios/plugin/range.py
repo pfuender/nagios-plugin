@@ -27,7 +27,7 @@ __version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
-match_num_val = r'[+-]?\d+(?:\.\d*)'
+match_num_val = r'[+-]?\d+(?:\.\d*)?'
 match_range = r'^(\@)?(?:(' + match_num_val + r'|~):)?(' + match_num_val + r')?$'
 
 re_ws = re.compile(r'\s+')
@@ -219,11 +219,10 @@ class NagiosRange(object):
             res = '@'
 
         if self.start is None:
-            res += '~'
-        else:
-            res += str(self.start)
+            res += '~:'
+        elif self.start != 0:
+            res += str(self.start) + ':'
 
-        res += ':'
         if self.end is not None:
             res += str(self.end)
 
@@ -282,20 +281,32 @@ class NagiosRange(object):
 
         valid = False
 
-        if start is not None and start != '~':
-            if re_dot.search(start):
-                start = float(start)
+        start_should_infinity = False
+
+        if start is not None:
+            if start == '~':
+                start_should_infinity = True
+                start = None
             else:
-                start = long(start)
-            valid = True
-        else:
-            start = None
+                if re_dot.search(start):
+                    start = float(start)
+                else:
+                    start = long(start)
+                valid = True
+
+        if start is None:
+            if start_should_infinity:
+                log.debug("The start is None, but should be infinity.")
+            else:
+                log.debug("The start is None, but should be NOT infinity.")
 
         if end is not None:
             if re_dot.search(end):
                 end = float(end)
             else:
                 end = long(end)
+            if start is None and not start_should_infinity:
+                start = 0L
             valid = True
 
         if not valid:
@@ -311,6 +322,8 @@ class NagiosRange(object):
     #--------------------------------------------------------------------------
     def check_range(self, value):
         """Wrapper method for self.check()."""
+
+        return self.check(value)
 
     #--------------------------------------------------------------------------
     def check(self, value):
