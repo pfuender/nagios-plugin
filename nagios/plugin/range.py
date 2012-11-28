@@ -18,12 +18,12 @@ import logging
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError, constant
+from nagios import BaseNagiosError
 
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 log = logging.getLogger(__name__)
 
