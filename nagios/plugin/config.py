@@ -26,10 +26,94 @@ from nagios import BaseNagiosError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.1'
+
+cfgfile_basenames = ('plugins.ini', 'nagios-plugins.ini')
+nagios_cfgdirs = (
+        '/etc/nagios',
+        '/usr/local/nagios/etc',
+        '/usr/local/etc/nagios',
+        '/etc/opt/nagios',
+)
+general_cfgdirs = (
+        '/etc',
+        '/usr/local/etc',
+        '/etc/opt',
+)
 
 log = logging.getLogger(__name__)
 
+#==============================================================================
+class NoConfigfileFound(BaseNagiosError):
+    """
+    Exception class indicating, that no config files are given and no
+    config files on standard locations were found.
+    """
+
+    def __str__(self):
+        """Typecasting into str with a default message."""
+
+        return ("No configuration files given and no configuration files " +
+                "found on standard locations.")
+
+#==============================================================================
+class NagiosPluginConfig(ConfigParser):
+    """
+    Subclass of ConfigParser with a changed read() method.
+    """
+
+    #--------------------------------------------------------------------------
+    def read(self, filenames):
+        """
+        Overridden read method of ConfigParser class to search for default
+        configuration files, if no filenames are given.
+        """
+
+        # transform filenames into a list, if a single string was given
+        if isinstance(filenames, basestring):
+            filenames = [filenames]
+
+        if not len(filenames):
+
+            found = False
+
+            if 'NAGIOS_CONFIG_PATH' in os.environ:
+                paths = os.environ['NAGIOS_CONFIG_PATH']
+                for path in paths.split(':'):
+                    for bname in cfgfile_basenames:
+                        fname = os.path.join(path, bname)
+                        if os.path.isfile(fname):
+                            filenames.insert(0, fname)
+                            found = True
+                        if found:
+                            break
+                    if found:
+                        break
+
+            if not found:
+                for path in nagios_cfgdirs:
+                    bname = cfgfile_basenames[0]
+                    fname = os.path.join(path, bname)
+                    if os.path.isfile(fname):
+                        filenames.insert(0, fname)
+                        found = True
+                    if found:
+                        break
+
+            if not found:
+                for path in general_cfgdirs:
+                    bname = cfgfile_basenames[1]
+                    fname = os.path.join(path, bname)
+                    if os.path.isfile(fname):
+                        filenames.insert(0, fname)
+                        found = True
+                    if found:
+                        break
+
+            if not found:
+                raise NoConfigfileFound('')
+
+        return super(NagiosPluginConfig, self).read(filenames)
 
 #==============================================================================
 
