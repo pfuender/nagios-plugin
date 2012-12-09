@@ -203,6 +203,12 @@ class NagiosRange(object):
 
     #------------------------------------------------------------
     @property
+    def is_set(self):
+        """The initialisation of this object is complete."""
+        return self._initialized
+
+    #------------------------------------------------------------
+    @property
     def initialized(self):
         """The initialisation of this object is complete."""
         return self._initialized

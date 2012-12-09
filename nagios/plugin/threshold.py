@@ -71,19 +71,77 @@ class NagiosThreshold(object):
         """The warning threshold."""
         return self._warning
 
+    @warning.setter
+    def warning(self, value):
+        if value is None or (isinstance(value, basestring) and
+                value == ''):
+            self._warning = NagiosRange()
+            return
+
+        if isinstance(value, NagiosRange):
+            self._warning = value
+            return
+
+        if isinstance(value, int) or isinstance(value, long):
+            value = "%d" % (value)
+        elif isinstance(value, float):
+            value = "%f" % (value)
+
+        self._warning = NagiosRange(value)
+
     #------------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold."""
         return self._critical
 
+    @critical.setter
+    def critical(self, value):
+        if value is None or (isinstance(value, basestring) and
+                value == ''):
+            self._critical = NagiosRange()
+            return
+
+        if isinstance(value, NagiosRange):
+            self._critical = value
+            return
+
+        if isinstance(value, int) or isinstance(value, long):
+            value = "%d" % (value)
+        elif isinstance(value, float):
+            value = "%f" % (value)
+
+        self._critical = NagiosRange(value)
+
     #--------------------------------------------------------------------------
     def get_status(self, values):
         """
         Checks the given values against the critical and the warning range.
 
+        @param values: a list with values to check against the critical
+                       and warning range property
+        @type values: int or long or float or list of them
+
+        @return: a nagios state
+        @rtype: int
 
         """
+
+        if (isinstance(values, int) or isinstance(values, long) or
+                isinstance(values, float)):
+            values = [values]
+
+        if self.critical.initialized:
+            for value in values:
+                if not self.critical.check(value):
+                    return nagios.state.critical
+
+        if self.warning.initialized:
+            for value in values:
+                if not self.warning.check(value):
+                    return nagios.state.warning
+
+        return nagios.state.ok
 
 #==============================================================================
 
