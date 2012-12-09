@@ -57,7 +57,7 @@ class NoConfigfileFound(BaseNagiosError):
                 "found on standard locations.")
 
 #==============================================================================
-class NagiosPluginConfig(ConfigParser):
+class NagiosPluginConfig(ConfigParser, object):
     """
     Subclass of ConfigParser with a changed read() method.
     """
