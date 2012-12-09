@@ -65,7 +65,25 @@ class NagiosThreshold(object):
         @type: NagiosRange
         """
 
+    #------------------------------------------------------------
+    @property
+    def warning(self):
+        """The warning threshold."""
+        return self._warning
 
+    #------------------------------------------------------------
+    @property
+    def critical(self):
+        """The critical threshold."""
+        return self._critical
+
+    #--------------------------------------------------------------------------
+    def get_status(self, values):
+        """
+        Checks the given values against the critical and the warning range.
+
+
+        """
 
 #==============================================================================
 
