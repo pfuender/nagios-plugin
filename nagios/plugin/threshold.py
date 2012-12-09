@@ -28,7 +28,7 @@ from nagios.plugin.range import NagiosRange
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
@@ -115,6 +115,15 @@ class NagiosThreshold(object):
             value = "%f" % (value)
 
         self._critical = NagiosRange(value)
+
+    #--------------------------------------------------------------------------
+    def __repr__(self):
+        """Typecasting into a string for reproduction."""
+
+        out = '<NagiosThreshold(warning=%r, critical=%r>' % (
+                self.warning, self.critical)
+
+        return out
 
     #--------------------------------------------------------------------------
     def set_thresholds(self, warning = None, critical = None):
