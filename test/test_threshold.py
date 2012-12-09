@@ -61,6 +61,23 @@ class TestNagiosThreshold(unittest.TestCase):
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
+    #--------------------------------------------------------------------------
+    def test_threshold_empty(self):
+
+        log.info("Testing NagiosThreshold object with two empty strings.")
+        try:
+            t = NagiosThreshold(warning = '', critical = '')
+            log.debug("NagiosThreshold object: %r", t)
+            if t.warning.is_set:
+                self.fail("Warning threshold may not be set.")
+            log.debug("Warning threshold is not set.")
+            if t.critical.is_set:
+                self.fail("Critical threshold may not be set.")
+            log.debug("Critical threshold is not set.")
+        except Exception, e:
+            self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
+                    e.__class__.__name__, str(e)))
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -105,6 +122,8 @@ if __name__ == '__main__':
 
     suite.addTests(loader.loadTestsFromName(
             'test_threshold.TestNagiosThreshold.test_threshold_object'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_threshold.TestNagiosThreshold.test_threshold_empty'))
 
     runner = unittest.TextTestRunner(verbosity = args.verbose)
 
