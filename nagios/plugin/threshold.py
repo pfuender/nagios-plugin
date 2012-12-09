@@ -65,6 +65,9 @@ class NagiosThreshold(object):
         @type: NagiosRange
         """
 
+        self.set_thresholds(
+                warning = warning, critical = critical)
+
     #------------------------------------------------------------
     @property
     def warning(self):
@@ -112,6 +115,21 @@ class NagiosThreshold(object):
             value = "%f" % (value)
 
         self._critical = NagiosRange(value)
+
+    #--------------------------------------------------------------------------
+    def set_thresholds(self, warning = None, critical = None):
+        """
+        Re-Initialisation of the NagiosThreshold object.
+
+        @param warning: the warning threshold
+        @type warning: str, int, long, float or NagiosRange
+        @param critical: the critical threshold
+        @type critical: str, int, long, float or NagiosRange
+
+        """
+
+        self.warning = warning
+        self.critical = critical
 
     #--------------------------------------------------------------------------
     def get_status(self, values):
