@@ -118,7 +118,9 @@ class NagiosPluginConfig(ConfigParser):
             if not found:
                 raise NoConfigfileFound('')
 
-        return super(NagiosPluginConfig, self).read(filenames)
+        log.debug("Using config files: %r", filenames)
+        # Note: ConfigParser is an old-style class!! super() doesn't work.
+        return ConfigParser.read(self, filenames)
 
     #--------------------------------------------------------------------------
     def write(self, fileobject):
