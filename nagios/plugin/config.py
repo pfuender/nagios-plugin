@@ -26,7 +26,7 @@ from nagios import BaseNagiosError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 cfgfile_basenames = ('plugins.ini', 'nagios-plugins.ini')
 nagios_cfgdirs = (
@@ -63,7 +63,7 @@ class NagiosPluginConfig(ConfigParser):
     """
 
     #--------------------------------------------------------------------------
-    def read(self, filenames):
+    def read(self, filenames = None):
         """
         Overridden read method of ConfigParser class to search for default
         configuration files, if no filenames are given.
@@ -72,6 +72,8 @@ class NagiosPluginConfig(ConfigParser):
         # transform filenames into a list, if a single string was given
         if isinstance(filenames, basestring):
             filenames = [filenames]
+        elif filenames is None:
+            filenames = []
 
         if not len(filenames):
 
@@ -82,6 +84,7 @@ class NagiosPluginConfig(ConfigParser):
                 for path in paths.split(':'):
                     for bname in cfgfile_basenames:
                         fname = os.path.join(path, bname)
+                        log.debug("Searching for config in %r ...", fname)
                         if os.path.isfile(fname):
                             filenames.insert(0, fname)
                             found = True
@@ -94,6 +97,7 @@ class NagiosPluginConfig(ConfigParser):
                 for path in nagios_cfgdirs:
                     bname = cfgfile_basenames[0]
                     fname = os.path.join(path, bname)
+                    log.debug("Searching for config in %r ...", fname)
                     if os.path.isfile(fname):
                         filenames.insert(0, fname)
                         found = True
@@ -104,6 +108,7 @@ class NagiosPluginConfig(ConfigParser):
                 for path in general_cfgdirs:
                     bname = cfgfile_basenames[1]
                     fname = os.path.join(path, bname)
+                    log.debug("Searching for config in %r ...", fname)
                     if os.path.isfile(fname):
                         filenames.insert(0, fname)
                         found = True
@@ -114,6 +119,12 @@ class NagiosPluginConfig(ConfigParser):
                 raise NoConfigfileFound('')
 
         return super(NagiosPluginConfig, self).read(filenames)
+
+    #--------------------------------------------------------------------------
+    def write(self, fileobject):
+        """Wrapper to disallow write operations to configfile."""
+
+        raise NotImplementedError("Write access not permitted.")
 
 #==============================================================================
 
