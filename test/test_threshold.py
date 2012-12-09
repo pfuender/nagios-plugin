@@ -78,6 +78,26 @@ class TestNagiosThreshold(unittest.TestCase):
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
+    #--------------------------------------------------------------------------
+    def test_threshold_critical_80(self):
+
+        log.info("Testing NagiosThreshold object with critical == 80.")
+        try:
+            t = NagiosThreshold(warning = '', critical = '80')
+            log.debug("NagiosThreshold object: %r", t)
+            if t.warning.is_set:
+                self.fail("Warning threshold may not be set.")
+            log.debug("Warning threshold is not set.")
+            if not t.critical.is_set:
+                self.fail("Critical threshold must be set.")
+            if not t.critical.start == 0:
+                self.fail("Critical threshold range start must be zero.")
+            if not t.critical.end == 80:
+                self.fail("Critical threshold range end must be 80.")
+        except Exception, e:
+            self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
+                    e.__class__.__name__, str(e)))
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -124,6 +144,8 @@ if __name__ == '__main__':
             'test_threshold.TestNagiosThreshold.test_threshold_object'))
     suite.addTests(loader.loadTestsFromName(
             'test_threshold.TestNagiosThreshold.test_threshold_empty'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_threshold.TestNagiosThreshold.test_threshold_critical_80'))
 
     runner = unittest.TextTestRunner(verbosity = args.verbose)
 
