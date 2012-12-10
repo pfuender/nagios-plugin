@@ -327,9 +327,13 @@ class NagiosRange(object):
 
     #--------------------------------------------------------------------------
     def check_range(self, value):
-        """Wrapper method for self.check()."""
+        """Recverse method of self.check(), it inverts the result of check()
+        to provide the exact same behaviour like the check_range() method
+        of the Perl Nagios::Plugin::Range object."""
 
-        return self.check(value)
+        if self.check(value):
+            return False
+        return True
 
     #--------------------------------------------------------------------------
     def check(self, value):

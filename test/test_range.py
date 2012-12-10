@@ -337,6 +337,26 @@ class TestNagiosRange(unittest.TestCase):
                     e.__class__.__name__, str(e)))
 
     #--------------------------------------------------------------------------
+    def test_method_check_range(self):
+
+        log.info("Testing method check_range() ...")
+        try:
+            nrange = NagiosRange(':6')
+            log.debug("NagiosRange object: %r", nrange)
+
+            log.debug("Testing check_range(5) == False ...")
+            if nrange.check_range(5):
+                self.fail("check_range(5) should return False.")
+
+            log.debug("Testing check_range(7) == True ...")
+            if not nrange.check_range(7):
+                self.fail("check_range(7) should return True.")
+
+        except Exception, e:
+            self.fail("Could not instatiate NagiosRange by a %s: %s" % (
+                    e.__class__.__name__, str(e)))
+
+    #--------------------------------------------------------------------------
     def test_check_inverse(self):
 
         expected_results = {
@@ -475,6 +495,8 @@ if __name__ == '__main__':
             'test_range.TestNagiosRange.test_check_infinity2'))
     suite.addTests(loader.loadTestsFromName(
             'test_range.TestNagiosRange.test_check_zero'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_range.TestNagiosRange.test_method_check_range'))
     suite.addTests(loader.loadTestsFromName(
             'test_range.TestNagiosRange.test_check_inverse'))
     suite.addTests(loader.loadTestsFromName(
