@@ -19,8 +19,9 @@ import tempfile
 libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, libdir)
 
-from pb_logging.colored import ColoredFormatter
-from pb_base.common import pp
+import general
+
+from general import ColoredFormatter, pp, get_arg_verbose, init_root_logger
 
 import nagios
 from nagios.plugin.config import NoConfigfileFound
@@ -130,38 +131,9 @@ class TesttNagiosPluginConfigFile(NeedTmpConfig):
 
 if __name__ == '__main__':
 
-    import argparse
 
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("-v", "--verbose", action = "count",
-            dest = 'verbose', help = 'Increase the verbosity level')
-    args = arg_parser.parse_args()
-
-    root_log = logging.getLogger()
-    root_log.setLevel(logging.INFO)
-    if args.verbose:
-         root_log.setLevel(logging.DEBUG)
-
-    appname = os.path.basename(sys.argv[0])
-    format_str = appname + ': '
-    if args.verbose:
-        if args.verbose > 1:
-            format_str += '%(name)s(%(lineno)d) %(funcName)s() '
-        else:
-            format_str += '%(name)s '
-    format_str += '%(levelname)s - %(message)s'
-    formatter = None
-    formatter = ColoredFormatter(format_str)
-
-    # create log handler for console output
-    lh_console = logging.StreamHandler(sys.stderr)
-    if args.verbose:
-        lh_console.setLevel(logging.DEBUG)
-    else:
-        lh_console.setLevel(logging.INFO)
-    lh_console.setFormatter(formatter)
-
-    root_log.addHandler(lh_console)
+    verbose = get_arg_verbose()
+    init_root_logger(verbose)
 
     log.info("Starting tests ...")
 
@@ -175,7 +147,7 @@ if __name__ == '__main__':
     suite.addTests(loader.loadTestsFromName(
             'test_getopt_03.TesttNagiosPluginConfigFile.test_read_cfgfile'))
 
-    runner = unittest.TextTestRunner(verbosity = args.verbose)
+    runner = unittest.TextTestRunner(verbosity = verbose)
 
     result = runner.run(suite)
 
