@@ -429,6 +429,26 @@ class TestNagiosRange(unittest.TestCase):
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
+    #--------------------------------------------------------------------------
+    def test_operator_in(self):
+
+        log.info("Testing overloaded operator 'in' ...")
+        try:
+            nrange = NagiosRange('6')
+            log.debug("NagiosRange object: %r", nrange)
+
+            log.debug("Checking '7 in range \"%s\"'", nrange)
+            if 7 in nrange:
+                self.fail("Value 7 should be outside range '%s'." % (nrange))
+
+            log.debug("Checking '5 not in range \"%s\"'", nrange)
+            if not 5 in nrange:
+                self.fail("Value 5 should be inside range '%s'." % (nrange))
+
+        except Exception, e:
+            self.fail("Could not instatiate NagiosRange by a %s: %s" % (
+                    e.__class__.__name__, str(e)))
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -471,6 +491,8 @@ if __name__ == '__main__':
             'test_range.TestNagiosRange.test_check_inverse'))
     suite.addTests(loader.loadTestsFromName(
             'test_range.TestNagiosRange.test_check_singelton'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_range.TestNagiosRange.test_operator_in'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 

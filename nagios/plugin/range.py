@@ -336,6 +336,28 @@ class NagiosRange(object):
         return True
 
     #--------------------------------------------------------------------------
+    def __contains__(self, value):
+        """
+        Special method to implement the 'in' operator. With the help of this
+        method it's possible to write such things like::
+
+            my_range = NagiosRange(80)
+            ....
+
+            val = 5
+            if val in my_range:
+                print "Value %r is in range '%s'." % (val, my_range)
+            else:
+                print "Value %r is NOT in range '%s'." % (val, my_range)
+
+        @param value: the value to check against the current range
+        @type value: int or long or float
+
+        """
+
+        return self.check(value)
+
+    #--------------------------------------------------------------------------
     def check(self, value):
         """
         Checks the given value against the current range.
