@@ -13,6 +13,8 @@ import sys
 import re
 import logging
 
+from numbers import Number
+
 # Third party modules
 
 # Own modules
@@ -154,7 +156,7 @@ class NagiosRange(object):
         """
 
         if range_str is not None:
-            self.parse_range_string(str(range_str))
+            self.parse_range_string(range_str)
             return
 
         if isinstance(start, int) or isinstance(start, long):
@@ -238,10 +240,26 @@ class NagiosRange(object):
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
-        out = '<NagiosRange(start=%r, end=%r, invert_match=%r, initialized=%r>' % (
+        out = '<NagiosRange(start=%r, end=%r, invert_match=%r, initialized=%r)>' % (
                 self.start, self.end, self.invert_match, self.initialized)
 
         return out
+
+    #--------------------------------------------------------------------------
+    def single_val(self):
+        """
+        Returns a single Number value.
+
+        @return: self.end, if set, else self.start, if set, else None
+        @rtype: Number or None
+
+        """
+
+        if not self.initialized:
+            return None
+        if self.end is not None:
+            return self.end
+        return self.start
 
     #--------------------------------------------------------------------------
     def parse_range_string(self, range_str):
@@ -253,9 +271,18 @@ class NagiosRange(object):
 
         @param range_str: the range string of the type 'x:y' to use for
                           initialisation of the object
-        @type range_str: str
+        @type range_str: str or Number
 
         """
+
+        # range is a Number - all clear
+        if isinstance(range_str, Number):
+            self._start = 0
+            self._end = range_str
+            self._initialized = True
+            return
+
+        range_str = str(range_str)
 
         # strip out any whitespace
         rstr = re_ws.sub('', range_str)
@@ -378,8 +405,7 @@ class NagiosRange(object):
             raise NagiosRangeError("The current NagiosRange object is not " +
                     "initialized.")
 
-        if not (isinstance(value, int) or isinstance(value, long) or
-                isinstance(value, float)):
+        if not isinstance(value, Number):
             raise InvalidRangeValueError(value)
 
         my_true = True

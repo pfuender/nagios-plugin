@@ -120,7 +120,7 @@ class NagiosThreshold(object):
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
-        out = '<NagiosThreshold(warning=%r, critical=%r>' % (
+        out = '<NagiosThreshold(warning=%r, critical=%r)>' % (
                 self.warning, self.critical)
 
         return out
