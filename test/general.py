@@ -98,7 +98,7 @@ def colorstr(message, color):
 
 #==============================================================================
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 #==============================================================================
 def pp(value):
@@ -244,6 +244,47 @@ class ColoredFormatter(logging.Formatter):
                 record.msg = colorstr(record.msg, self.LEVEL_COLOR[levelname])
 
         return logging.Formatter.format(self, record)
+
+#==============================================================================
+class NeedConfig(unittest.TestCase):
+
+    #--------------------------------------------------------------------------
+    def setUp(self):
+        bdir = os.path.realpath(os.path.dirname(sys.argv[0]))
+        self.test_dir = os.path.join(bdir, 'npg03')
+        if not os.path.isdir(self.test_dir):
+            raise RuntimeError("Directory %r doesn't exists." % (self.test_dir))
+        self.ini_file = os.path.join(self.test_dir, 'plugins.ini')
+        if not os.path.isfile(self.ini_file):
+            raise RuntimeError("File %r doesn't exists." % (self.ini_file))
+
+        bogus = os.sep + os.path.join('random', 'bogus', 'path')
+        os.environ['NAGIOS_CONFIG_PATH'] = bogus + ':' + self.test_dir
+
+#==============================================================================
+class NeedTmpConfig(NeedConfig):
+
+    #--------------------------------------------------------------------------
+    def setUp(self):
+
+        super(NeedTmpConfig, self).setUp()
+
+        (fd, self.tmp_cfg, ) = tempfile.mkstemp(
+                prefix = "temp-plugins-", suffix =  '.ini')
+
+        log.debug("Creating temp configfile %r ...", self.tmp_cfg)
+        f = os.fdopen(fd, 'w')
+        f.write("[silly_options]\n")
+        f.write("uhu1 = banane 1\n")
+        f.write("uhu2 = \" Banane 2\"\n")
+        f.write("\n")
+        f.close()
+
+    #--------------------------------------------------------------------------
+    def tearDown(self):
+
+        log.debug("Removing temp configfile %r ...", self.tmp_cfg)
+        os.remove(self.tmp_cfg)
 
 #==============================================================================
 
