@@ -160,12 +160,12 @@ class NagiosThreshold(object):
 
         if self.critical.initialized:
             for value in values:
-                if not self.critical.check(value):
+                if not value in self.critical:
                     return nagios.state.critical
 
         if self.warning.initialized:
             for value in values:
-                if not self.warning.check(value):
+                if not value in self.warning:
                     return nagios.state.warning
 
         return nagios.state.ok
