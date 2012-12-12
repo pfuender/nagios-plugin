@@ -118,6 +118,32 @@ class TestNagiosPerf(unittest.TestCase):
         self.assertEqual(perf.max_data, None, 'Error testing perf.max_data')
         self.assertEqual(perf.status(), nagios.state.ok, 'Error testing perf.status()')
 
+    #--------------------------------------------------------------------------
+    def test_performance_labels(self):
+        log.info("Testing init NagiosPerformance labels.")
+        perf = NagiosPerformance(
+                label = '/var/long@:-/filesystem/name/and/bad/chars',
+                value = 218, uom = 'MB')
+        log.debug("NagiosPerformance object: %r", perf)
+        self.assertEqual(perf.label,
+                '/var/long@:-/filesystem/name/and/bad/chars',
+                'Error testing perf.label')
+        log.debug("clean_label: %r", perf.clean_label)
+        self.assertEqual(perf.clean_label,
+                'var_long____filesystem_name_and_bad_chars',
+                'Error testing perf.clean_label')
+        log.debug("rrdlabel: %r", perf.rrdlabel)
+        self.assertEqual(perf.rrdlabel,
+                'var_long____filesys', 'Error testing perf.rrdlabel')
+
+    #--------------------------------------------------------------------------
+    def test_performance_root_label(self):
+        log.info("Testing init NagiosPerformance root label.")
+        perf = NagiosPerformance(label = '/', value = 1, uom = 'MiByte')
+        log.debug("NagiosPerformance object: %r", perf)
+        log.debug("clean_label: %r", perf.clean_label)
+        self.assertEqual(perf.clean_label,
+                'root', 'Error testing perf.clean_label')
 
 #==============================================================================
 
@@ -139,6 +165,10 @@ if __name__ == '__main__':
             'test_perf_01.TestNagiosPerf.test_performance_object_02'))
     suite.addTests(loader.loadTestsFromName(
             'test_perf_01.TestNagiosPerf.test_performance_object_03'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_perf_01.TestNagiosPerf.test_performance_labels'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_perf_01.TestNagiosPerf.test_performance_root_label'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 

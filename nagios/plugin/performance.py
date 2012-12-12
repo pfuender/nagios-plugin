@@ -192,7 +192,7 @@ class NagiosPerformance(object):
         dataset name of an RRD i.e. munges label to be 1-19 characters long
         with only characters [a-zA-Z0-9_]."""
 
-        return self.clean_label[0:18]
+        return self.clean_label[0:19]
 
     #------------------------------------------------------------
     @property
