@@ -145,6 +145,26 @@ class TestNagiosPerf(unittest.TestCase):
         self.assertEqual(perf.clean_label,
                 'root', 'Error testing perf.clean_label')
 
+    #--------------------------------------------------------------------------
+    def test_perfoutput_00(self):
+        log.info("Testing init NagiosPerformance output lap 0.")
+        perf = NagiosPerformance(label = 'bla', value = 80, warning = '~:30',
+                critical = '~:60', uom = 'MByte')
+        log.debug("NagiosPerformance object: %r", perf)
+        log.debug("perfoutput: %r", perf.perfoutput())
+        self.assertEqual(perf.perfoutput(), 'bla=80MByte;30;60',
+                "Error testing perf.perfoutput()")
+
+    #--------------------------------------------------------------------------
+    def test_perfoutput_01(self):
+        log.info("Testing init NagiosPerformance output lap 1.")
+        perf = NagiosPerformance(label = 'bla', value = 80, warning = '~:30',
+                critical = '~:60', min_data = 0, max_data = 1000)
+        log.debug("NagiosPerformance object: %r", perf)
+        log.debug("perfoutput: %r", perf.perfoutput())
+        self.assertEqual(perf.perfoutput(), 'bla=80;30;60;0;1000',
+                "Error testing perf.perfoutput()")
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -169,6 +189,10 @@ if __name__ == '__main__':
             'test_perf_01.TestNagiosPerf.test_performance_labels'))
     suite.addTests(loader.loadTestsFromName(
             'test_perf_01.TestNagiosPerf.test_performance_root_label'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_perf_01.TestNagiosPerf.test_perfoutput_00'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_perf_01.TestNagiosPerf.test_perfoutput_01'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
