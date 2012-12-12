@@ -37,7 +37,7 @@ from nagios.plugin.performance import NagiosPerformance
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.3.0'
 
 log = logging.getLogger(__name__)
 

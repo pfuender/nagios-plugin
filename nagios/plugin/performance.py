@@ -316,7 +316,7 @@ class NagiosPerformance(object):
     def _parse(cls, string):
 
         log.debug("Parsing string %r for performance data", string)
-        match = re_perfstring(string)
+        match = re_perfstring.search(string)
         if not match:
             log.warn("String %r was not a valid performance output.", string)
             return None
@@ -341,16 +341,15 @@ class NagiosPerformance(object):
                 val = field.strip()
             elif field is not None:
                 val = re_comma.sub('.', field)
-                if i == 1:
-                    try:
-                        if re_dot.search(field):
-                            val = float(field)
-                        else:
-                            val = long(field)
-                    except ValueError, e:
-                        log.warn("Invalid performance value %r found: %s",
-                                field, str(e))
-                        return None
+                try:
+                    if re_dot.search(field):
+                        val = float(field)
+                    else:
+                        val = long(field)
+                except ValueError, e:
+                    log.warn("Invalid performance value %r found: %s",
+                            field, str(e))
+                    return None
             info.append(val)
             i += 1
 
