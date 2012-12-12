@@ -246,9 +246,9 @@ class NagiosPerformance(object):
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
-        out = ('<NagiosPerformance(label=%r, value=%r, uom=%r, threshold=%r, ' +
-                'min_data=%r, max_data=%r)>' % (self.label, self.value, self.uom,
-                self.threshold, self.min_data, self.max_data)
+        out = (('<NagiosPerformance(label=%r, value=%r, uom=%r, threshold=%r, ' +
+                'min_data=%r, max_data=%r)>') % (self.label, self.value, self.uom,
+                self.threshold, self.min_data, self.max_data))
 
         return out
 
