@@ -43,6 +43,22 @@ re_not_word = re.compile(r'\W')
 re_trailing_semicolons = re.compile(r';;$')
 re_slash = re.compile(r'/')
 re_leading_slash = re.compile(r'^/')
+re_comma = re.compile(r',')
+re_dot = re.compile(r'\.')
+
+pat_value = r'[-+]?[\d\.,]+'
+pat_value_neg_inf = pat_value + r'|~'
+"""pattern for a range with a negative infinity"""
+
+pat_perfstring = r"^'?([^'=]+)'?=(" + pat_value + r')([\w%]*);?'
+pat_perfstring += r'(' + pat_value_neg_inf + r'\:?' + pat_value + r'?)?;?'
+pat_perfstring += r'(' + pat_value_neg_inf + r'\:?' + pat_value + r'?)?;?'
+pat_perfstring += r'(' +  pat_value + r'?)?;?'
+pat_perfstring += r'(' +  pat_value + r'?)?'
+
+re_perfstring = re.compile(pat_perfstring)
+
+re_perfoutput = re.compile(r'^(.*?=.*?)\s+')
 
 #==============================================================================
 class NagiosPerformanceError(BaseNagiosError):
@@ -294,6 +310,116 @@ class NagiosPerformance(object):
         out = re_trailing_semicolons.sub('', out)
 
         return out
+
+    #--------------------------------------------------------------------------
+    @classmethod
+    def _parse(cls, string):
+
+        log.debug("Parsing string %r for performance data", string)
+        match = re_perfstring(string)
+        if not match:
+            log.warn("String %r was not a valid performance output.", string)
+            return None
+
+        log.debug("Found parsed performance output: %r", match.groups())
+
+        if match.group(1) is None or match.group(1) == '':
+            log.warn("String %r was not a valid performance output, no label found.",
+                    string)
+            return None
+
+        if match.group(2) is None or match.group(2) == '':
+            log.warn("String %r was not a valid performance output, no value found.",
+                    string)
+            return None
+
+        info = []
+        i = 0
+        for field in match.groups():
+            val = None
+            if i in (0, 2):
+                val = field.strip()
+            elif field is not None:
+                val = re_comma.sub('.', field)
+                if i == 1:
+                    try:
+                        if re_dot.search(field):
+                            val = float(field)
+                        else:
+                            val = long(field)
+                    except ValueError, e:
+                        log.warn("Invalid performance value %r found: %s",
+                                field, str(e))
+                        return None
+            info.append(val)
+            i += 1
+
+        log.debug("Found parfdata fields: %r", info)
+
+        obj = cls(label = info[0], value = info[1], uom = info[2],
+                warning = info[3], critical = info[4],
+                min_data = info[5], max_data = info[6])
+
+        return obj
+
+    #--------------------------------------------------------------------------
+    @classmethod
+    def parse_perfstring(cls, perfstring):
+        """
+        Parses the given string with performance output strings and gives
+        back a list of NagiosPerformance objects from all successful parsed
+        performance output strings.
+
+        If there is an error parsing the string - which may consists of
+        several sets of data -  will return a list with all the
+        successfully parsed sets.
+
+        If values are input with commas instead of periods, due to different
+        locale settings, then it will still be parsed, but the commas will
+        be converted to periods.
+
+        @param perfstring: the string with performance output strings to parse
+        @type perfstring: str
+
+        @return: list of NagiosPerformance objects
+        @rtype: list
+
+        """
+
+        ps = perfstring.strip()
+        perfs = []
+
+        while ps:
+
+            obj = None
+            ps = ps.strip()
+            if ps == '':
+                break
+
+            if ps.count('=') > 1:
+
+                # If there is more than 1 equals sign, split it out and
+                # parse individually
+                match = re_perfoutput.search(ps)
+                if match:
+                    obj = match.group(1)
+                    ps = re_perfoutput.sub('', ps, 1)
+                    obj = cls._parse(ps)
+                else:
+                    # This could occur if perfdata was soemthing=value=
+                    log.warn("Didn't found performance data in %r.", ps)
+                    break
+
+            else:
+                obj = cls._parse(ps)
+                ps = ''
+
+            if obj:
+                perfs.append(obj)
+
+        log.debug("Found performance data: %r", perfs)
+        return perfs
+
 
 #==============================================================================
 
