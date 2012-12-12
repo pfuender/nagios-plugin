@@ -216,19 +216,13 @@ class NagiosPerformance(object):
     @property
     def warning(self):
         """The warning threshold for performance data."""
-        if self._threshold.warning.is_set:
-            return self._threshold.warning
-        else:
-            None
+        return self._threshold.warning
 
     #------------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold for performance data."""
-        if self._threshold.critical.is_set:
-            return self._threshold.critical
-        else:
-            None
+        return self._threshold.critical
 
     #------------------------------------------------------------
     @property
