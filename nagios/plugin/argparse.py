@@ -50,7 +50,8 @@ class NagiosPluginArgparse(object):
 
     #--------------------------------------------------------------------------
     def __init__(self, usage, version = nagios.__version__, url = None,
-            blurb = None, licence = lgpl3_licence_text, extra = None):
+            blurb = None, licence = lgpl3_licence_text, extra = None,
+            plugin = None, timeout = default_timeout):
         """
         Constructor of the NagiosPluginArgparse class.
 
@@ -88,6 +89,14 @@ class NagiosPluginArgparse(object):
                         default, this is set to the standard nagios plugins
                         LGPLv3 licence text.
         @type licence: str or None
+        @param extra: Extra text to be appended at the end of the longer --help
+                      output, maybe omitted.
+        @type extra: str or None
+        @param plugin: Plugin name. This defaults to the basename of your plugin.
+        @type plugin: str or None
+        @param timeout: Timeout period in seconds, overriding the standard
+                        timeout default (15 seconds).
+        @type timeout: int
 
         """
 
@@ -125,6 +134,41 @@ class NagiosPluginArgparse(object):
         @type: str
         """
 
+        self._extra = extra
+        """
+        @ivar: Extra text to be appended at the end of the --help output.
+        @type: str or None
+        """
+        if self._extra:
+            self._extra = self._extra.strip()
+
+        default_pluginname = sys.argv[0]
+        if 'NAGIOS_PLUGIN' in os.environ:
+            default_pluginname = os.environ['NAGIOS_PLUGIN']
+        default_pluginname = os.path.basename(default_pluginname)
+        self._plugin = default_pluginname
+        """
+        @ivar: Plugin name. This defaults to the basename of your plugin.
+        @type: str
+        """
+        if plugin:
+            p = str(plugin).strip()
+            if p:
+                self._plugin = p
+
+        self._timeout = default_timeout
+        """
+        @ivar: Timeout period in seconds.
+        @type: int
+        """
+        if timeout:
+            to = int(timeout)
+            if to > 0:
+                self._timeout = to
+            else:
+                raise ValueError("Wrong timout %r given, must be > 0." % (
+                        timeout))
+
     #------------------------------------------------------------
     @property
     def usage(self):
@@ -155,6 +199,24 @@ class NagiosPluginArgparse(object):
         """The licence text."""
         return self._licence
 
+    #------------------------------------------------------------
+    @property
+    def extra(self):
+        """Extra text to be appended at the end of the --help output."""
+        return self._extra
+
+    #------------------------------------------------------------
+    @property
+    def plugin(self):
+        """The name of the plugin."""
+        return self._plugin
+
+    #------------------------------------------------------------
+    @property
+    def timeout(self):
+        """The timeout period in seconds."""
+        return self._timeout
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -172,6 +234,9 @@ class NagiosPluginArgparse(object):
                 'url': self.url,
                 'blurb': self.blurb,
                 'licence': self.licence,
+                'extra': self.extra,
+                'plugin': self.plugin,
+                'timeout': self.timeout,
         }
 
         return d
@@ -197,10 +262,13 @@ class NagiosPluginArgparse(object):
 
         fields = []
         fields.append("usage=%r" % (self.usage))
-        fields.append("version=%r" % (self.usage))
+        fields.append("version=%r" % (self.version))
         fields.append("url=%r" % (self.url))
         fields.append("blurb=%r" % (self.blurb))
         fields.append("licence=%r" % (self.licence))
+        fields.append("extra=%r" % (self.extra))
+        fields.append("plugin=%r" % (self.plugin))
+        fields.append("timeout=%r" % (self.timeout))
 
         out += ", ".join(fields) + ")>"
         return out

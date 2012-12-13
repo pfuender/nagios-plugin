@@ -39,7 +39,9 @@ class TestNagiosPluginArgparse(NeedConfig):
         log.info("Testing NagiosPluginArgparse object.")
         na = NagiosPluginArgparse(
                 usage = 'Usage: %(prog)s --hello',
-                version = '0.0.1',
+                url = 'http://www.google.de',
+                blurb = 'Senseless sample Nagios plugin.',
+                extra = 'Bla blub',
         )
         log.debug("NagiosPluginArgparse object: %r", na)
         log.debug("NagiosPluginArgparse object: %s", str(na))
