@@ -99,11 +99,11 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
 
     suite.addTests(loader.loadTestsFromName(
-            'test_getopt_03.TestNagiosPluginConfig.test_config_object'))
+            'test_argparse_03.TestNagiosPluginConfig.test_config_object'))
     suite.addTests(loader.loadTestsFromName(
-            'test_getopt_03.TestNagiosPluginConfig.test_read_default_paths'))
+            'test_argparse_03.TestNagiosPluginConfig.test_read_default_paths'))
     suite.addTests(loader.loadTestsFromName(
-            'test_getopt_03.TestNagiosPluginConfigFile.test_read_cfgfile'))
+            'test_argparse_03.TestNagiosPluginConfigFile.test_read_cfgfile'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
