@@ -1,3 +1,11 @@
+python-nagios-plugin (0.2.4-1) unstable; urgency=low
+
+  * Version bump
+  * Finished (hopefully) nagios/plugin/performance.py,
+    nagios/plugin/threshold.py and nagios/plugin/range.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 13 Dec 2012 10:49:22 +0100
+
 python-nagios-plugin (0.2.3-1) unstable; urgency=low
 
   * Version bump
