@@ -16,6 +16,8 @@ import pprint
 
 import argparse
 
+from argparse import Namespace
+
 # Third party modules
 
 # Own modules
@@ -169,6 +171,12 @@ class NagiosPluginArgparse(object):
                 raise ValueError("Wrong timout %r given, must be > 0." % (
                         timeout))
 
+        self.args = Namespace()
+        """
+        @ivar: the arguments after parsing the command line
+        @type: Namespace
+        """
+
     #------------------------------------------------------------
     @property
     def usage(self):
@@ -237,6 +245,7 @@ class NagiosPluginArgparse(object):
                 'extra': self.extra,
                 'plugin': self.plugin,
                 'timeout': self.timeout,
+                'args': self.args,
         }
 
         return d
@@ -269,9 +278,19 @@ class NagiosPluginArgparse(object):
         fields.append("extra=%r" % (self.extra))
         fields.append("plugin=%r" % (self.plugin))
         fields.append("timeout=%r" % (self.timeout))
+        fields.append("args=%r" % (self.args))
 
         out += ", ".join(fields) + ")>"
         return out
+
+    #--------------------------------------------------------------------------
+    def parse_args(self, args = None):
+        """
+        Provides the main parsing functionality. Parses the parameters
+        and stores the results in self.args.
+        """
+
+        pass
 
 #==============================================================================
 
