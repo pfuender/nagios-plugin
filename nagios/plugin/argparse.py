@@ -60,7 +60,7 @@ class NagiosPluginArgparse(object):
 
             # Minimum arguments:
             na = NagiosPluginArgparse(
-                usage = 'Usage: %s --hello',
+                usage = 'Usage: %(prog)s --hello',
                 version = '0.0.1',
             )
 
@@ -187,7 +187,7 @@ class NagiosPluginArgparse(object):
         """
 
         pretty_printer = pprint.PrettyPrinter(indent = 4)
-        return pretty_printer.pformat(self.as_dict)
+        return pretty_printer.pformat(self.as_dict())
 
     #--------------------------------------------------------------------------
     def __repr__(self):
