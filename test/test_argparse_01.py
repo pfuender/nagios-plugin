@@ -26,7 +26,7 @@ import nagios
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
-from nagios.plugin.argparse import NagiosPluginArgparse
+from nagios.plugin.argparser import NagiosPluginArgparse
 
 log = logging.getLogger(__name__)
 

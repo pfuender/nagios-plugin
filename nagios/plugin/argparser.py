@@ -59,7 +59,7 @@ class NagiosPluginArgparse(object):
 
         Instantiate object::
 
-            from nagios.plugin.argparse import NagiosPluginArgparse
+            from nagios.plugin.argparser import NagiosPluginArgparse
 
             # Minimum arguments:
             na = NagiosPluginArgparse(
