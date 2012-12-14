@@ -25,6 +25,8 @@ from argparse import Namespace
 import nagios
 from nagios import BaseNagiosError
 
+from nagios.plugin.functions import nagios_die, nagios_exit
+
 #---------------------------------------------
 # Some module variables
 
@@ -177,6 +179,12 @@ class NagiosPluginArgparse(object):
         @type: Namespace
         """
 
+        self.arguments = []
+        """
+        @ivar: a list of all appended arguments
+        @type: list of Argument
+        """
+
     #------------------------------------------------------------
     @property
     def usage(self):
@@ -226,6 +234,25 @@ class NagiosPluginArgparse(object):
         return self._timeout
 
     #--------------------------------------------------------------------------
+    def _exit(self, status, messages):
+
+        msgs = messages
+        if isinstance(messages, basestring):
+            msgs = [msgs]
+        msg = "\n".join(msgs)
+        nagios_exit(status, msg)
+
+    #--------------------------------------------------------------------------
+    def _die(self, messages):
+
+        self._exit(nagios.state.unknown, messages)
+
+    #--------------------------------------------------------------------------
+    def _finish(self, messages):
+
+        self._exit(nagios.state.ok, messages)
+
+    #--------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -264,6 +291,14 @@ class NagiosPluginArgparse(object):
         return pretty_printer.pformat(self.as_dict())
 
     #--------------------------------------------------------------------------
+    def _get_version_str(self):
+
+        out = "%s %s" % (self.plugin, self.version)
+        if self.url:
+            out += " [%s]" % (self.url)
+        return out
+
+    #--------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
@@ -290,7 +325,97 @@ class NagiosPluginArgparse(object):
         and stores the results in self.args.
         """
 
-        pass
+        desc = self._get_version_str() + "\n\n"
+        desc += self.licence + "\n\n"
+        desc += self.blurb + "\n\n"
+        desc += self.usage
+
+        parser = argparse.ArgumentParser(
+                program = self.plugin,
+                usage = '',
+                description = desc,
+                epilog = self.extra,
+                add_help = False,
+        )
+
+        self._add_std_args(parser)
+
+        log.debug("ArgumentParser object: %r", parser)
+
+        self.args = parser.parse_args(args)
+
+        if self.args.usage:
+            self._print_usage()
+
+        if self.args.version:
+            self._die(self._get_version_str())
+
+        if self.args.help:
+            self._print_help(parser)
+
+    #--------------------------------------------------------------------------
+    def _print_help(self, parser):
+
+        self._die(parser.format_help())
+
+    #--------------------------------------------------------------------------
+    def _print_usage(self):
+
+        out = self.usage % (self.plugin)
+        self._die(out)
+
+    #--------------------------------------------------------------------------
+    def _add_std_args(self, parser):
+
+        std_group = parser.add_argument_group('General options')
+
+        std_group.add_argument(
+                '--usage', '-?',
+                action = 'store_true',
+                dest = 'usage',
+                help = 'Print usage information',
+        )
+
+        std_group.add_argument(
+                '--help', '-h',
+                action = 'store_true',
+                dest = 'help',
+                help = 'Print detailed help screen',
+        )
+
+        std_group.add_argument(
+                '--version', '-V',
+                action = 'store_true',
+                dest = 'version',
+                help = 'Print version information',
+        )
+
+        std_group.add_argument(
+                '--extra-opts',
+                action = 'append',
+                dest = 'extra_opts',
+                metavar = '[section][@file]',
+                help = ('Read options from an ini file. See ' +
+                        'http://nagiosplugins.org/extra-opts for ' +
+                        'usage and examples.')
+        )
+
+        std_group.add_argument(
+                '--timeout', '-t',
+                type = 'int',
+                dest = 'timeout',
+                default = self.timeout,
+                help = 'Seconds before plugin times out (default: %(default)s)',
+        )
+
+        std_group.add_argument(
+                '--verbose', '-v',
+                action = 'count',
+                dest = 'verbose',
+                default = default_verbose,
+                help = ('Show details for command-line debugging ' +
+                        '(can repeat up to 3 times)'),
+        )
 
 #==============================================================================
 

@@ -46,6 +46,19 @@ class TestNagiosPluginArgparse(NeedConfig):
         log.debug("NagiosPluginArgparse object: %r", na)
         log.debug("NagiosPluginArgparse object: %s", str(na))
 
+    #--------------------------------------------------------------------------
+    def test_argparse_parse_help(self):
+
+        log.info("Testing NagiosPluginArgparse generating help.")
+        na = NagiosPluginArgparse(
+                usage = 'Usage: %(prog)s --hello',
+                url = 'http://www.google.de',
+                blurb = 'Senseless sample Nagios plugin.',
+                extra = 'Bla blub',
+        )
+
+        na.parse_args(['-h'])
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -60,6 +73,8 @@ if __name__ == '__main__':
 
     suite.addTests(loader.loadTestsFromName(
             'test_argparse_01.TestNagiosPluginArgparse.test_argparse_object'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_argparse_01.TestNagiosPluginArgparse.test_argparse_parse_help'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
