@@ -32,7 +32,7 @@ from nagios.plugin.functions import nagios_die, nagios_exit
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 log = logging.getLogger(__name__)
 
@@ -365,7 +365,7 @@ class NagiosPluginArgparse(object):
         self.args = parser.parse_args(args)
 
         if self.args.usage:
-            self._print_usage()
+            self._print_usage(parser)
 
         if self.args.version:
             self._finish(self._get_version_str())
@@ -379,10 +379,10 @@ class NagiosPluginArgparse(object):
         self._finish(parser.format_help())
 
     #--------------------------------------------------------------------------
-    def _print_usage(self):
+    def _print_usage(self, parser):
 
-        out = self.usage % (self.plugin)
-        self._finish(out)
+        #out = self.usage % (self.plugin)
+        self._finish(parser.format_usage())
 
     #--------------------------------------------------------------------------
     def _add_std_args(self, parser):

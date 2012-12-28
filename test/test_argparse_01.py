@@ -49,6 +49,40 @@ class TestNagiosPluginArgparse(NeedConfig):
         log.debug("NagiosPluginArgparse object: %s", str(na))
 
     #--------------------------------------------------------------------------
+    def test_argparse_show_version(self):
+
+        log.info("Testing NagiosPluginArgparse showing version.")
+        na = NagiosPluginArgparse(
+                usage = '%(prog)s --version',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Senseless sample Nagios plugin.',
+                extra = 'Bla blub',
+        )
+
+        try:
+            na.parse_args(['--version'])
+        except FakeExitError, e:
+            log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
+            log.debug("Message on exit:\n%s", e.msg)
+
+    #--------------------------------------------------------------------------
+    def test_argparse_show_usage(self):
+
+        log.info("Testing NagiosPluginArgparse showing usage.")
+        na = NagiosPluginArgparse(
+                usage = '%(prog)s --version',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Senseless sample Nagios plugin.',
+                extra = 'Bla blub',
+        )
+
+        try:
+            na.parse_args(['--usage'])
+        except FakeExitError, e:
+            log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
+            log.debug("Message on exit:\n%s", e.msg)
+
+    #--------------------------------------------------------------------------
     def test_argparse_parse_help(self):
 
         log.info("Testing NagiosPluginArgparse generating help.")
@@ -57,6 +91,7 @@ class TestNagiosPluginArgparse(NeedConfig):
                 url = 'http://www.profitbricks.com',
                 blurb = 'Senseless sample Nagios plugin.',
                 extra = 'Bla blub\n\nblubber blub',
+                licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
         )
 
         try:
@@ -79,6 +114,10 @@ if __name__ == '__main__':
 
     suite.addTests(loader.loadTestsFromName(
             'test_argparse_01.TestNagiosPluginArgparse.test_argparse_object'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_argparse_01.TestNagiosPluginArgparse.test_argparse_show_version'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_argparse_01.TestNagiosPluginArgparse.test_argparse_show_usage'))
     suite.addTests(loader.loadTestsFromName(
             'test_argparse_01.TestNagiosPluginArgparse.test_argparse_parse_help'))
 
