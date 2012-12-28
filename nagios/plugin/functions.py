@@ -20,7 +20,7 @@ import nagios
 
 from nagios import FakeExitError
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 #---------------------------------------------
 # Some module variables
@@ -109,9 +109,7 @@ def nagios_exit(code, message, arg = None, no_status_line = False):
     # Set defaults
     if not (code is not None and code in STATUS_TEXT):
         code = nagios.state.unknown
-    if message is None:
-        message = ''
-    else:
+    if message is not None:
         if isinstance(message, list) or isinstance(message, tuple):
             message = ' '.join(lambda x: str(x).strip(), message)
         else:
@@ -120,10 +118,10 @@ def nagios_exit(code, message, arg = None, no_status_line = False):
     # Setup output
     output = ''
     if no_status_line:
-        if message:
-            output = message
-        else:
+        if message is None:
             output = "[no message]"
+        elif message:
+            output = message
     else:
         output = STATUS_TEXT[code]
         if message:
@@ -145,7 +143,8 @@ def nagios_exit(code, message, arg = None, no_status_line = False):
                 if callable(all_perfoutput):
                     output += ' | ' + all_perfoutput()
 
-    output += '\n'
+    if output:
+        output += '\n'
 
     if _fake_exit:
         raise FakeExitError(code, output)
@@ -155,7 +154,8 @@ def nagios_exit(code, message, arg = None, no_status_line = False):
 #------------------------------------------------------------------------------
 def _nagios_exit(code, output):
 
-    print output
+    if output:
+        print output
     sys.exit(code)
 
 #------------------------------------------------------------------------------

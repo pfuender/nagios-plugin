@@ -87,7 +87,7 @@ class TestNagiosPluginArgparse(NeedConfig):
 
         log.info("Testing NagiosPluginArgparse generating help.")
         na = NagiosPluginArgparse(
-                usage = '%(prog)s --hello',
+                usage = '%(prog)s --help',
                 url = 'http://www.profitbricks.com',
                 blurb = 'Senseless sample Nagios plugin.',
                 extra = 'Bla blub\n\nblubber blub',
@@ -96,6 +96,23 @@ class TestNagiosPluginArgparse(NeedConfig):
 
         try:
             na.parse_args(['-h'])
+        except FakeExitError, e:
+            log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
+            log.debug("Message on exit:\n%s", e.msg)
+
+    #--------------------------------------------------------------------------
+    def test_argparse_wrong_argument(self):
+
+        log.info("Testing NagiosPluginArgparse for a wrong argument.")
+        na = NagiosPluginArgparse(
+                usage = '%(prog)s',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Senseless sample Nagios plugin.',
+                licence = '',
+        )
+
+        try:
+            na.parse_args(['--bli-bla-blub'])
         except FakeExitError, e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
             log.debug("Message on exit:\n%s", e.msg)
@@ -120,6 +137,8 @@ if __name__ == '__main__':
             'test_argparse_01.TestNagiosPluginArgparse.test_argparse_show_usage'))
     suite.addTests(loader.loadTestsFromName(
             'test_argparse_01.TestNagiosPluginArgparse.test_argparse_parse_help'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_argparse_01.TestNagiosPluginArgparse.test_argparse_wrong_argument'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 

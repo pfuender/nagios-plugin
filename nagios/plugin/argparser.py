@@ -32,7 +32,7 @@ from nagios.plugin.functions import nagios_die, nagios_exit
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 log = logging.getLogger(__name__)
 
@@ -245,13 +245,17 @@ class NagiosPluginArgparse(object):
         nagios_exit(status, msg, no_status_line = True)
 
     #--------------------------------------------------------------------------
-    def _die(self, messages):
+    def _die(self, messages = None):
 
+        if not messages:
+            messages = []
         self._exit(nagios.state.unknown, messages)
 
     #--------------------------------------------------------------------------
-    def _finish(self, messages):
+    def _finish(self, messages = None):
 
+        if not messages:
+            messages = []
         self._exit(nagios.state.ok, messages)
 
     #--------------------------------------------------------------------------
@@ -347,7 +351,8 @@ class NagiosPluginArgparse(object):
         epilog = self._get_version_str() + "\n\n"
         if self.extra:
             epilog += self.extra.strip() + "\n\n"
-        epilog += wrapper.fill(re_ws.sub(' ', self.licence))
+        if self.licence:
+            epilog += wrapper.fill(re_ws.sub(' ', self.licence))
 
         parser = argparse.ArgumentParser(
                 prog = self.plugin,
@@ -362,7 +367,10 @@ class NagiosPluginArgparse(object):
 
         log.debug("ArgumentParser object: %r", parser)
 
-        self.args = parser.parse_args(args)
+        try:
+            self.args = parser.parse_args(args)
+        except SystemExit, e:
+            self._die()
 
         if self.args.usage:
             self._print_usage(parser)
