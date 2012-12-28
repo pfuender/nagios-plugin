@@ -29,10 +29,13 @@ from nagios import BaseNagiosError
 
 from nagios.plugin.functions import nagios_die, nagios_exit
 
+from nagios.plugin.config import NoConfigfileFound
+from nagios.plugin.config import NagiosPluginConfig
+
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.1'
+__version__ = '0.4.0'
 
 log = logging.getLogger(__name__)
 
@@ -400,6 +403,16 @@ class NagiosPluginArgparse(object):
         if self.args.help:
             self._finish(parser.format_help())
 
+        if self.args.extra_opts:
+            new_args = self._process_extra_opts(args, self.args.extra_opts)
+            log.debug("Got new commandline parameters %r.", new_args)
+            if new_args != args:
+                log.debug("Reevaluate commandline options ...")
+                try:
+                    self.args = parser.parse_args(args)
+                except SystemExit, e:
+                    self._die()
+
         for arg in self.arguments:
 
             dest = arg['kwargs']['dest']
@@ -416,6 +429,83 @@ class NagiosPluginArgparse(object):
                         msg = "Argument %r is a required argument." % (arg_str)
                         msg += "\n\n" + parser.format_usage()
                         self._die(msg)
+
+    #--------------------------------------------------------------------------
+    def _process_extra_opts(self, args, extra_opts):
+        """
+        Process and load extra-opts sections.
+
+        """
+
+        if not extra_opts:
+            return args
+
+        re_extopt = re.compile(r'^(\w*)@(.*?)\s*$')
+
+        s_args = []
+        for ext_opt in extra_opts:
+
+            if not ext_opt:
+                ext_opt = self.plugin
+
+            section = ext_opt
+            cfg_file = None
+
+            match = re_extopt.search(ext_opt)
+            if match:
+                section = match.group(1)
+                cfg_file = match.group(2)
+
+            ini_opts = self._load_config_section(section, cfg_file)
+            log.debug("Read extra opts from %r: %r", cfg_file, ini_opts)
+
+        nargs = args
+        if args is None:
+            nargs = []
+        elif isinstance(args, basestring):
+            nargs = [args]
+        else:
+            nargs = args[:]
+
+        return s_args + nargs
+
+    #--------------------------------------------------------------------------
+    def _load_config_section(self, section, cfg_file = None):
+        """Loads the given section from the given ini-file or from the first
+            found default ini-file."""
+
+        if not section:
+            section = self.plugin
+
+        log.debug("Trying to load extra options from section %r of file %r.",
+                section, cfg_file)
+
+        cfg = NagiosPluginConfig()
+        configs = []
+        try:
+            configs = cfg.read(cfg_file)
+        except NoConfigfileFound, e:
+            log.warn(str(e))
+            return {}
+
+        configs_str = str(configs)
+        if len(configs):
+            configs_str = ', '.join(map(lambda x: "'" + x + "'", configs))
+        else:
+            configs_str = '<None>'
+
+        if not section in cfg.sections():
+            log.debug("Section %r not found in ini-files %s.",
+                     section, configs_str)
+            return {}
+
+        ini_opts = {}
+        for option in cfg.options(section):
+
+            val = cfg.get(section, option)
+            ini_opts[option] = val
+
+        return ini_opts
 
     #--------------------------------------------------------------------------
     def add_arg(self, *names, **kwargs):
@@ -514,6 +604,7 @@ class NagiosPluginArgparse(object):
                 '--extra-opts',
                 action = 'append',
                 dest = 'extra_opts',
+                nargs = '?',
                 metavar = '[section][@file]',
                 help = ('Read options from an ini file. See ' +
                         'http://nagiosplugins.org/extra-opts for ' +

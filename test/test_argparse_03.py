@@ -92,10 +92,10 @@ class TestNagiosPluginConfigFile(NeedTmpConfig):
                     e.__class__.__name__, str(e)))
 
 #==============================================================================
-class TestNagiosArgParseExtraOpts(NeedConfig):
+class TestNagiosArgParseExtraOpts(NeedTmpConfig):
 
     #--------------------------------------------------------------------------
-    def test_argparse_perform_args(self):
+    def test_argparse_perform_args1(self):
 
         log.info("Testing performing arguments by a NagiosPluginArgparse object.")
         na = NagiosPluginArgparse(
@@ -109,6 +109,26 @@ class TestNagiosArgParseExtraOpts(NeedConfig):
         log.debug("NagiosPluginArgparse object: %r", na)
 
         na.parse_args(['--extra-opts', 'check_disk', '-p', '/var'])
+
+        log.debug("Evaluated arguments: %r", na.args)
+
+    #--------------------------------------------------------------------------
+    def test_argparse_perform_args2(self):
+
+        log.info("Testing performing arguments by a NagiosPluginArgparse object.")
+        na = NagiosPluginArgparse(
+                usage = '%(prog)s [options] -p <partition>',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Senseless sample Nagios plugin.',
+                licence = '',
+        )
+        na.add_arg('-p', '--partition', required = True, metavar = 'PARTITION',
+                dest = 'partition', help = "The partition to check")
+        log.debug("NagiosPluginArgparse object: %r", na)
+
+        na.parse_args(['--extra-opts', 'check_disk',
+                        '--extra-opts', ('check_disk@%s' % (self.tmp_cfg)),
+                        '-p', '/var'])
 
         log.debug("Evaluated arguments: %r", na.args)
 
@@ -131,7 +151,9 @@ if __name__ == '__main__':
     suite.addTests(loader.loadTestsFromName(
             'test_argparse_03.TestNagiosPluginConfigFile.test_read_cfgfile'))
     suite.addTests(loader.loadTestsFromName(
-            'test_argparse_03.TestNagiosArgParseExtraOpts.test_argparse_perform_args'))
+            'test_argparse_03.TestNagiosArgParseExtraOpts.test_argparse_perform_args1'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_argparse_03.TestNagiosArgParseExtraOpts.test_argparse_perform_args2'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
