@@ -20,7 +20,7 @@ import nagios
 
 from nagios import FakeExitError
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 #---------------------------------------------
 # Some module variables
@@ -100,7 +100,7 @@ def max_state_alt(*args):
     return nagios.state.unknown
 
 #------------------------------------------------------------------------------
-def nagios_exit(code, message, arg = None, no_status_line = False):
+def nagios_exit(code, message, plugin_object = None, no_status_line = False):
 
     # Handle string codes
     if code is not None and code in ERRORS:
@@ -127,9 +127,8 @@ def nagios_exit(code, message, arg = None, no_status_line = False):
         if message:
             output += " - " + message
         shortname = None
-        if hasattr(arg, 'plugin'):
-            plugin = getattr(arg, 'plugin')
-            shortname = getattr(plugin, 'shortname', None)
+        if plugin_object:
+            shortname = getattr(plugin_object, 'shortname', None)
         # Should happen only if funnctions are called directly
         if not shortname:
             shortname = get_shortname()
@@ -137,9 +136,10 @@ def nagios_exit(code, message, arg = None, no_status_line = False):
             output = shortname + " " + output
         if hasattr(arg, 'plugin'):
             plugin = getattr(arg, 'plugin')
-            perfdata = getattr(plugin, 'perfdata', None)
-            if perfdata and hasattr(plugin, 'all_perfoutput'):
-                all_perfoutput = getattr(plugin, 'all_perfoutput')
+        if plugin_object:
+            perfdata = getattr(plugin_object, 'perfdata', None)
+            if perfdata and hasattr(plugin_object, 'all_perfoutput'):
+                all_perfoutput = getattr(plugin_object, 'all_perfoutput')
                 if callable(all_perfoutput):
                     output += ' | ' + all_perfoutput()
 
@@ -159,9 +159,10 @@ def _nagios_exit(code, output):
     sys.exit(code)
 
 #------------------------------------------------------------------------------
-def nagios_die(message, arg = None):
+def nagios_die(message, plugin_object = None, no_status_line = False):
 
-    return nagios_exit(nagios.state.unknown, message, arg)
+    return nagios_exit(nagios.state.unknown, message,
+            plugin_object, no_status_line)
 
 #------------------------------------------------------------------------------
 def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
