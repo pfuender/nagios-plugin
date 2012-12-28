@@ -13,6 +13,8 @@ import os
 import sys
 import logging
 import pprint
+import textwrap
+import re
 
 import argparse
 
@@ -240,7 +242,7 @@ class NagiosPluginArgparse(object):
         if isinstance(messages, basestring):
             msgs = [msgs]
         msg = "\n".join(msgs)
-        nagios_exit(status, msg)
+        nagios_exit(status, msg, no_status_line = True)
 
     #--------------------------------------------------------------------------
     def _die(self, messages):
@@ -325,17 +327,35 @@ class NagiosPluginArgparse(object):
         and stores the results in self.args.
         """
 
-        desc = self._get_version_str() + "\n\n"
-        desc += self.licence + "\n\n"
-        desc += self.blurb + "\n\n"
-        desc += self.usage
+        width = 0
+        try:
+            width = int(os.environ['COLUMNS'])
+        except (KeyError, ValueError):
+            width = 80
+        width -= 2
+
+        wrapper = textwrap.TextWrapper(
+                width = width,
+                replace_whitespace = False,
+                fix_sentence_endings = False,
+                break_long_words = False,
+        )
+        re_ws = re.compile(r'\s+')
+
+        desc = wrapper.fill(re_ws.sub(' ', self.blurb))
+
+        epilog = self._get_version_str() + "\n\n"
+        if self.extra:
+            epilog += self.extra.strip() + "\n\n"
+        epilog += wrapper.fill(re_ws.sub(' ', self.licence))
 
         parser = argparse.ArgumentParser(
-                program = self.plugin,
-                usage = '',
+                prog = self.plugin,
+                usage = self.usage,
                 description = desc,
-                epilog = self.extra,
+                epilog = epilog,
                 add_help = False,
+                formatter_class = argparse.RawDescriptionHelpFormatter,
         )
 
         self._add_std_args(parser)
@@ -348,7 +368,7 @@ class NagiosPluginArgparse(object):
             self._print_usage()
 
         if self.args.version:
-            self._die(self._get_version_str())
+            self._finish(self._get_version_str())
 
         if self.args.help:
             self._print_help(parser)
@@ -356,13 +376,13 @@ class NagiosPluginArgparse(object):
     #--------------------------------------------------------------------------
     def _print_help(self, parser):
 
-        self._die(parser.format_help())
+        self._finish(parser.format_help())
 
     #--------------------------------------------------------------------------
     def _print_usage(self):
 
         out = self.usage % (self.plugin)
-        self._die(out)
+        self._finish(out)
 
     #--------------------------------------------------------------------------
     def _add_std_args(self, parser):
@@ -402,7 +422,7 @@ class NagiosPluginArgparse(object):
 
         std_group.add_argument(
                 '--timeout', '-t',
-                type = 'int',
+                type = int,
                 dest = 'timeout',
                 default = self.timeout,
                 help = 'Seconds before plugin times out (default: %(default)s)',

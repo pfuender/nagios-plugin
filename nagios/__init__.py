@@ -19,6 +19,37 @@ class BaseNagiosError(Exception):
     pass
 
 #==============================================================================
+class FakeExitError(BaseNagiosError):
+    """
+    Special exception class indicating a faked nagios_exit().
+
+    It can be used in unit tests.
+
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, exit_value, msg):
+        """
+        Constructor.
+
+        @param exit_value: the exit value, which should be given back to OS.
+        @type exit_value: int
+        @param msg: the error message, which should be displayed on exit.
+        @type msg: str
+
+        """
+
+        self.exit_value = int(exit_value)
+        self.msg = str(msg)
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """Typecasting into a string for error output."""
+
+        return "Faked exit to OS. Exit value: %d, message: %r" % (
+                self.exit_value, self.msg)
+
+#==============================================================================
 
 def constant(f):
 

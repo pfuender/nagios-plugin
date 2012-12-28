@@ -18,6 +18,8 @@ import re
 
 import nagios
 
+from nagios import FakeExitError
+
 __version__ = '0.1.0'
 
 #---------------------------------------------
@@ -98,7 +100,7 @@ def max_state_alt(*args):
     return nagios.state.unknown
 
 #------------------------------------------------------------------------------
-def nagios_exit(code, message, arg = None):
+def nagios_exit(code, message, arg = None, no_status_line = False):
 
     # Handle string codes
     if code is not None and code in ERRORS:
@@ -116,29 +118,37 @@ def nagios_exit(code, message, arg = None):
             message = str(message).strip()
 
     # Setup output
-    output = STATUS_TEXT[code]
-    if message:
-        output += " - " + message
-    shortname = None
-    if hasattr(arg, 'plugin'):
-        plugin = getattr(arg, 'plugin')
-        shortname = getattr(plugin, 'shortname', None)
-    # Should happen only if funnctions are called directly
-    if not shortname:
-        shortname = get_shortname()
-    if shortname:
-        output = shortname + " " + output
-    if hasattr(arg, 'plugin'):
-        plugin = getattr(arg, 'plugin')
-        perfdata = getattr(plugin, 'perfdata', None)
-        if perfdata and hasattr(plugin, 'all_perfoutput'):
-            all_perfoutput = getattr(plugin, 'all_perfoutput')
-            if callable(all_perfoutput):
-                output += ' | ' + all_perfoutput()
+    output = ''
+    if no_status_line:
+        if message:
+            output = message
+        else:
+            output = "[no message]"
+    else:
+        output = STATUS_TEXT[code]
+        if message:
+            output += " - " + message
+        shortname = None
+        if hasattr(arg, 'plugin'):
+            plugin = getattr(arg, 'plugin')
+            shortname = getattr(plugin, 'shortname', None)
+        # Should happen only if funnctions are called directly
+        if not shortname:
+            shortname = get_shortname()
+        if shortname:
+            output = shortname + " " + output
+        if hasattr(arg, 'plugin'):
+            plugin = getattr(arg, 'plugin')
+            perfdata = getattr(plugin, 'perfdata', None)
+            if perfdata and hasattr(plugin, 'all_perfoutput'):
+                all_perfoutput = getattr(plugin, 'all_perfoutput')
+                if callable(all_perfoutput):
+                    output += ' | ' + all_perfoutput()
+
     output += '\n'
 
     if _fake_exit:
-        raise NotImplementedError("_fake_exit not even implemented.")
+        raise FakeExitError(code, output)
 
     return _nagios_exit(code, output)
 

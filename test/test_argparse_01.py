@@ -23,6 +23,8 @@ from general import ColoredFormatter, pp, get_arg_verbose, init_root_logger
 from general import NeedConfig, NeedTmpConfig
 
 import nagios
+from nagios import FakeExitError
+
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
@@ -38,8 +40,8 @@ class TestNagiosPluginArgparse(NeedConfig):
 
         log.info("Testing NagiosPluginArgparse object.")
         na = NagiosPluginArgparse(
-                usage = 'Usage: %(prog)s --hello',
-                url = 'http://www.google.de',
+                usage = '%(prog)s --hello',
+                url = 'http://www.profitbricks.com',
                 blurb = 'Senseless sample Nagios plugin.',
                 extra = 'Bla blub',
         )
@@ -51,13 +53,17 @@ class TestNagiosPluginArgparse(NeedConfig):
 
         log.info("Testing NagiosPluginArgparse generating help.")
         na = NagiosPluginArgparse(
-                usage = 'Usage: %(prog)s --hello',
-                url = 'http://www.google.de',
+                usage = '%(prog)s --hello',
+                url = 'http://www.profitbricks.com',
                 blurb = 'Senseless sample Nagios plugin.',
-                extra = 'Bla blub',
+                extra = 'Bla blub\n\nblubber blub',
         )
 
-        na.parse_args(['-h'])
+        try:
+            na.parse_args(['-h'])
+        except FakeExitError, e:
+            log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
+            log.debug("Message on exit:\n%s", e.msg)
 
 #==============================================================================
 

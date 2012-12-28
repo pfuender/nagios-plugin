@@ -20,6 +20,9 @@ import pprint
 import argparse
 
 import nagios
+import nagios.plugin.functions
+
+from nagios import FakeExitError
 
 #==============================================================================
 # module variables and helper functions
@@ -250,6 +253,9 @@ class NeedConfig(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def setUp(self):
+
+        nagios.plugin.functions._fake_exit = True
+
         bdir = os.path.realpath(os.path.dirname(sys.argv[0]))
         self.test_dir = os.path.join(bdir, 'npg03')
         if not os.path.isdir(self.test_dir):
