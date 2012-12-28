@@ -32,7 +32,7 @@ from nagios.plugin.functions import nagios_die, nagios_exit
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 log = logging.getLogger(__name__)
 
@@ -337,6 +337,7 @@ class NagiosPluginArgparse(object):
         fields.append("timeout=%r" % (self.timeout))
         fields.append("args=%r" % (self.args))
         fields.append("arguments=%r" % (self.arguments))
+        fields.append("_used_arg_dests=%r" % (self._used_arg_dests))
 
         out += ", ".join(fields) + ")>"
         return out
@@ -399,6 +400,23 @@ class NagiosPluginArgparse(object):
         if self.args.help:
             self._finish(parser.format_help())
 
+        for arg in self.arguments:
+
+            dest = arg['kwargs']['dest']
+            #log.debug("Checking argument %r for required ....", dest)
+            if 'required' in arg['kwargs']:
+                required = arg['kwargs']['required']
+                #log.debug("Argument required: %r", required)
+                if required:
+                    val = getattr(self.args, dest, None)
+                    log.debug("Checking for required argument %r, current value is %r.",
+                            dest, val)
+                    if not hasattr(self.args, dest) or getattr(self.args, dest, None) is None:
+                        arg_str = '/'.join(arg['names'])
+                        msg = "Argument %r is a required argument." % (arg_str)
+                        msg += "\n\n" + parser.format_usage()
+                        self._die(msg)
+
     #--------------------------------------------------------------------------
     def add_arg(self, *names, **kwargs):
         """
@@ -456,10 +474,15 @@ class NagiosPluginArgparse(object):
             names = arg['names']
             kwargs = arg['kwargs']
 
+            o_req = None
             if 'required' in kwargs:
+                o_req = kwargs['required']
                 kwargs['required'] = False
 
             parser.add_argument(*names, **kwargs)
+
+            if o_req is not None:
+                kwargs['required'] = o_req
 
     #--------------------------------------------------------------------------
     def _add_std_args(self, parser):
