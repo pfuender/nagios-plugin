@@ -32,7 +32,7 @@ from nagios.plugin.functions import nagios_die, nagios_exit
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.3'
+__version__ = '0.3.0'
 
 log = logging.getLogger(__name__)
 
@@ -45,6 +45,12 @@ http://www.gnu.org/licenses/lgpl).
 
 default_timeout = 15
 default_verbose = 0
+
+#==============================================================================
+class NagiosPluginArgparseError(BaseNagiosError):
+    """Special exceptions, which are raised in this module."""
+
+    pass
 
 #==============================================================================
 class NagiosPluginArgparse(object):
@@ -187,6 +193,14 @@ class NagiosPluginArgparse(object):
         @type: list of Argument
         """
 
+        self._used_arg_dests = [
+                'usage', 'help', 'version', 'extra_opts', 'timeout', 'verbose'
+        ]
+        """
+        @ivar: all currently used argument destinations.
+        @type: list of str
+        """
+
     #------------------------------------------------------------
     @property
     def usage(self):
@@ -279,6 +293,8 @@ class NagiosPluginArgparse(object):
                 'plugin': self.plugin,
                 'timeout': self.timeout,
                 'args': self.args,
+                'arguments': self.arguments,
+                '_used_arg_dests': self._used_arg_dests,
         }
 
         return d
@@ -320,6 +336,7 @@ class NagiosPluginArgparse(object):
         fields.append("plugin=%r" % (self.plugin))
         fields.append("timeout=%r" % (self.timeout))
         fields.append("args=%r" % (self.args))
+        fields.append("arguments=%r" % (self.arguments))
 
         out += ", ".join(fields) + ")>"
         return out
@@ -363,6 +380,7 @@ class NagiosPluginArgparse(object):
                 formatter_class = argparse.RawDescriptionHelpFormatter,
         )
 
+        self._add_plugin_args(parser)
         self._add_std_args(parser)
 
         log.debug("ArgumentParser object: %r", parser)
@@ -380,6 +398,68 @@ class NagiosPluginArgparse(object):
 
         if self.args.help:
             self._finish(parser.format_help())
+
+    #--------------------------------------------------------------------------
+    def add_arg(self, *names, **kwargs):
+        """
+        Adds a new plugin argument to the parser.
+
+        @param names: Either a name or a list of option strings,
+                      e.g. foo or -f, --foo.
+        @type names: str or list of str
+        @param kwargs: all keyword arguments, which should be used to define
+                       the argument, they are used 1:1 to the method
+                       ArgumentParser.add_argument(), see
+                       http://docs.python.org/2/library/argparse.html#the-add-argument-method
+                       which keyword arguments can be used.
+        @type kwargs: dict
+
+        """
+
+        if not names:
+            msg = "No names or tags defined for this argument."
+            raise NagiosPluginArgparseError(msg)
+
+        valid_kwargs = (
+                'action', 'nargs', 'const', 'default', 'type', 'choices', 'required',
+                'help', 'metavar', 'dest',
+        )
+
+        if not 'dest' in kwargs:
+            msg = ("The keyword 'dest' is a required argument in " +
+                    "calling add_arg().")
+            raise NagiosPluginArgparseError(msg)
+
+        dest = kwargs['dest']
+        if dest in self._used_arg_dests:
+            msg = ("The destination %r is allready used.") % (dest)
+            raise NagiosPluginArgparseError(msg)
+        self._used_arg_dests.append(dest)
+
+        for kword in kwargs:
+            if not kword in valid_kwargs:
+                msg = ("Invalid keyword argument %r on calling add_arg() " +
+                        "used.") % (kword)
+                raise NagiosPluginArgparseError(msg)
+
+        arg = {}
+        arg['names'] = names
+        arg['kwargs'] = kwargs
+
+        self.arguments.append(arg)
+
+    #--------------------------------------------------------------------------
+    def _add_plugin_args(self, parser):
+
+        for arg in self.arguments:
+
+            names = arg['names']
+            kwargs = arg['kwargs']
+
+            if 'required' in kwargs:
+                kwargs['required'] = False
+
+            parser.add_argument(*names, **kwargs)
 
     #--------------------------------------------------------------------------
     def _add_std_args(self, parser):
