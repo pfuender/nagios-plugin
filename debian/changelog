@@ -1,3 +1,10 @@
+python-nagios-plugin (0.2.7-1) unstable; urgency=low
+
+  * Version bump
+  * Nearly completed nagios/plugin/argparser.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 28 Dec 2012 16:10:41 +0100
+
 python-nagios-plugin (0.2.6-1) unstable; urgency=low
 
   * Version bump

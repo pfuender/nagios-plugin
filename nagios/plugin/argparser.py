@@ -35,7 +35,7 @@ from nagios.plugin.config import NagiosPluginConfig
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 log = logging.getLogger(__name__)
 
@@ -394,6 +394,8 @@ class NagiosPluginArgparse(object):
         except SystemExit, e:
             self._die()
 
+        log.debug("Got first commandline arguments: %r", self.args)
+
         if self.args.usage:
             self._finish(parser.format_usage())
 
@@ -409,17 +411,16 @@ class NagiosPluginArgparse(object):
             if new_args != args:
                 log.debug("Reevaluate commandline options ...")
                 try:
-                    self.args = parser.parse_args(args)
+                    self.args = parser.parse_args(new_args)
                 except SystemExit, e:
                     self._die()
+                log.debug("Got next commandline arguments: %r", self.args)
 
         for arg in self.arguments:
 
             dest = arg['kwargs']['dest']
-            #log.debug("Checking argument %r for required ....", dest)
             if 'required' in arg['kwargs']:
                 required = arg['kwargs']['required']
-                #log.debug("Argument required: %r", required)
                 if required:
                     val = getattr(self.args, dest, None)
                     log.debug("Checking for required argument %r, current value is %r.",
@@ -458,6 +459,10 @@ class NagiosPluginArgparse(object):
 
             ini_opts = self._load_config_section(section, cfg_file)
             log.debug("Read extra opts from %r: %r", cfg_file, ini_opts)
+            n_args = self._cmdline(ini_opts)
+            log.debug("Resulting commandline options: %r", n_args)
+
+            s_args += n_args
 
         nargs = args
         if args is None:
@@ -468,6 +473,46 @@ class NagiosPluginArgparse(object):
             nargs = args[:]
 
         return s_args + nargs
+
+    #--------------------------------------------------------------------------
+    def _cmdline(self, ini_opts):
+        """
+        Helper method to format key/values in ini_opts in a quasi-commandline format
+        """
+
+        args = []
+        re_underscore = re.compile(r'^_')
+        re_any_us = re.compile(r'_')
+        re_valid_key = re.compile(r'^[a-z0-9](?:[a-z0-9\-_]*[a-z0-9_])?$',
+                re.IGNORECASE)
+
+        for key in ini_opts:
+
+            lkey = re_any_us.sub('-', key.lower())
+            if re_underscore.search(key):
+                continue
+
+            if lkey in ('usage', '?', 'help', 'h', 'version', 'v', 'extra-opts',
+                    'timeout', 't', 'verbose'):
+                continue
+
+            val = ini_opts[key]
+            if val is None:
+                continue
+
+            if not re_valid_key.search(key):
+                log.warn("Invalid key %r for usage as commandline parameter found.",
+                        key)
+                continue
+
+            if len(key) > 1:
+                args.append("--%s" % (key))
+            else:
+                args.append("-%s" % (key))
+
+            args.append(val)
+
+        return args
 
     #--------------------------------------------------------------------------
     def _load_config_section(self, section, cfg_file = None):

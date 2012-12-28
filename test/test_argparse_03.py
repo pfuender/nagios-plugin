@@ -108,9 +108,13 @@ class TestNagiosArgParseExtraOpts(NeedTmpConfig):
                 dest = 'partition', help = "The partition to check")
         log.debug("NagiosPluginArgparse object: %r", na)
 
-        na.parse_args(['--extra-opts', 'check_disk', '-p', '/var'])
+        na.parse_args(['--extra-opts', 'check_disk'])
 
         log.debug("Evaluated arguments: %r", na.args)
+
+        if not na.args.partition == '/tmp':
+            self.fail("Unexpected value %r for partition, should be '/tmp'." % (
+                    na.args.partition))
 
     #--------------------------------------------------------------------------
     def test_argparse_perform_args2(self):
@@ -131,6 +135,10 @@ class TestNagiosArgParseExtraOpts(NeedTmpConfig):
                         '-p', '/var'])
 
         log.debug("Evaluated arguments: %r", na.args)
+
+        if not na.args.partition == '/var':
+            self.fail("Unexpected value %r for partition, should be '/var'." % (
+                    na.args.partition))
 
 #==============================================================================
 
