@@ -63,7 +63,7 @@ class TestNagiosPluginArgparse(NeedConfig):
             na.parse_args(['--version'])
         except FakeExitError, e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
-            log.debug("Message on exit:\n%s", e.msg)
+            log.debug("Message on exit: >>>%s<<<", e.msg)
 
     #--------------------------------------------------------------------------
     def test_argparse_show_usage(self):
@@ -80,7 +80,7 @@ class TestNagiosPluginArgparse(NeedConfig):
             na.parse_args(['--usage'])
         except FakeExitError, e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
-            log.debug("Message on exit:\n%s", e.msg)
+            log.debug("Message on exit: >>>%s<<<", e.msg)
 
     #--------------------------------------------------------------------------
     def test_argparse_parse_help(self):
@@ -98,7 +98,7 @@ class TestNagiosPluginArgparse(NeedConfig):
             na.parse_args(['-h'])
         except FakeExitError, e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
-            log.debug("Message on exit:\n%s", e.msg)
+            log.debug("Message on exit: >>>%s<<<", e.msg)
 
     #--------------------------------------------------------------------------
     def test_argparse_wrong_argument(self):
@@ -115,7 +115,7 @@ class TestNagiosPluginArgparse(NeedConfig):
             na.parse_args(['--bli-bla-blub'])
         except FakeExitError, e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
-            log.debug("Message on exit:\n%s", e.msg)
+            log.debug("Message on exit: >>>%s<<<", e.msg)
 
 #==============================================================================
 
