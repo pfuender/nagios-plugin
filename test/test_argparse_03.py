@@ -24,8 +24,13 @@ from general import ColoredFormatter, pp, get_arg_verbose, init_root_logger
 from general import NeedConfig, NeedTmpConfig
 
 import nagios
+from nagios import FakeExitError
+
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
+
+from nagios.plugin.argparser import NagiosPluginArgparseError
+from nagios.plugin.argparser import NagiosPluginArgparse
 
 log = logging.getLogger(__name__)
 
@@ -87,6 +92,27 @@ class TestNagiosPluginConfigFile(NeedTmpConfig):
                     e.__class__.__name__, str(e)))
 
 #==============================================================================
+class TestNagiosArgParseExtraOpts(NeedConfig):
+
+    #--------------------------------------------------------------------------
+    def test_argparse_perform_args(self):
+
+        log.info("Testing performing arguments by a NagiosPluginArgparse object.")
+        na = NagiosPluginArgparse(
+                usage = '%(prog)s [options] -p <partition>',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Senseless sample Nagios plugin.',
+                licence = '',
+        )
+        na.add_arg('-p', '--partition', required = True, metavar = 'PARTITION',
+                dest = 'partition', help = "The partition to check")
+        log.debug("NagiosPluginArgparse object: %r", na)
+
+        na.parse_args(['--extra-opts', 'check_disk', '-p', '/var'])
+
+        log.debug("Evaluated arguments: %r", na.args)
+
+#==============================================================================
 
 if __name__ == '__main__':
 
@@ -104,6 +130,8 @@ if __name__ == '__main__':
             'test_argparse_03.TestNagiosPluginConfig.test_read_default_paths'))
     suite.addTests(loader.loadTestsFromName(
             'test_argparse_03.TestNagiosPluginConfigFile.test_read_cfgfile'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_argparse_03.TestNagiosArgParseExtraOpts.test_argparse_perform_args'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
