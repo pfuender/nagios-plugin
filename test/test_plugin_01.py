@@ -42,8 +42,10 @@ class TestNagiosPlugin(NeedConfig):
                 usage = '%(prog)s --hello',
                 url = 'http://www.profitbricks.com',
                 blurb = 'Senseless sample Nagios plugin.',
+                licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
                 extra = 'Bla blub',
         )
+        plugin.add_perfdata('bla', 10, 'MByte', warning = '20', critical = '30')
         log.debug("NagiosPluginArgparse object: %r", plugin)
         log.debug("NagiosPluginArgparse object: %s", str(plugin))
 

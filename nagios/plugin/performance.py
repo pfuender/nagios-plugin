@@ -263,6 +263,29 @@ class NagiosPerformance(object):
         return out
 
     #--------------------------------------------------------------------------
+    def as_dict(self):
+        """
+        Typecasting into a dictionary.
+
+        @return: structure as dict
+        @rtype:  dict
+
+        """
+
+        d = {
+                '__class__': self.__class__.__name__,
+                'label': self.label,
+                'value': self.value,
+                'uom': self.uom,
+                'threshold': self.threshold.as_dict(),
+                'min_data': self.min_data,
+                'max_data': self.max_data,
+                'status': self.status(),
+        }
+
+        return d
+
+    #--------------------------------------------------------------------------
     def status(self):
         """
         Returns the Nagios state of the current value against the thresholds
