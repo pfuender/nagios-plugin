@@ -13,6 +13,8 @@ import sys
 import logging
 import pprint
 
+from numbers import Number
+
 # Third party modules
 
 # Own modules
@@ -25,6 +27,8 @@ from nagios.plugin.functions import get_shortname
 from nagios.plugin.argparser import NagiosPluginArgparseError
 from nagios.plugin.argparser import NagiosPluginArgparse
 from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
+
+from nagios.plugin.threshold import NagiosThreshold
 
 from nagios.plugin.performance import NagiosPerformanceError
 from nagios.plugin.performance import NagiosPerformance
@@ -240,6 +244,38 @@ class NagiosPlugin(object):
         self.perfdata.append(pdata)
 
     #--------------------------------------------------------------------------
+    def add_arg(self, *names, **kwargs):
+        """top level interface to my NagiosPluginArgparse object."""
+
+        if self.argparser:
+            self.argparser.add_arg(*names, **kwargs)
+        else:
+            log.warn("Called add_arg() without a valid " +
+                    "NagiosPluginArgparse object.")
+
+    #--------------------------------------------------------------------------
+    def parse_args(self):
+        """
+        Executes self.argparser.parse_args().
+
+        """
+
+        if self.argparser:
+            self.argparser.parse_args()
+        else:
+            log.warn("Called parse_args() without a valid " +
+                    "NagiosPluginArgparse object.")
+
+    #--------------------------------------------------------------------------
+    def getopts(self):
+        """
+        Wrapper for self.parse_args().
+
+        """
+
+        self.parse_args()
+
+    #--------------------------------------------------------------------------
     def all_perfoutput(self):
         """Generates a string with all formatted performance data."""
 
@@ -259,6 +295,60 @@ class NagiosPlugin(object):
 
         self.threshold = NagiosThreshold(
                 warning = warning, critical = critical)
+
+    #--------------------------------------------------------------------------
+    def check_thresholds(self, value, warning = None, critical = None):
+        """
+        Evaluates value against the thresholds and returns nagios.state.ok,
+        nagios.state.warning or nagios.state.critical.
+
+        The thresholds may be::
+
+        * explicitly set by passing 'warning' and/or 'critical' parameters to
+          check_threshold() or
+        * explicitly set by calling set_thresholds() before check_threshold(),
+          or
+        * implicitly set by command-line parameters -w, -c, --critical or
+          --warning, if you have run plugin.parse_args()
+
+        @param value: the value to check
+        @type value: Number
+        @param warning: the warning threshold for the given value
+        @type warning: NagiosRange, str or None
+        @param critical: the critical threshold for the given value
+        @type critical: NagiosRange, str or None
+
+        @return: an exit value ready to pass to nagios_exit(), e.g.::
+
+                    plugin.nagios_exit(
+                            code = plugin.check_thresholds(value),
+                            message = (" sample result was %d" % (value)),
+                    )
+
+        @rtype: int
+
+        """
+
+        if not isinstance(value, Number):
+            msg = "Value %r must be a number on calling check_thresholds()."
+            raise NagiosPluginError(msg % (value))
+
+        if warning is not None or critical is not None:
+            self.set_thresholds(
+                    warning = warning,
+                    critical = critical,
+            )
+        elif self.threshold:
+            pass
+        elif self.argparser is not None and self.argparser.has_parsed:
+            self.set_thresholds(
+                    warning = getattr(self.argparser.args, 'warning', None),
+                    critical = getattr(self.argparser.args, 'critical', None),
+            )
+        else:
+            return nagios.state.unknown
+
+        return self.threshold.get_status(value)
 
     #--------------------------------------------------------------------------
     def nagios_exit(self, code, message):

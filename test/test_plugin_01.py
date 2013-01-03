@@ -46,6 +46,7 @@ class TestNagiosPlugin(NeedConfig):
                 extra = 'Bla blub',
         )
         plugin.add_perfdata('bla', 10, 'MByte', warning = '20', critical = '30')
+        plugin.set_thresholds(warning = '10:25', critical = "~:25")
         log.debug("NagiosPluginArgparse object: %r", plugin)
         log.debug("NagiosPluginArgparse object: %s", str(plugin))
 
