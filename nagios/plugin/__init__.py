@@ -22,6 +22,7 @@ from numbers import Number
 import nagios
 from nagios import BaseNagiosError
 
+import nagios.plugin.functions
 from nagios.plugin.functions import get_shortname
 
 from nagios.plugin.argparser import NagiosPluginArgparseError
@@ -379,6 +380,26 @@ class NagiosPlugin(object):
         """Wrapper method for nagios.plugin.functions.max_state_alt()."""
 
         return nagios.plugin.functions.max_state_alt(*args)
+
+    #--------------------------------------------------------------------------
+    def add_message(self, code, *messages):
+        """Adds one ore more messages to self.messages under the appropriate
+           subkey, which is defined by the code."""
+
+        key = str(code).upper()
+        if (not key in nagios.plugin.functions.ERRORS and
+                not code in nagios.plugin.functions.STATUS_TEXT):
+            msg = "Error code %r not supported by add_message()." % (code)
+            raise NagiosPluginError(msg)
+
+        if code in nagios.plugin.functions.STATUS_TEXT:
+            key = nagios.plugin.functions.STATUS_TEXT[code]
+        key = key.lower()
+
+        if not key in self.messages:
+            self.messages[key] = []
+        for msg in messages:
+            self.messages[key].append(msg)
 
 #==============================================================================
 
