@@ -13,6 +13,8 @@ import sys
 import re
 import logging
 
+from numbers import Number
+
 # Third party modules
 
 # Own modules
@@ -178,8 +180,7 @@ class NagiosThreshold(object):
 
         """
 
-        if (isinstance(values, int) or isinstance(values, long) or
-                isinstance(values, float)):
+        if isinstance(values, Number):
             values = [values]
 
         if self.critical.initialized:
