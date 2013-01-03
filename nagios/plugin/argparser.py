@@ -204,6 +204,12 @@ class NagiosPluginArgparse(object):
         @type: list of str
         """
 
+        self._has_parsed = False
+        """
+        @ivar: flag indicating, that the method parse_args() was even called.
+        @type: bool
+        """
+
     #------------------------------------------------------------
     @property
     def usage(self):
@@ -252,6 +258,12 @@ class NagiosPluginArgparse(object):
         """The timeout period in seconds."""
         return self._timeout
 
+    #------------------------------------------------------------
+    @property
+    def has_parsed(self):
+        """A flag indicating, that the method parse_args() was even called."""
+        return self._has_parsed
+
     #--------------------------------------------------------------------------
     def _exit(self, status, messages):
 
@@ -297,6 +309,7 @@ class NagiosPluginArgparse(object):
                 'timeout': self.timeout,
                 'args': self.args,
                 'arguments': self.arguments,
+                'has_parsed': self.has_parsed,
                 '_used_arg_dests': self._used_arg_dests,
         }
 
@@ -340,6 +353,7 @@ class NagiosPluginArgparse(object):
         fields.append("timeout=%r" % (self.timeout))
         fields.append("args=%r" % (self.args))
         fields.append("arguments=%r" % (self.arguments))
+        fields.append("has_parsed=%r" % (self.has_parsed))
         fields.append("_used_arg_dests=%r" % (self._used_arg_dests))
 
         out += ", ".join(fields) + ")>"
@@ -430,6 +444,8 @@ class NagiosPluginArgparse(object):
                         msg = "Argument %r is a required argument." % (arg_str)
                         msg += "\n\n" + parser.format_usage()
                         self._die(msg)
+
+        self._has_parsed = True
 
     #--------------------------------------------------------------------------
     def _process_extra_opts(self, args, extra_opts):
