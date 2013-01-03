@@ -140,6 +140,65 @@ class NagiosPlugin(object):
         return self._shortname
 
     #--------------------------------------------------------------------------
+    def as_dict(self):
+        """
+        Typecasting into a dictionary.
+
+        @return: structure as dict
+        @rtype:  dict
+
+        """
+
+        d = {
+                '__class__': self.__class__.__name__,
+                'shortname': self.shortname,
+                'argparser': None,
+                'perfdata': [],
+                'messages': self.messages,
+                'threshold': None,
+        }
+
+        if self.argparser:
+            d['argparser'] = self.argparser.as_dict()
+
+        for pdata in self.perfdata:
+            d['perfdata'].append(pdata.as_dict())
+
+        if self.threshold:
+            d['threshold'] = self.threshold.as_dict()
+
+        return d
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """
+        Typecasting function for translating object structure into a string.
+
+        @return: structure as string
+        @rtype:  str
+
+        """
+
+        pretty_printer = pprint.PrettyPrinter(indent = 4)
+        return pretty_printer.pformat(self.as_dict())
+
+    #--------------------------------------------------------------------------
+    def __repr__(self):
+        """Typecasting into a string for reproduction."""
+
+        out = "<%s(" % (self.__class__.__name__)
+
+        fields = []
+        fields.append("shortname=%r" % (self.shortname))
+        fields.append("argparser=%r" % (self.argparser))
+        fields.append("perfdata=%r" % (self.perfdata))
+        fields.append("messages=%r" % (self.messages))
+        fields.append("threshold=%r" % (self.threshold))
+
+        out += ", ".join(fields) + ")>"
+        return out
+
+    #--------------------------------------------------------------------------
     def add_perfdata(self, label, value, uom = None, threshold = None,
             warning = None, critical = None, min_data = None, max_data = None):
         """

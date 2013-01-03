@@ -237,6 +237,26 @@ class NagiosRange(object):
         return res
 
     #--------------------------------------------------------------------------
+    def as_dict(self):
+        """
+        Typecasting into a dictionary.
+
+        @return: structure as dict
+        @rtype:  dict
+
+        """
+
+        d = {
+                '__class__': self.__class__.__name__,
+                'start': self.start,
+                'end': self.end,
+                'invert_match': self.invert_match,
+                'initialized': self.initialized,
+        }
+
+        return d
+
+    #--------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 

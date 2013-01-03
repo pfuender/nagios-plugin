@@ -117,6 +117,30 @@ class NagiosThreshold(object):
         self._critical = NagiosRange(value)
 
     #--------------------------------------------------------------------------
+    def as_dict(self):
+        """
+        Typecasting into a dictionary.
+
+        @return: structure as dict
+        @rtype:  dict
+
+        """
+
+        d = {
+                '__class__': self.__class__.__name__,
+                'warning': None,
+                'critical': None,
+        }
+
+        if self.warning:
+            d['warning'] = self.warning.as_dict()
+
+        if self.critical:
+            d['critical'] = self.critical.as_dict()
+
+        return d
+
+    #--------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
