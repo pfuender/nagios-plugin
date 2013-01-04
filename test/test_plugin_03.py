@@ -53,6 +53,30 @@ class TestNagiosPlugin3(NeedConfig):
         log.info("Testing NagiosPlugin object shortname %r.", self.plugin_name)
         self.assertEqual(self.plugin.shortname, self.plugin_name)
 
+    #--------------------------------------------------------------------------
+    def test_codes(self):
+
+        codes = [
+            [['Critical'], ['Warning'], nagios.state.critical],
+            [[],           ['Warning'], nagios.state.warning],
+            [[],           [],          nagios.state.ok],
+        ]
+
+        i = 0
+        for fields in codes:
+
+            c_msgs = fields[0]
+            w_msgs = fields[1]
+            exp_code = fields[2]
+            i += 1
+
+            (got_code, message) = self.plugin.check_messages(
+                    critical = c_msgs, warning = w_msgs)
+            log.debug(("Test %d: Crit messages: %r, Warn messages: %r, " +
+                    "got code %d, got message: %r."), i, c_msgs, w_msgs,
+                    got_code, message)
+            self.assertEqual(got_code, exp_code)
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -67,6 +91,8 @@ if __name__ == '__main__':
 
     suite.addTests(loader.loadTestsFromName(
             'test_plugin_03.TestNagiosPlugin3.test_plugin_object'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_codes'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
