@@ -323,8 +323,8 @@ class NagiosPerformance(object):
                 label,
                 self.value,
                 self._nvl(self.uom),
-                self._nvl(self.warning.single_val()),
-                self._nvl(self.critical.single_val()),
+                self._nvl(self.warning),
+                self._nvl(self.critical),
                 self._nvl(self.min_data),
                 self._nvl(self.max_data),
         )
