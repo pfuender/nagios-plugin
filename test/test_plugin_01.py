@@ -62,9 +62,7 @@ class TestNagiosPlugin(NeedConfig):
         log.info("Testing NagiosPlugin object properties.")
 
         plugin = NagiosPlugin()
-
-        if not isinstance(plugin, NagiosPlugin):
-            self.fail("Not a NagiosPlugin object: %r" % (plugin))
+        self.assertIsInstance(plugin, NagiosPlugin)
 
         log.debug("Setting shortname explicitly to 'PAGESIZE'.")
         plugin.shortname = "PAGESIZE"
@@ -89,8 +87,7 @@ class TestNagiosPlugin(NeedConfig):
 
         log.debug("Setting thresholds to warn if < 10, critical if > 25.")
         t = plugin.set_thresholds(warning = "10:25", critical = "~:25")
-        if not isinstance(t, NagiosThreshold):
-            self.fail("Not a NagiosThreshold object: %r" % (t))
+        self.assertIsInstance(t, NagiosThreshold)
 
         log.debug("Adding performance data size ...")
         plugin.add_perfdata(

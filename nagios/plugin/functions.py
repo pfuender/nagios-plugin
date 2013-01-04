@@ -30,7 +30,7 @@ ERRORS = {
     'WARNING': nagios.state.warning,
     'CRITICAL': nagios.state.critical,
     'UNKNOWN': nagios.state.unknown,
-    'DEPENDENT': nagios.state.dependend,
+    'DEPENDENT': nagios.state.dependent,
 }
 
 STATUS_TEXT = {}
