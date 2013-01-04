@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: (c) 2010 - 2012 by Frank Brehm, Berlin
+@copyright: © 2010 - 2013 by Frank Brehm, Berlin
 @summary: Module for a NagiosPluginConfig class
 """
 

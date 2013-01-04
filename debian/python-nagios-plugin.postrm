@@ -1,7 +1,7 @@
 #!/bin/bash
 # postrm script for python-nagios-plugin
 #
-# (C) ProfitBricks GmbH 2012
+# © ProfitBricks GmbH 2013
 #
 # see: dh_installdeb(1)
 

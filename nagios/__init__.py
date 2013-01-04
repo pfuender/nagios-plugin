@@ -3,12 +3,12 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: (c) 2010 - 2012 by Frank Brehm, Berlin
+@copyright: © 2010 - 2013 by Frank Brehm, Berlin
 @summary: Base modules for Nagios check plugins written in Python
 """
 
 __author__ = 'Frank Brehm <frank.brehm@profitbricks.com>'
-__copyright__ = '(C) 2010-2012 by profitbricks.com'
+__copyright__ = '© 2010-2013 by profitbricks.com'
 __contact__ = 'frank.brehm@profitbricks.com'
 __version__ = '0.2.7-2'
 __license__ = 'GPL3'
