@@ -224,8 +224,10 @@ def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
         if not isinstance(join_all, basestring):
             join_all = ' :: '
         all_msgs = []
-        all_msgs.append(critical_msg)
-        all_msgs.append(warning_msg)
+        if critical_msg:
+            all_msgs.append(critical_msg)
+        if warning_msg:
+            all_msgs.append(warning_msg)
         if ok_msg:
             all_msgs.append(ok_msg)
         message = join_all.join(all_msgs)
