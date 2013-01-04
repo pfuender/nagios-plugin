@@ -264,7 +264,11 @@ class TestNagiosPlugin3(NeedConfig):
 
         log.info("Testing add_message() with invalid codes ...")
 
-        self.plugin.add_message('foobar', 'hi mum' )
+        for key in ('foobar', 'OKAY', 'unknown', 'dependent'):
+            log.debug("Trying to add a message with code %r ...", key)
+            with self.assertRaises(NagiosPluginError) as cm:
+                self.plugin.add_message(key, 'hi mum')
+            log.debug("Got a NagiosPluginError: %s", str(cm.exception))
 
 #==============================================================================
 

@@ -421,6 +421,10 @@ class NagiosPlugin(object):
         key = str(code).upper()
         if (not key in nagios.plugin.functions.ERRORS and
                 not code in nagios.plugin.functions.STATUS_TEXT):
+            msg = "Invalid error code %r on calling add_message()." % (code)
+            raise NagiosPluginError(msg)
+
+        if key.lower() in ('unknown', 'dependent'):
             msg = "Error code %r not supported by add_message()." % (code)
             raise NagiosPluginError(msg)
 
