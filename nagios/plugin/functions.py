@@ -164,6 +164,34 @@ def nagios_die(message, plugin_object = None, no_status_line = False):
 
 #------------------------------------------------------------------------------
 def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
+    """
+    Method to check the given messages and the messages under self.messages
+    and to returning an appropriate return code and/or result message.
+
+    @param critical: a list or a single critical message
+    @type critical: list of str or str or None
+    @param warning: a list or a single warning message
+    @type warning: list of str or str or None
+    @param ok: a list or a single message
+    @type ok: list of str or str or None
+    @param join: a string used to join the relevant list to generate the
+                 message string returned. I.e. if the 'critical' list
+                 is non-empty, check_messages would return::
+                    join.join(critical)
+                as the result message.
+    @param join_all: by default only one, the appropriate set of messages
+                     are joined and returned in the result message. If the
+                     result is critical, only the 'critical' messages
+                     are included. If join_all is supplied, however,
+                     it will be used as a string to join the resultant
+                     critical, warning, and ok messages together i.e. all
+                     messages are joined and returned.
+    @type join_all: str
+
+    @return: the appropriate nagios return code and the appropriate message
+    @rtype: tuple
+
+    """
 
     if join is None:
         join = ' '

@@ -420,6 +420,73 @@ class NagiosPlugin(object):
         for msg in messages:
             self.messages[key].append(msg)
 
+    #--------------------------------------------------------------------------
+    def check_messages(self, critical = None, warning = None, ok = None,
+            join = ' ', join_all = False):
+        """
+        Method to check the given messages and the messages under self.messages
+        and to returning an appropriate return code and/or result message.
+
+        @param critical: a list or a single critical message
+        @type critical: list of str or str or None
+        @param warning: a list or a single warning message
+        @type warning: list of str or str or None
+        @param ok: a list or a single message
+        @type ok: list of str or str or None
+        @param join: a string used to join the relevant list to generate the
+                     message string returned. I.e. if the 'critical' list
+                     is non-empty, check_messages would return::
+                        join.join(critical)
+                    as the result message.
+        @param join_all: by default only one, the appropriate set of messages
+                         are joined and returned in the result message. If the
+                         result is critical, only the 'critical' messages
+                         are included. If join_all is supplied, however,
+                         it will be used as a string to join the resultant
+                         critical, warning, and ok messages together i.e. all
+                         messages are joined and returned.
+        @type join_all: str
+
+        @return: the appropriate nagios return code and the appropriate message
+        @rtype: tuple
+
+        """
+
+        args = {
+            'join': join,
+            'join_all': join_all,
+        }
+
+        if critical is None:
+            critical = []
+        elif isinstance(critical, basestring):
+            critical = [critical]
+        for msg in self.messages['critical']:
+            critical.append[msg]
+        args['critical'] = critical
+
+        if warning is None:
+            warning = []
+        elif isinstance(warning, basestring):
+            warning = [warning]
+        for msg in self.messages['warning']:
+            warning.append[msg]
+        args['warning'] = warning
+
+        if ok is None:
+            ok = []
+        elif isinstance(ok, basestring):
+            ok = [ok]
+        for msg in self.messages['ok']:
+            ok.append[msg]
+        if ok:
+            args['ok'] = ok
+
+        log.debug("Arguments for nagios.plugin.functions.check_messages():\n%r",
+                args)
+
+        return nagios.plugin.functions.check_messages(**args)
+
 #==============================================================================
 
 if __name__ == "__main__":
