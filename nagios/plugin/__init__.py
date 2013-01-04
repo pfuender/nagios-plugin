@@ -114,7 +114,7 @@ class NagiosPlugin(object):
         if self._shortname:
             self._shortname = self._shortname.strip()
         if not self._shortname:
-            self._shortname = get_shortname()
+            self._shortname = get_shortname(plugin = plugin)
 
         self.argparser = None
         if usage:
@@ -145,6 +145,14 @@ class NagiosPlugin(object):
         """The shortname of the plugin."""
 
         return self._shortname
+
+    @shortname.setter
+    def shortname(self, value):
+        new_name = str(value).strip()
+        if not new_name:
+            msg = "New shortname %r may not be empty."
+            raise NagiosPluginError(msg % (value))
+        self._shortname = new_name
 
     #--------------------------------------------------------------------------
     def as_dict(self):
@@ -305,10 +313,15 @@ class NagiosPlugin(object):
         @param critical: the critical threshold
         @type critical: str, int, long, float or NagiosRange
 
+        @return: the generated threshold object
+        @rtype: NagiosThreshold
+
         """
 
         self.threshold = NagiosThreshold(
                 warning = warning, critical = critical)
+
+        return self.threshold
 
     #--------------------------------------------------------------------------
     def check_threshold(self, value, warning = None, critical = None):

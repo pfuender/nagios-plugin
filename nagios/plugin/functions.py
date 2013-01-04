@@ -45,14 +45,17 @@ _fake_exit = False
 _use_die = False
 
 #------------------------------------------------------------------------------
-def get_shortname(obj = None):
+def get_shortname(obj = None, plugin = None):
 
     shortname = None
 
     if hasattr(obj, 'shortname'):
         return getattr(obj, 'shortname')
 
-    shortname = getattr(obj, 'plugin', None)
+    if plugin:
+        shortname = plugin
+    else:
+        shortname = getattr(obj, 'plugin', None)
     if not shortname:
         if 'NAGIOS_PLUGIN' in os.environ:
             shortname = os.environ['NAGIOS_PLUGIN']
