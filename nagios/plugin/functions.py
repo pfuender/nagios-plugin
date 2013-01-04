@@ -134,8 +134,6 @@ def nagios_exit(code, message, plugin_object = None, no_status_line = False):
             shortname = get_shortname()
         if shortname:
             output = shortname + " " + output
-        if hasattr(arg, 'plugin'):
-            plugin = getattr(arg, 'plugin')
         if plugin_object:
             perfdata = getattr(plugin_object, 'perfdata', None)
             if perfdata and hasattr(plugin_object, 'all_perfoutput'):
