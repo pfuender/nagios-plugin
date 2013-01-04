@@ -362,8 +362,12 @@ class NagiosPluginArgparse(object):
     #--------------------------------------------------------------------------
     def parse_args(self, args = None):
         """
-        Provides the main parsing functionality. Parses the parameters
-        and stores the results in self.args.
+        Provides the main parsing functionality. Convert argument strings to
+        objects and assign them as attributes of self.args.
+
+        @param args: the argument strings to parse.
+        @type args: list of str or None
+
         """
 
         width = 0

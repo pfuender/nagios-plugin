@@ -255,26 +255,37 @@ class NagiosPlugin(object):
                     "NagiosPluginArgparse object.")
 
     #--------------------------------------------------------------------------
-    def parse_args(self):
+    def parse_args(self, args = None):
         """
         Executes self.argparser.parse_args().
 
+        @param args: the argument strings to parse. If not given, they are
+                     taken from sys.argv.
+        @type args: list of str or None
+
         """
 
+        if args is None:
+            args = sys.argv[1:]
+
         if self.argparser:
-            self.argparser.parse_args()
+            log.debug("Parsing commandline arguments: %r", args)
+            self.argparser.parse_args(args)
         else:
             log.warn("Called parse_args() without a valid " +
                     "NagiosPluginArgparse object.")
 
     #--------------------------------------------------------------------------
-    def getopts(self):
+    def getopts(self, args = None):
         """
         Wrapper for self.parse_args().
 
+        @param args: the argument strings to parse.
+        @type args: list of str or None
+
         """
 
-        self.parse_args()
+        self.parse_args(args)
 
     #--------------------------------------------------------------------------
     def all_perfoutput(self):
