@@ -1,0 +1,98 @@
+python-nagios-plugin (0.3.2-1) unstable; urgency=low
+
+  * Version bump
+  * New unit tests and bugfixing
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 04 Jan 2013 17:56:08 +0100
+
+python-nagios-plugin (0.3.1-1) unstable; urgency=low
+
+  * Version bump
+  * Added method check_messages() to NagiosPlugin class.
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 04 Jan 2013 13:16:39 +0100
+
+python-nagios-plugin (0.3.0-1) unstable; urgency=low
+
+  * Version bump
+  * Made NagiosPlugin object usable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 04 Jan 2013 12:05:47 +0100
+
+python-nagios-plugin (0.2.7-2) unstable; urgency=low
+
+  * Version bump
+  * Started with the NagiosPlugin object
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 28 Dec 2012 17:22:08 +0100
+
+python-nagios-plugin (0.2.7-1) unstable; urgency=low
+
+  * Version bump
+  * Nearly completed nagios/plugin/argparser.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 28 Dec 2012 16:10:41 +0100
+
+python-nagios-plugin (0.2.6-1) unstable; urgency=low
+
+  * Version bump
+  * Added test/test_argparse_02.py
+  * Added method add_arg() to the NagiosPluginArgparse object
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 28 Dec 2012 12:00:33 +0100
+
+python-nagios-plugin (0.2.5-1) unstable; urgency=low
+
+  * Version bump
+  * Added nagios/plugin/argparser.py for a standard commandline argument
+    parsing
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 28 Dec 2012 10:36:17 +0100
+
+python-nagios-plugin (0.2.4-1) unstable; urgency=low
+
+  * Version bump
+  * Finished (hopefully) nagios/plugin/performance.py,
+    nagios/plugin/threshold.py and nagios/plugin/range.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 13 Dec 2012 10:49:22 +0100
+
+python-nagios-plugin (0.2.3-1) unstable; urgency=low
+
+  * Version bump
+  * Worked on nagios/plugin/performance.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 11 Dec 2012 19:27:53 +0100
+
+python-nagios-plugin (0.2.2-1) unstable; urgency=low
+
+  * Version bump
+  * Added nagios/plugin/threshold.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 11 Dec 2012 15:46:18 +0100
+
+python-nagios-plugin (0.2.1-1) unstable; urgency=low
+
+  * Version bump
+  * Added nagios/plugin/config.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 28 Nov 2012 10:31:08 +0100
+
+python-nagios-plugin (0.2.0-1) unstable; urgency=low
+
+  * Version bump
+  * worked on nagios/plugin/range.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 27 Nov 2012 14:49:59 +0100
+
+python-nagios-plugin (0.1.1-1) unstable; urgency=low
+
+  * Version bump
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 27 Nov 2012 13:01:24 +0100
+
+python-nagios-plugin (0.1.0-1) unstable; urgency=low
+
+  * Initial
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 27 Nov 2012 11:20:49 +0100

@@ -1,0 +1,6 @@
+*.debhelper
+*.log
+*.substvars
+files
+python-nagios-plugin
+python-nagios-plugin-doc
