@@ -475,7 +475,7 @@ class NagiosPlugin(object):
         elif isinstance(critical, basestring):
             critical = [critical]
         for msg in self.messages['critical']:
-            critical.append[msg]
+            critical.append(msg)
         args['critical'] = critical
 
         if warning is None:
@@ -483,7 +483,7 @@ class NagiosPlugin(object):
         elif isinstance(warning, basestring):
             warning = [warning]
         for msg in self.messages['warning']:
-            warning.append[msg]
+            warning.append(msg)
         args['warning'] = warning
 
         if ok is None:
@@ -491,7 +491,7 @@ class NagiosPlugin(object):
         elif isinstance(ok, basestring):
             ok = [ok]
         for msg in self.messages['ok']:
-            ok.append[msg]
+            ok.append(msg)
         if ok:
             args['ok'] = ok
 

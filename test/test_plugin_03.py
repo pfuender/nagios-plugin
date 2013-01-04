@@ -47,6 +47,12 @@ class TestNagiosPlugin3(NeedConfig):
         self.plugin_name = 'TEST_CHECK_MESSAGES'
         self.plugin = NagiosPlugin(shortname = self.plugin_name)
 
+        self.msgs = {
+                'critical': 'A B C',
+                'warning':  'D E F',
+                'ok':       'G I H',
+        }
+
     #--------------------------------------------------------------------------
     def test_plugin_object(self):
 
@@ -186,6 +192,73 @@ class TestNagiosPlugin3(NeedConfig):
         self.assertEqual(code, nagios.state.warning)
         self.assertEqual(message, messages['warning'])
 
+    #--------------------------------------------------------------------------
+    def test_add_message01(self):
+
+        log.info("Testing add_message() 01 ...")
+
+        self.plugin.add_message('critical', self.msgs['critical'])
+        self.plugin.add_message('warning', self.msgs['warning'])
+        (code, message) = self.plugin.check_messages()
+        log.debug("Checking code %d, message %r.", code, message)
+        self.assertEqual(code, nagios.state.critical)
+        self.assertEqual(message, self.msgs['critical'])
+
+    #--------------------------------------------------------------------------
+    def test_add_message02(self):
+
+        log.info("Testing add_message() 02 ...")
+
+        self.plugin.add_message('critical', self.msgs['critical'])
+        (code, message) = self.plugin.check_messages()
+        log.debug("Checking code %d, message %r.", code, message)
+        self.assertEqual(code, nagios.state.critical)
+        self.assertEqual(message, self.msgs['critical'])
+
+    #--------------------------------------------------------------------------
+    def test_add_message03(self):
+
+        log.info("Testing add_message() 03 ...")
+
+        self.plugin.add_message('warning', self.msgs['warning'])
+        (code, message) = self.plugin.check_messages()
+        log.debug("Checking code %d, message %r.", code, message)
+        self.assertEqual(code, nagios.state.warning)
+        self.assertEqual(message, self.msgs['warning'])
+
+    #--------------------------------------------------------------------------
+    def test_add_message04(self):
+
+        log.info("Testing add_message() 04 ...")
+
+        self.plugin.add_message('warning', self.msgs['warning'])
+        self.plugin.add_message('ok', self.msgs['ok'])
+        (code, message) = self.plugin.check_messages()
+        log.debug("Checking code %d, message %r.", code, message)
+        self.assertEqual(code, nagios.state.warning)
+        self.assertEqual(message, self.msgs['warning'])
+
+    #--------------------------------------------------------------------------
+    def test_add_message05(self):
+
+        log.info("Testing add_message() 05 ...")
+
+        self.plugin.add_message('ok', self.msgs['ok'])
+        (code, message) = self.plugin.check_messages()
+        log.debug("Checking code %d, message %r.", code, message)
+        self.assertEqual(code, nagios.state.ok)
+        self.assertEqual(message, self.msgs['ok'])
+
+    #--------------------------------------------------------------------------
+    def test_add_message06(self):
+
+        log.info("Testing add_message() 06 ...")
+
+        (code, message) = self.plugin.check_messages()
+        log.debug("Checking code %d, message %r.", code, message)
+        self.assertEqual(code, nagios.state.ok)
+        self.assertEqual(message, '')
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -204,6 +277,18 @@ if __name__ == '__main__':
             'test_plugin_03.TestNagiosPlugin3.test_codes'))
     suite.addTests(loader.loadTestsFromName(
             'test_plugin_03.TestNagiosPlugin3.test_messages'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message01'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message02'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message03'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message04'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message05'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message06'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
