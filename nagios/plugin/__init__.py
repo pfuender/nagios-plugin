@@ -37,7 +37,9 @@ from nagios.plugin.performance import NagiosPerformance
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
+
+log = logging.getLogger(__name__)
 
 #==============================================================================
 class NagiosPluginError(BaseNagiosError):
@@ -309,7 +311,7 @@ class NagiosPlugin(object):
                 warning = warning, critical = critical)
 
     #--------------------------------------------------------------------------
-    def check_thresholds(self, value, warning = None, critical = None):
+    def check_threshold(self, value, warning = None, critical = None):
         """
         Evaluates value against the thresholds and returns nagios.state.ok,
         nagios.state.warning or nagios.state.critical.
@@ -333,7 +335,7 @@ class NagiosPlugin(object):
         @return: an exit value ready to pass to nagios_exit(), e.g.::
 
                     plugin.nagios_exit(
-                            code = plugin.check_thresholds(value),
+                            code = plugin.check_threshold(value),
                             message = (" sample result was %d" % (value)),
                     )
 
@@ -342,7 +344,7 @@ class NagiosPlugin(object):
         """
 
         if not isinstance(value, Number):
-            msg = "Value %r must be a number on calling check_thresholds()."
+            msg = "Value %r must be a number on calling check_threshold()."
             raise NagiosPluginError(msg % (value))
 
         if warning is not None or critical is not None:
@@ -373,6 +375,12 @@ class NagiosPlugin(object):
         """Wrapper method for nagios.plugin.functions.nagios_die()."""
 
         return nagios.plugin.functions.nagios_die(message, self)
+
+    #--------------------------------------------------------------------------
+    def exit(self, code, message):
+        """Wrapper method for nagios.plugin.functions.nagios_exit()."""
+
+        return nagios.plugin.functions.nagios_exit(code, message, self)
 
     #--------------------------------------------------------------------------
     def die(self, message):
