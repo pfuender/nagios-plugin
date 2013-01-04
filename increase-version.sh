@@ -36,7 +36,7 @@ usage() {
 }
 
 DO_HELP="n"
-ACTION="release"
+ACTION="micro"
 WANT_STAGE="unstable"
 case "${CUR_GIT_BRANCH}" in
     release/*) WANT_STAGE="stable";;
@@ -130,9 +130,9 @@ if [ -z "${RELEASE_VERSION}" ] ; then
     RELEASE_VERSION='1'
 fi
 
-MAIN_VERSION=$( echo "${PB_VERSION}" | awk -F. '{print $1}')
-if [ -z "${MAIN_VERSION}" ]; then
-    MAIN_VERSION=0
+MAJOR_VERSION=$( echo "${PB_VERSION}" | awk -F. '{print $1}')
+if [ -z "${MAJOR_VERSION}" ]; then
+    MAJOR_VERSION=0
     MINOR_VERSION=0
     MICRO_VERSION=0
 else
@@ -159,7 +159,7 @@ esac
 
 case "${ACTION}" in
     major)
-        MAIN_VERSION=$(( ${MAIN_VERSION} + 1 ))
+        MAJOR_VERSION=$(( ${MAJOR_VERSION} + 1 ))
         MINOR_VERSION=0
         MICRO_VERSION=0
         RELEASE_VERSION=1
@@ -178,7 +178,7 @@ case "${ACTION}" in
         ;;
 esac
 
-NEW_PB_VERSION=${MAIN_VERSION}.${MINOR_VERSION}.${MICRO_VERSION}
+NEW_PB_VERSION=${MAJOR_VERSION}.${MINOR_VERSION}.${MICRO_VERSION}
 NEW_DEBIAN_VERSION="${NEW_PB_VERSION}-${RELEASE_VERSION}"
 echo -e "Current version:    ${GREEN}${CUR_VERSION}${NORMAL}"
 echo -e "New version:        ${GREEN}${NEW_PB_VERSION}${NORMAL}"
@@ -231,7 +231,7 @@ scripts="nagios/__init__.py"
 for script in $scripts; do
     if [ -f $script ] ; then
         echo -n "Performing $script ... "
-        sed -i -e "s/__version__\\([ 	]*=[ 	]*\\)[^ 	]*/__version__\\1'${NEW_DEBIAN_VERSION}'/" $script
+        sed -i -e "s/__version__\\([ 	]*=[ 	]*\\)[^ 	]*/__version__\\1'${NEW_PB_VERSION}'/" $script
         echo -e "[${GREEN}OK${NORMAL}]"
     fi
 done
