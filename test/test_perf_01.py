@@ -152,7 +152,7 @@ class TestNagiosPerf(unittest.TestCase):
                 critical = '~:60', uom = 'MByte')
         log.debug("NagiosPerformance object: %r", perf)
         log.debug("perfoutput: %r", perf.perfoutput())
-        self.assertEqual(perf.perfoutput(), 'bla=80MByte;30;60',
+        self.assertEqual(perf.perfoutput(), 'bla=80MByte;~:30;~:60',
                 "Error testing perf.perfoutput()")
 
     #--------------------------------------------------------------------------
@@ -162,7 +162,7 @@ class TestNagiosPerf(unittest.TestCase):
                 critical = '~:60', min_data = 0, max_data = 1000)
         log.debug("NagiosPerformance object: %r", perf)
         log.debug("perfoutput: %r", perf.perfoutput())
-        self.assertEqual(perf.perfoutput(), 'bla=80;30;60;0;1000',
+        self.assertEqual(perf.perfoutput(), 'bla=80;~:30;~:60;0;1000',
                 "Error testing perf.perfoutput()")
 
 #==============================================================================
