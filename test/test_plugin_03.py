@@ -259,6 +259,13 @@ class TestNagiosPlugin3(NeedConfig):
         self.assertEqual(code, nagios.state.ok)
         self.assertEqual(message, '')
 
+    #--------------------------------------------------------------------------
+    def test_add_message_invalid(self):
+
+        log.info("Testing add_message() with invalid codes ...")
+
+        self.plugin.add_message('foobar', 'hi mum' )
+
 #==============================================================================
 
 if __name__ == '__main__':
@@ -289,6 +296,8 @@ if __name__ == '__main__':
             'test_plugin_03.TestNagiosPlugin3.test_add_message05'))
     suite.addTests(loader.loadTestsFromName(
             'test_plugin_03.TestNagiosPlugin3.test_add_message06'))
+    suite.addTests(loader.loadTestsFromName(
+            'test_plugin_03.TestNagiosPlugin3.test_add_message_invalid'))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
