@@ -15,7 +15,6 @@ import os
 import sys
 import logging
 import tempfile
-import pprint
 import argparse
 
 import nagios
@@ -28,18 +27,6 @@ from nagios.color_syslog import ColoredFormatter
 #==============================================================================
 
 log = logging.getLogger(__name__)
-
-#==============================================================================
-def pp(value):
-    """
-    Returns a pretty print string of the given value.
-
-    @return: pretty print string
-    @rtype: str
-    """
-
-    pretty_printer = pprint.PrettyPrinter(indent = 4)
-    return pretty_printer.pformat(value)
 
 #==============================================================================
 def get_arg_verbose():

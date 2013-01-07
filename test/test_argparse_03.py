@@ -20,11 +20,13 @@ libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, libdir)
 
 import general
-from general import ColoredFormatter, pp, get_arg_verbose, init_root_logger
+from general import ColoredFormatter, get_arg_verbose, init_root_logger
 from general import NeedConfig, NeedTmpConfig
 
 import nagios
 from nagios import FakeExitError
+
+from nagios.common import pp
 
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
