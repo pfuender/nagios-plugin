@@ -19,7 +19,7 @@ import logging
 import nagios
 from nagios import BaseNagiosError
 
-from nagios.common import pp
+from nagios.common import pp, caller_search_path
 
 from nagios.plugin import NagiosPluginError
 from nagios.plugin import NagiosPlugin
@@ -38,6 +38,47 @@ class ExtNagiosPluginError(NagiosPluginError):
     """Special exceptions, which are raised in this module."""
 
     pass
+
+#-------------------------------------------------------------------------------
+class CommandNotFoundError(ExtNagiosPluginError):
+    """
+    Special exception, if one ore more OS commands were not found.
+
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, cmd_list):
+        """
+        Constructor.
+
+        @param cmd_list: all not found OS commands.
+        @type cmd_list: list
+
+        """
+
+        self.cmd_list = None
+        if cmd_list is None:
+            self.cmd_list = ["Unknown OS command."]
+        elif isinstance(cmd_list, list):
+            self.cmd_list = cmd_list
+        else:
+            self.cmd_list = [cmd_list]
+
+        if len(self.cmd_list) < 1:
+            raise ValueError("Empty command list given.")
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """
+        Typecasting into a string for error output.
+        """
+
+        cmds = ', '.join(map(lambda x: ("'" + str(x) + "'"), self.cmd_list))
+        msg = "Could not found OS command"
+        if len(self.cmd_list) != 1:
+            msg += 's'
+        msg += ": " + cmds
+        return msg
 
 #==============================================================================
 class ExtNagiosPlugin(NagiosPlugin):
@@ -98,8 +139,8 @@ class ExtNagiosPlugin(NagiosPlugin):
         @ivar: The verbosity level inside the module.
         @type: int
         """
-        if value:
-            self.value = value
+        if verbose:
+            self.verbose = verbose
 
         super(ExtNagiosPlugin, self).__init__(
                 usage = usage,
@@ -142,6 +183,60 @@ class ExtNagiosPlugin(NagiosPlugin):
         d['verbose'] = self.verbose
 
         return d
+
+    #--------------------------------------------------------------------------
+    def get_command(self, cmd, quiet = False):
+        """
+        Searches the OS search path for the given command and gives back the
+        normalized position of this command.
+        If the command is given as an absolute path, it check the existence
+        of this command.
+
+        @param cmd: the command to search
+        @type cmd: str
+        @param quiet: No warning message, if the command could not be found,
+                      only a debug message
+        @type quiet: bool
+
+        @return: normalized complete path of this command, or None,
+                 if not found
+        @rtype: str or None
+        """
+
+        if self.verbose > 2:
+            log.debug("Searching for command %r ..." % (cmd))
+
+        if os.path.isabs(cmd):
+            if not os.path.exists(cmd):
+                log.warning("Command %r doesn't exists." % (cmd))
+                return None
+            if not os.access(cmd, os.X_OK):
+                msg = ("Command %r is not executable." % (cmd))
+                log.warning(msg)
+                return None
+            return os.path.normpath(cmd)
+
+        search_paths = caller_search_path()
+        if self.verbose > 2:
+            log.debug("Searching command in %r ...", search_paths)
+
+        for d in search_paths:
+            p = os.path.join(d, cmd)
+            if os.path.exists(p):
+                if self.verbose > 2:
+                    log.debug("Found %r ..." % (p))
+                if os.access(p, os.X_OK):
+                    return os.path.normpath(p)
+                else:
+                    msg = ("Command %r is not executable." % (p))
+                    log.debug(msg)
+
+        if quiet:
+            if self.verbose > 2:
+                log.debug("Command %r not found." % (cmd))
+        else:
+            log.warning("Command %r not found." % (cmd))
+        return None
 
 #==============================================================================
 
