@@ -14,6 +14,8 @@ import logging
 import textwrap
 import pwd
 import re
+import signal
+import subprocess
 
 from numbers import Number
 
@@ -31,6 +33,7 @@ from nagios.plugin import NagiosPluginError
 from nagios.plugin.range import NagiosRange
 
 from nagios.plugins import ExtNagiosPluginError
+from nagios.plugins import ExecutionTimeoutError
 from nagios.plugins import CommandNotFoundError
 from nagios.plugins import ExtNagiosPlugin
 
@@ -293,8 +296,59 @@ class CheckProcsPlugin(ExtNagiosPlugin):
                         self.argparser.args.user)
                 self.die(msg)
 
+        self.set_thresholds(
+                warning = self.argparser.args.warning,
+                critical = self.argparser.args.critical,
+        )
+
         if self.verbose > 2:
             print "Current object:\n" + pp(self.as_dict())
+
+        self.collect_processes()
+
+        self.exit(nagios.state.ok, "The sun is shining happily :-D")
+
+    #--------------------------------------------------------------------------
+    def collect_processes(self):
+        """The main routine of this plugin."""
+
+        fields = ('user', 'pid', 'ppid', 's', 'pcpu', 'vsz', 'rss', 'time',
+                'comm', 'args')
+
+        cmd = [self.ps_cmd, '-e', '-o', ','.join(fields)]
+        cmd_str = ' '.join(cmd)
+        timeout = abs(int(self.argparser.args.timeout))
+
+        cmd_obj = None
+        stdoutdata = ''
+        stderrdata = ''
+
+        def exec_alarm_caller(signum, sigframe):
+            raise ExecutionTimeoutError(timeout, cmd_str)
+
+        if self.verbose > 1:
+            log.debug("Executing %r ...", cmd_str)
+
+        signal.signal(signal.SIGALRM, exec_alarm_caller)
+        signal.alarm(timeout)
+
+        try:
+            cmd_obj = subprocess.Popen(
+                    cmd,
+                    stderr = subprocess.PIPE,
+                    stdout = subprocess.PIPE,
+                    bufsize = 0,
+                    close_fds = False,
+            )
+            (stdoutdata, stderrdata) = cmd_obj.communicate()
+        except ExecutionTimeoutError, e:
+            self.die(str(e))
+
+        signal.alarm(0)
+
+        if self.verbose > 2:
+            log.debug("Got from STDOUT:\n%s", stdoutdata)
+            log.debug("Got from STDERR:\n%s", stderrdata)
 
 #==============================================================================
 

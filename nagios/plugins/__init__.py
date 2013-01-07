@@ -82,6 +82,47 @@ class CommandNotFoundError(ExtNagiosPluginError):
         msg += ": " + cmds
         return msg
 
+#-------------------------------------------------------------------------------
+class ExecutionTimeoutError(ExtNagiosPluginError):
+    """
+    Special error class indicating a timout error on executing an operation
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, timeout, command):
+        """
+        Constructor.
+
+        @param timeout: the timeout in second, after which the exception
+                        was raised.
+        @type timeout: int
+        @param command: the command, which should be executed.
+        @type command: str
+
+        """
+
+        self.timeout = None
+        try:
+            self.timeout = int(timeout)
+        except ValueError, e:
+            log.error("Timeout %r was not an integer value.", timeout)
+
+        self.command = command
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """Typecasting into a string."""
+
+        msg = None
+
+        if self.timeout is None:
+            msg = "Timeout after an unknown time on execution of %r." % (
+                    self.command)
+        else:
+            msg = "Timeout after %d seconds on execution of %r." % (self.command)
+
+        return msg
+
 #==============================================================================
 class ExtNagiosPlugin(NagiosPlugin):
     """
