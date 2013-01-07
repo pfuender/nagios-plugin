@@ -21,6 +21,8 @@ from nagios import BaseNagiosError
 
 from nagios.common import pp, caller_search_path
 
+from nagios.color_syslog import ColoredFormatter
+
 from nagios.plugin import NagiosPluginError
 from nagios.plugin import NagiosPlugin
 
@@ -237,6 +239,55 @@ class ExtNagiosPlugin(NagiosPlugin):
         else:
             log.warning("Command %r not found." % (cmd))
         return None
+
+    #--------------------------------------------------------------------------
+    def parse_args(self, args = None):
+        """
+        Executes self.argparser.parse_args().
+
+        @param args: the argument strings to parse. If not given, they are
+                     taken from sys.argv.
+        @type args: list of str or None
+
+        """
+
+        super(ExtNagiosPlugin, self).parse_args(args)
+
+        self.verbose = self.argparser.args.verbose
+
+    #--------------------------------------------------------------------------
+    def init_root_logger(self):
+        """
+        Initiialize the root logger.
+        """
+
+        root_log = logging.getLogger()
+        root_log.setLevel(logging.INFO)
+        if self.verbose:
+            root_log.setLevel(logging.DEBUG)
+
+        format_str = self.shortname + ': '
+        if self.verbose:
+            if self.verbose > 1:
+                format_str += '%(name)s(%(lineno)d) %(funcName)s() '
+            else:
+                format_str += '%(name)s '
+        format_str += '%(levelname)s - %(message)s'
+        formatter = None
+        if self.verbose:
+            formatter = ColoredFormatter(format_str)
+        else:
+            formatter = logging.Formatter(format_str)
+
+        # create log handler for console output
+        lh_console = logging.StreamHandler(sys.stderr)
+        if self.verbose:
+            lh_console.setLevel(logging.DEBUG)
+        else:
+            lh_console.setLevel(logging.INFO)
+        lh_console.setFormatter(formatter)
+
+        root_log.addHandler(lh_console)
 
 #==============================================================================
 
