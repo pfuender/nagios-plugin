@@ -36,6 +36,7 @@ setup(
     packages = [
         'nagios',
         'nagios.plugin',
+        'nagios.plugins',
     ],
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
