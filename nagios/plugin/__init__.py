@@ -11,7 +11,6 @@
 import os
 import sys
 import logging
-import pprint
 
 from numbers import Number
 
@@ -21,6 +20,8 @@ from numbers import Number
 
 import nagios
 from nagios import BaseNagiosError
+
+from nagios.common import pp
 
 import nagios.plugin.functions
 from nagios.plugin.functions import get_shortname
@@ -37,7 +38,7 @@ from nagios.plugin.performance import NagiosPerformance
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 log = logging.getLogger(__name__)
 
@@ -194,8 +195,7 @@ class NagiosPlugin(object):
 
         """
 
-        pretty_printer = pprint.PrettyPrinter(indent = 4)
-        return pretty_printer.pformat(self.as_dict())
+        return pp(self.as_dict())
 
     #--------------------------------------------------------------------------
     def __repr__(self):
