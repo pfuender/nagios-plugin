@@ -38,6 +38,9 @@ setup(
         'nagios.plugin',
         'nagios.plugins',
     ],
+    scripts = [
+        'bin/check_procs',
+    ],
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',

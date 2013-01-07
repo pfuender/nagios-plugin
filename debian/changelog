@@ -1,3 +1,10 @@
+python-nagios-plugin (0.3.5-1) unstable; urgency=low
+
+  * Version bump
+  * Started with first sample plugin bin/check_procs
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 07 Jan 2013 16:52:16 +0100
+
 python-nagios-plugin (0.3.4-1) unstable; urgency=low
 
   * Version bump
