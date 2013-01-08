@@ -46,7 +46,13 @@ log = logging.getLogger(__name__)
 
 PS_CMD = os.sep + os.path.join('bin', 'ps')
 
-valid_metrics = ['PROCS', 'VSZ', 'RSS', 'CPU', 'ELAPSED']
+valid_metrics = {
+        'PROCS':   {'uom': '',       'label': 'procs'},
+        'VSZ':     {'uom': 'KiByte', 'label': 'vsz'},
+        'RSS':     {'uom': 'KiByte', 'label': 'rss'},
+        'CPU':     {'uom': '%',      'label': 'cpu'},
+        'ELAPSED': {'uom': 'sec',    'label': 'elapsed_time'},
+}
 
 # Valid process state codes, taken from the ps-manpage
 process_state = {
@@ -519,7 +525,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         self.add_arg(
                 '-m', '--metric',
-                choices = valid_metrics,
+                choices = sorted(valid_metrics.keys()),
                 dest = 'metric',
                 required = True,
                 default = 'PROCS',
@@ -639,13 +645,116 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
-        self.collect_processes()
+        uom = self.get_uom()
+        label = self.get_label()
 
-        self.exit(nagios.state.ok, "The sun is shining happily :-D")
+        found_processes = self.collect_processes()
+        value_total = self.get_total_value(found_processes)
+        count = len(found_processes)
+
+        log.debug("Got a total value (by %s) of %d%s.",
+                self.argparser.args.metric, value_total, uom)
+
+        state = self.threshold.get_status(value_total)
+        self.add_perfdata(
+                label = label,
+                value = value_total,
+                uom = uom,
+                threshold = self.threshold,
+        )
+
+        plural = ''
+        if count != 1:
+            plural = 'es'
+        out = "%d process%s" % (count, plural)
+        fdescription = self.get_filter_description()
+        if fdescription:
+            out += ' with ' + fdescription
+
+        self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def get_filter_description(self):
+        """Retrieves a desccription for the current filter of processes."""
+
+        decriptions = []
+
+        if self.argparser.args.init:
+            decriptions.append("init child")
+        if self.argparser.args.state:
+            decriptions.append("state %r" % (self.argparser.args.state))
+        if self.argparser.args.ppid is not None:
+            decriptions.append("PPID %d" % (self.argparser.args.ppid))
+        if self.user:
+            decriptions.append("user %r" % (self.user))
+        if self.argparser.args.command:
+            decriptions.append("command %r" % (self.argparser.args.command))
+        if self.argparser.args.args:
+            decriptions.append("args %r" % (self.argparser.args.args))
+        if self.argparser.args.vsz:
+            decriptions.append("vsz >%dKiByte" % (self.argparser.args.vsz))
+        if self.argparser.args.rss:
+            decriptions.append("rss >%dKiByte" % (self.argparser.args.rss))
+        if self.argparser.args.pcpu:
+            decriptions.append("pcpu >%d%%" % (self.argparser.args.pcpu))
+
+        return ', '.join(decriptions)
+
+    #--------------------------------------------------------------------------
+    def get_total_value(self, found_processes):
+        """Computing the total value of the metric to check."""
+
+        value_total = 0
+
+        metric = self.argparser.args.metric
+
+        for pinfo in found_processes:
+
+            value = 1
+            if metric == 'VSZ':
+                value = pinfo.vsz
+            elif metric == 'RSS':
+                value = pinfo.rss
+            elif metric == 'CPU':
+                value = pinfo.pcpu
+            elif metric == 'ELAPSED':
+                value = pinfo.time
+
+            value_total += value
+
+        return value_total
+
+    #--------------------------------------------------------------------------
+    def get_uom(self):
+        """Returns the unit of measuring dependend of the metric to retrieve."""
+
+        metric = self.argparser.args.metric
+        return valid_metrics[metric]['uom']
+
+    #--------------------------------------------------------------------------
+    def get_label(self):
+        """Returns the label for the performance data dependend
+        of the metric to retrieve."""
+
+        metric = self.argparser.args.metric
+        return valid_metrics[metric]['label']
 
     #--------------------------------------------------------------------------
     def collect_processes(self):
         """The main routine of this plugin."""
+
+        args_pattern = None
+        re_args = None
+        if self.argparser.args.args:
+            args_pattern = self.argparser.args.args
+            try:
+                re_args = re.compile(args_pattern)
+            except Exception, e:
+                msg = "Invalid search pattern %r for arguments: %s" % (
+                        args_pattern, str(e))
+                self.die(msg)
+            log.debug("Searching for processes whith pattern %r ...",
+                    args_pattern)
 
         fields = ('user', 'pid', 'ppid', 'stat', 'pcpu', 'vsz', 'rss', 'time',
                 'comm', 'args')
@@ -687,9 +796,88 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         lines = stdoutdata.splitlines()
 
+        found_processes = []
+
         for line in lines[1:]:
 
             pinfo = self._parse_process_line(line)
+            if not pinfo:
+                log.warn("Could not parse output line of ps: %r", line)
+                continue
+
+            if pinfo.pid == os.getpid():
+                # Ignore myself
+                if self.verbose > 2:
+                    log.debug("Ignoring myself.")
+                continue
+
+            if pinfo.ppid == os.getpid():
+                # Ignore the process of the ps-command initiated by myself
+                if self.verbose > 2:
+                    log.debug("Ignoring self initiated process.")
+                continue
+
+            if self.argparser.args.init and pinfo.ppid != 1:
+                continue
+
+            if self.argparser.args.ppid is not None:
+                if pinfo.ppid != self.argparser.args.ppid:
+                    continue
+
+            if self.argparser.args.state:
+                found = False
+                state = self.argparser.args.state
+                for char in state:
+                    if char in pinfo.state:
+                        found = True
+                        break
+                if not found:
+                    if self.verbose > 2:
+                        log.debug("State %r not found in %r (%d).", state,
+                                pinfo.state, pinfo.pid)
+                    continue
+
+            if self.user:
+                if pinfo.user != self.user:
+                    if self.verbose > 2:
+                        log.debug("Ignoring process %d of user %r.",
+                            pinfo.pid, pinfo.user)
+                    continue
+
+            if self.argparser.args.command:
+                if pinfo.comm != self.argparser.args.command:
+                    continue
+
+            if re_args:
+                if not re_args.search(pinfo.args):
+                    continue
+
+            if self.argparser.args.vsz:
+                if pinfo.vsz < self.argparser.args.vsz:
+                    continue
+
+            if self.argparser.args.rss:
+                if pinfo.rss < self.argparser.args.rss:
+                    continue
+
+            if self.argparser.args.pcpu:
+                if pinfo.pcpu < float(self.argparser.args.pcpu):
+                    continue
+
+            found_processes.append(pinfo)
+
+        # What did we found:
+        if self.verbose > 1:
+            if found_processes:
+                r = []
+                for pinfo in found_processes:
+                    r.append(repr(pinfo))
+                procs = ',\n'.join(r)
+                log.debug("Processes to regard:\n%s", procs)
+            else:
+                log.debug("No processes to regard.")
+
+        return found_processes
 
     #--------------------------------------------------------------------------
     def _parse_process_line(self, line):
@@ -697,13 +885,12 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         match = re_ps_line.search(line)
         if not match:
-            log.warn("Could not parse output line of ps: %r", line)
             return None
 
         kwords = match.groupdict()
 
         pinfo = ProcessInfo(**kwords)
-        if self.verbose > 2:
+        if self.verbose > 3:
             log.debug("Got process info: %s", pinfo)
 
         return pinfo
