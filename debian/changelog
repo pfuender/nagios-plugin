@@ -1,3 +1,10 @@
+python-nagios-plugin (0.3.7-1) unstable; urgency=low
+
+  * Version bump
+  * Started with VG check scripts
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 08 Jan 2013 18:27:07 +0100
+
 python-nagios-plugin (0.3.6-1) unstable; urgency=low
 
   * Version bump
