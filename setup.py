@@ -40,6 +40,8 @@ setup(
     ],
     scripts = [
         'bin/check_procs',
+        'bin/check_vg_free',
+        'bin/check_vg_state',
     ],
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
