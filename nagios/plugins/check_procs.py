@@ -48,6 +48,141 @@ PS_CMD = os.sep + os.path.join('bin', 'ps')
 
 valid_metrics = ['PROCS', 'VSZ', 'RSS', 'CPU', 'ELAPSED']
 
+# Valid process state codes, taken from the ps-manpage
+process_state = {
+        'D':    'uninterruptible sleep',
+        'R':    'running or runnable',
+        'S':    'interruptible sleep',
+        'T':    'stopped or being traced',
+        'W':    'paging',
+        'X':    'dead',
+        'Z':    'defunct ("zombie") process',
+        '<':    'high-priority',
+        'N':    'low-priority',
+        'L':    'has pages locked into memory',
+        's':    'is a session leader',
+        'l':    'is multi-threaded',
+        '+':    'is in the foreground process group',
+}
+
+re_integer = re.compile(r'^\s*(\d+)\s*$')
+
+# Contstructing the regex for parsing the output of ps command
+match_ps_line = r'^\s*(?P<user>\S+)'
+match_ps_line += r'\s+(?P<pid>\d+)'
+match_ps_line += r'\s+(?P<ppid>\d+)'
+match_ps_line += r'\s+(?P<state>\S+)'
+match_ps_line += r'\s+(?P<pcpu>-|\d+(?:\.\d*)?)'
+match_ps_line += r'\s+(?P<vsz>\d+)'
+match_ps_line += r'\s+(?P<rss>\d+)'
+match_ps_line += r'\s+(?P<time>(?:(?:\d+-)?\d+:)?\d+:\d+)'
+match_ps_line += r'\s+(?P<comm>\S+)'
+match_ps_line += r'\s+(?P<args>.*)'
+match_ps_line += r'\s*$'
+
+re_ps_line = re.compile(match_ps_line)
+
+#==============================================================================
+class ProcessInfo(object):
+    """
+    A class capsulating process informations.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self,
+            user, pid, ppid, state, pcpu, vsz, rss, time, comm, args):
+        """
+        Constructor.
+
+        @param user: effective user name
+        @type user: str
+        @param pid:i process ID number of the process
+        @type pid: int
+        @param ppid: parent process ID
+        @type ppid: int
+        @param state: state of the process as a multicharacter identifier
+        @type state: str
+        @param pcpu: cpu utilization of the process
+        @type pcpu: float
+        @param vsz: virtual memory size of the process in KiB
+        @type vsz: int
+        @param rss: resident set size in kiloBytes
+        @type rss: int
+        @param time: cumulative CPU time in "[DD-]HH:MM:SS" format.
+        @type time: str
+        @param comm: command name (only the executable name)
+        @type comm: str
+        @param args: command with all its arguments
+        @type args: str
+
+        """
+
+        self._user = None
+        self._uid = None
+        self.user = user
+
+    #------------------------------------------------------------
+    @property
+    def user(self):
+        """The effective user name."""
+        return self._user
+
+    @user.setter
+    def user(self, value):
+        match = re_integer.search(value)
+        if match:
+            self._user = match.group(1)
+            self._uid = int(self._user)
+        else:
+            usr = value.strip()
+            uid = -1
+            try:
+                uid = pwd.getpwnam(usr).pw_uid
+            except KeyError, e:
+                log.warn("Invalid user name %r.", usr)
+                uid = -1
+            self._user = usr
+            self._uid = uid
+
+    #------------------------------------------------------------
+    @property
+    def uid(self):
+        """The UID of the effective user."""
+        return self._uid
+
+    #--------------------------------------------------------------------------
+    def as_dict(self):
+        """Transforms the elements of the object into a dict."""
+
+        d = {}
+        d['__class_name__'] = self.__class__.__name__
+        d['user'] = self.user
+        d['uid'] = self.uid
+
+        return d
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """
+        Typecasting function for translating object structure into a string.
+        """
+
+        return pp(self.as_dict())
+
+    #--------------------------------------------------------------------------
+    def __repr__(self):
+        """Typecasting into a string for reproduction."""
+
+        out = "<%s(" % (self.__class__.__name__)
+
+        fields = []
+        fields.append("user=%r" % (self.user))
+
+        out += ", ".join(fields) + ")>"
+
+        return out
+
+
 #==============================================================================
 class CheckProcsPlugin(ExtNagiosPlugin):
     """
@@ -120,7 +255,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if isinstance(value, Number):
             uid = int(value)
         else:
-            match = re.search(r'^\s*(\d+)\s*$', value)
+            match = re_integer.search(value)
             if match:
                 uid = int(match.group(1))
             else:
@@ -302,7 +437,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         )
 
         if self.verbose > 2:
-            print "Current object:\n" + pp(self.as_dict())
+            log.debug("Current object:\n%s", pp(self.as_dict()))
 
         self.collect_processes()
 
@@ -312,7 +447,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
     def collect_processes(self):
         """The main routine of this plugin."""
 
-        fields = ('user', 'pid', 'ppid', 's', 'pcpu', 'vsz', 'rss', 'time',
+        fields = ('user', 'pid', 'ppid', 'stat', 'pcpu', 'vsz', 'rss', 'time',
                 'comm', 'args')
 
         cmd = [self.ps_cmd, '-e', '-o', ','.join(fields)]
@@ -349,6 +484,29 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Got from STDOUT:\n%s", stdoutdata)
             log.debug("Got from STDERR:\n%s", stderrdata)
+
+        lines = stdoutdata.splitlines()
+
+        for line in lines[1:]:
+
+            pinfo = self._parse_process_line(line)
+
+    #--------------------------------------------------------------------------
+    def _parse_process_line(self, line):
+        """Parsing a line how given back from the ps command."""
+
+        match = re_ps_line.search(line)
+        if not match:
+            log.warn("Could not parse output line of ps: %r", line)
+            return None
+
+        kwords = match.groupdict()
+
+        pinfo = ProcessInfo(**kwords)
+        if self.verbose > 2:
+            log.debug("Got process info: %s", pinfo)
+
+        return pinfo
 
 #==============================================================================
 
