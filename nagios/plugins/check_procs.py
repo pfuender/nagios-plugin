@@ -40,7 +40,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 log = logging.getLogger(__name__)
 
@@ -502,7 +502,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
     #--------------------------------------------------------------------------
     def _add_args(self):
         """
-        Adding all necessary arguments zo the commandline argument parser.
+        Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
