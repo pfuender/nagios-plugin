@@ -141,9 +141,10 @@ class ExtNagiosPlugin(NagiosPlugin):
         @param usage: Short usage message used with --usage/-? and with missing
                       required arguments, and included in the longer --help
                       output. Can include %(prog)s placeholder which will be
-                      replaced with the plugin name, e.g.:
+                      replaced with the plugin name, e.g.::
 
                           usage = 'Usage: %(prog)s -H <hostname> -p <ports> [-v]'
+
         @type usage: str
         @param shortname: the shortname of the plugin
         @type shortname: str

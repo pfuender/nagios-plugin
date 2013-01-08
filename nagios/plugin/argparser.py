@@ -83,9 +83,10 @@ class NagiosPluginArgparse(object):
         @param usage: Short usage message used with --usage/-? and with missing
                       required arguments, and included in the longer --help
                       output. Can include %(prog)s placeholder which will be
-                      replaced with the plugin name, e.g.:
+                      replaced with the plugin name, e.g.::
 
                           usage = 'Usage: %(prog)s -H <hostname> -p <ports> [-v]'
+
         @type usage: str
         @param version: Plugin version number, included in the --version/-V
                         output, and in the longer --help output. e.g.::
