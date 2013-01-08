@@ -1,0 +1,32 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""
+@author: Frank Brehm
+@contact: frank.brehm@profitbricks.com
+@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@summary: Nagios plugin ≡ check script to check a volume group
+		  for its free place
+"""
+
+import os
+import sys
+
+libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+ndir = os.path.join(libdir, 'nagios')
+base_module = os.path.join(ndir, '__init__.py')
+if os.path.isdir(ndir) and os.path.isfile(base_module):
+	sys.path.insert(0, libdir)
+del libdir
+del ndir
+del base_module
+
+import nagios
+
+from nagios.plugins.check_lvm_vg import CheckLvmVgPlugin
+
+plugin = CheckLvmVgPlugin(check_state = False)
+plugin()
+
+#==============================================================================
+
+# vim: fileencoding=utf-8 filetype=python ts=4
