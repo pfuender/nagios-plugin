@@ -82,6 +82,13 @@ match_ps_line += r'\s*$'
 
 re_ps_line = re.compile(match_ps_line)
 
+# Parsing time description
+pattern_time = r'\s*(?:(?:(?P<days>\d+)-)?(?P<hours>\d+):)?'
+pattern_time += r'(?P<mins>\d+):(?P<secs>\d+)'
+if __name__ == '__main__':
+    print "Search pattern for a time description: %r" % (pattern_time)
+re_time = re.compile(pattern_time)
+
 #==============================================================================
 class ProcessInfo(object):
     """
@@ -96,18 +103,18 @@ class ProcessInfo(object):
 
         @param user: effective user name
         @type user: str
-        @param pid:i process ID number of the process
-        @type pid: int
+        @param pid: process ID number of the process
+        @type pid: str or int
         @param ppid: parent process ID
-        @type ppid: int
+        @type ppid: str or int
         @param state: state of the process as a multicharacter identifier
         @type state: str
         @param pcpu: cpu utilization of the process
-        @type pcpu: float
+        @type pcpu: str or float
         @param vsz: virtual memory size of the process in KiB
-        @type vsz: int
+        @type vsz: str or int
         @param rss: resident set size in kiloBytes
-        @type rss: int
+        @type rss: str or int
         @param time: cumulative CPU time in "[DD-]HH:MM:SS" format.
         @type time: str
         @param comm: command name (only the executable name)
@@ -120,6 +127,30 @@ class ProcessInfo(object):
         self._user = None
         self._uid = None
         self.user = user
+
+        self._pid = None
+        self.pid = pid
+
+        self._ppid = None
+        self.ppid = ppid
+
+        self._state = set([])
+        self.state = state
+
+        self._pcpu = 0.0
+        self.pcpu = pcpu
+
+        self._vsz = 0
+        self.vsz = vsz
+
+        self._rss = 0
+        self.rss = rss
+
+        self._time = 0
+        self.time = time
+
+        self._comm = str(comm)
+        self._args = str(args)
 
     #------------------------------------------------------------
     @property
@@ -150,6 +181,155 @@ class ProcessInfo(object):
         """The UID of the effective user."""
         return self._uid
 
+    #------------------------------------------------------------
+    @property
+    def pid(self):
+        """The process ID number of the process."""
+        return self._pid
+
+    @pid.setter
+    def pid(self, value):
+        self._pid = int(value)
+
+    #------------------------------------------------------------
+    @property
+    def ppid(self):
+        """The parent process ID number."""
+        return self._ppid
+
+    @ppid.setter
+    def ppid(self, value):
+        self._ppid = int(value)
+
+    #------------------------------------------------------------
+    @property
+    def state(self):
+        """The state of the process."""
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = set([])
+        for char in value[:]:
+            self._state.add(char)
+
+    #------------------------------------------------------------
+    @property
+    def state_desc(self):
+        """Textual description of the process states."""
+
+        desc_list = []
+        for char in sorted(self._state):
+            desc = "Unknown state %r" % (char)
+            if char in process_state:
+                desc = process_state[char]
+            desc_list.append(desc)
+
+        return ', '.join(desc_list)
+
+    #------------------------------------------------------------
+    @property
+    def pcpu(self):
+        """The cpu utilization of the process in percent."""
+        return self._pcpu
+
+    @pcpu.setter
+    def pcpu(self, value):
+
+        self._pcpu = 0.0
+        if isinstance(value, Number):
+            self._pcpu = float(value)
+            return
+
+        if value and value != '-':
+            self._pcpu = float(value.strip())
+
+    #------------------------------------------------------------
+    @property
+    def vsz(self):
+        """The virtual memory size of the process in KiB."""
+        return self._vsz
+
+    @vsz.setter
+    def vsz(self, value):
+        self._vsz = 0
+        if isinstance(value, Number):
+            self._vsz = int(value)
+            return
+        self._vsz = int(value.strip())
+
+    #------------------------------------------------------------
+    @property
+    def rss(self):
+        """The resident set size of the process in KiB."""
+        return self._rss
+
+    @rss.setter
+    def rss(self, value):
+        self._rss = 0
+        if isinstance(value, Number):
+            self._rss = int(value)
+            return
+        self._rss = int(value.strip())
+
+    #------------------------------------------------------------
+    @property
+    def time(self):
+        """The cumulative CPU time in seconds."""
+        return self._time
+
+    @time.setter
+    def time(self, value):
+        self._time = 0
+        if isinstance(value, Number):
+            self._time = int(value)
+            return
+
+        match = re_time.search(value)
+        if match:
+            self._time = 60 * int(match.group('mins'))
+            self._time += int(match.group('secs'))
+            if match.group('hours'):
+                self._time += 60 * 60 * int(match.group('hours'))
+            if match.group('days'):
+                self._time += 24 * 60 * 60 * int(match.group('days'))
+        else:
+            log.warn("Could not parse time description %r.", value)
+
+    #------------------------------------------------------------
+    @property
+    def time_desc(self):
+        """Textual description of the cumulative CPU time."""
+
+        t = self._time
+
+        secs = t % 60
+        t = (t - secs) / 60
+
+        mins = t % 60
+        t = (t - mins) / 60
+
+        hours = t % 24
+        days = (t - hours) / 24
+
+        out = "%02d:%02d:%02d" % (hours, mins, secs)
+        if days:
+            out = ("%d-" % (days)) + out
+
+        return out
+
+    #------------------------------------------------------------
+    @property
+    def comm(self):
+        """The command name (only the executable name)."""
+        return self._comm
+
+    #------------------------------------------------------------
+    @property
+    def args(self):
+        """The command with all its arguments."""
+        return self._args
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """Transforms the elements of the object into a dict."""
@@ -158,6 +338,17 @@ class ProcessInfo(object):
         d['__class_name__'] = self.__class__.__name__
         d['user'] = self.user
         d['uid'] = self.uid
+        d['pid'] = self.pid
+        d['ppid'] = self.ppid
+        d['state'] = self.state
+        d['state_desc'] = self.state_desc
+        d['pcpu'] = self.pcpu
+        d['vsz'] = self.vsz
+        d['rss'] = self.rss
+        d['time'] = self.time
+        d['time_desc'] = self.time_desc
+        d['comm'] = self.comm
+        d['args'] = self.args
 
         return d
 
@@ -177,6 +368,15 @@ class ProcessInfo(object):
 
         fields = []
         fields.append("user=%r" % (self.user))
+        fields.append("pid=%r" % (self.pid))
+        fields.append("ppid=%r" % (self.ppid))
+        fields.append("state=%r" % (''.join(self.state)))
+        fields.append("pcpu=%r" % (self.pcpu))
+        fields.append("vsz=%r" % (self.vsz))
+        fields.append("rss=%r" % (self.rss))
+        fields.append("time=%r" % (self.time))
+        fields.append("comm=%r" % (self.comm))
+        fields.append("args=%r" % (self.args))
 
         out += ", ".join(fields) + ")>"
 
