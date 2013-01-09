@@ -144,9 +144,6 @@ def nagios_exit(code, message, plugin_object = None, no_status_line = False):
                 if callable(all_perfoutput):
                     output += ' | ' + all_perfoutput()
 
-    if output:
-        output += '\n'
-
     if _fake_exit:
         raise FakeExitError(code, output)
 

@@ -82,7 +82,7 @@ class LvmVgState(object):
     """
 
     #--------------------------------------------------------------------------
-    def __init__(self, vg, vgs_cmd = VGS_CMD, verbose = 0, **kwargs):
+    def __init__(self, vg, vgs_cmd = VGS_CMD, verbose = 0, timeout = 15, **kwargs):
         """
         Constructor.
 
@@ -92,6 +92,8 @@ class LvmVgState(object):
         @type vgs_cmd: str
         @param verbose: the verbosity level
         @type verbose: int
+        @param timeout: the timeout in execution the 'vgs' command
+        @type timeout: int
 
         """
 
@@ -110,6 +112,12 @@ class LvmVgState(object):
         self._verbose = verbose
         """
         @ivar: the verbosity level
+        @type: int
+        """
+
+        self._timeout = timeout
+        """
+        @ivar: the timeout in execution the 'vgs' command
         @type: int
         """
 
@@ -172,6 +180,12 @@ class LvmVgState(object):
     def verbose(self):
         """The verbosity level."""
         return self._verbose
+
+    #------------------------------------------------------------
+    @property
+    def timeout(self):
+        """The timeout in execution the 'vgs' command."""
+        return self._timeout
 
     #------------------------------------------------------------
     @property
@@ -368,6 +382,7 @@ class LvmVgState(object):
         d['vg'] = self.vg
         d['vgs_cmd'] = self.vgs_cmd
         d['verbose'] = self.verbose
+        d['timeout'] = self.timeout
         d['checked'] = self.checked
         d['format'] = self.format
         d['attr'] = self.attr
@@ -410,6 +425,7 @@ class LvmVgState(object):
         fields.append("vg=%r" % (self.vg))
         fields.append("vgs_cmd=%r" % (self.vgs_cmd))
         fields.append("verbose=%r" % (self.verbose))
+        fields.append("timeout=%r" % (self.timeout))
         if self.checked:
             fields.append("checked=%r" % (self.checked))
             fields.append("attr=%r" % (self.attr))
@@ -450,8 +466,7 @@ class LvmVgState(object):
         ]
         cmd_str = ' '.join(cmd)
 
-        # TODO: got the timeout from somewhere
-        timeout = 15
+        timeout = abs(int(self.timeout))
 
         output = ''
         def exec_alarm_caller(signum, sigframe):
@@ -476,6 +491,26 @@ class LvmVgState(object):
         if self.verbose > 2:
             log.debug("Got output:\n%s", output)
 
+        fields = output.strip().split(';')
+        if self.verbose > 2:
+            log.debug("Got fields:\n%s", pp(fields))
+
+
+        self._format = fields[0]
+        self._ext_size = int(float(fields[3]))
+        self._ext_count = int(fields[4])
+        self._ext_free = int(fields[5])
+
+        attr_str = fields[2]
+        attr = set([])
+        for i in (0, 1, 2, 3, 4):
+            if attr_str[i] != '-':
+                attr.add(attr_str[i])
+        if attr_str[5] == 'c':
+            attr.add('C')
+        self._attr = attr
+
+        self._checked = True
 
 #==============================================================================
 class CheckLvmVgPlugin(ExtNagiosPlugin):
@@ -638,20 +673,46 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
         vg_state = LvmVgState(
-                vg = self.vg, vgs_cmd = self.vgs_cmd, verbose = self.verbose)
+                vg = self.vg, vgs_cmd = self.vgs_cmd,
+                verbose = self.verbose, timeout = self.argparser.args.timeout)
 
         try:
             vg_state.get_data()
         except (ExecutionTimeoutError, VgNotExistsError),  e:
             self.die(str(e))
         except CalledProcessError, e:
-            msg = "The %r command returned %d with the message:\n%s" % (
+            msg = "The %r command returned %d with the message: %s" % (
                     self.vgs_cmd, e.returncode, e.output)
             self.die(msg)
 
-        if self.verbose > 2:
+        if self.verbose > 1:
             log.debug("Got a state of the volume group %r:\n%s",
                     self.vg, vg_state)
+
+        if self.check_state:
+
+            self.add_message(nagios.state.ok,
+                    ("Volume group %r seems to be OK." % (self.vg)))
+
+            if 'r' in vg_state.attr:
+                self.add_message(nagios.state.warning,
+                        ("Volume group %r is in a read-only state." % (self.vg)))
+
+            if not 'z' in vg_state.attr:
+                self.add_message(nagios.state.warning,
+                        ("Volume group %r is not resizeable." % (self.vg)))
+
+            if 'p' in vg_state.attr:
+                self.add_message(nagios.state.critical,
+                        (("One or more physical volumes belonging to the " +
+                        "volume group %r are missing from the system.") % (
+                        self.vg)))
+
+            (state, msg) = self.check_messages()
+            self.exit(state, msg)
+
+            #Only for the blinds:
+            return
 
         state = nagios.state.ok
         self.exit(state, "The stars are shining above us...")
