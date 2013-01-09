@@ -17,6 +17,7 @@ import re
 import signal
 import subprocess
 import locale
+import math
 
 from numbers import Number
 from subprocess import CalledProcessError
@@ -33,6 +34,8 @@ from nagios.common import pp, caller_search_path
 from nagios.plugin import NagiosPluginError
 
 from nagios.plugin.range import NagiosRange
+
+from nagios.plugin.threshold import NagiosThreshold
 
 from nagios.plugins import ExtNagiosPluginError
 from nagios.plugins import ExecutionTimeoutError
@@ -61,6 +64,9 @@ vg_attribute = {
         'i': 'inherited allocation',
         'C': 'clustered',
 }
+
+re_number_abs = re.compile(r'^\s*(\d+)\s*$')
+re_number_percent = re.compile(r'^\s*(\d+)\s*%\s*$')
 
 #==============================================================================
 class VgNotExistsError(ExtNagiosPluginError):
@@ -672,6 +678,41 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
+        #-----------------------------------------------------------
+        # Parameters for check_free
+        crit = 0
+        crit_is_abs = True
+        warn = 0
+        warn_is_abs = True
+
+        if not self.check_state:
+
+            match_pc = re_number_percent.search(self.argparser.args.critical)
+            match_abs = re_number_abs.search(self.argparser.args.critical)
+
+            if match_pc:
+                crit = int(match_pc.group(1))
+                crit_is_abs = False
+            elif match_abs:
+                crit = int(match_abs.group(1))
+            else:
+                self.die("Invalid critical value %r." % (self.argparser.args.critical))
+                return
+
+            match_pc = re_number_percent.search(self.argparser.args.warning)
+            match_abs = re_number_abs.search(self.argparser.args.warning)
+
+            if match_pc:
+                warn = int(match_pc.group(1))
+                warn_is_abs = False
+            elif match_abs:
+                warn = int(match_abs.group(1))
+            else:
+                self.die("Invalid warning value %r." % (self.argparser.args.warning))
+                return
+
+        #-----------------------------------------------------------
+        # Getting current state of VG
         vg_state = LvmVgState(
                 vg = self.vg, vgs_cmd = self.vgs_cmd,
                 verbose = self.verbose, timeout = self.argparser.args.timeout)
@@ -689,6 +730,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             log.debug("Got a state of the volume group %r:\n%s",
                     self.vg, vg_state)
 
+        #-----------------------------------------------
         if self.check_state:
 
             self.add_message(nagios.state.ok,
@@ -714,8 +756,82 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             #Only for the blinds:
             return
 
-        state = nagios.state.ok
-        self.exit(state, "The stars are shining above us...")
+        #-----------------------------------------------
+        # And now check free space (or whatever)
+
+        if not vg_state.size_mb:
+            self.die("Cannot detect absolute size of volume group %r." % (
+                    self.vg))
+
+        c_free_abs = 0
+        c_free_pc = 0
+        c_used_abs = 0
+        c_used_pc = 0
+        if crit_is_abs:
+            c_free_abs = crit
+            c_used_abs = vg_state.size_mb - crit
+            c_free_pc = float(crit) / float(vg_state.size_mb) * 100
+            c_used_pc = float(c_used_abs) / float(vg_state.size_mb) * 100
+        else:
+            c_free_pc = float(crit)
+            c_used_pc = 100.0 - c_free_pc
+            c_free_abs = int(math.ceil(c_free_pc * float(vg_state.size_mb) / 100))
+            c_used_abs = vg_state.size_mb - c_free_abs
+
+        w_free_abs = 0
+        w_free_pc = 0
+        w_used_abs = 0
+        w_used_pc = 0
+        if warn_is_abs:
+            w_free_abs = warn
+            w_used_abs = vg_state.size_mb - warn
+            w_free_pc = float(warn) / float(vg_state.size_mb) * 100
+            w_used_pc = float(w_used_abs) / float(vg_state.size_mb) * 100
+        else:
+            w_free_pc = float(warn)
+            w_used_pc = 100.0 - w_free_pc
+            w_free_abs = int(math.ceil(w_free_pc * float(vg_state.size_mb) / 100))
+            w_used_abs = vg_state.size_mb - w_free_abs
+
+        if c_free_abs > w_free_abs:
+            self.die(("The warning threshold must be greater than the " +
+                    "critical threshold."))
+
+        th_free_abs = NagiosThreshold(
+                warning = "@%d" % (w_free_abs), critical = "@%d" % (c_free_abs))
+        th_used_abs = NagiosThreshold(
+                warning = "%d" % (w_used_abs), critical = "%d" % (c_used_abs))
+        th_free_pc = NagiosThreshold(
+                warning = "@%d" % (w_free_pc), critical = "@%d" % (c_free_pc))
+        th_used_pc = NagiosThreshold(
+                warning = "%f" % (w_used_pc), critical = "%f" % (c_used_pc))
+
+        if self.verbose > 2:
+            log.debug("Thresholds free MBytes:\n%s", pp(th_free_abs.as_dict()))
+            log.debug("Thresholds free percent:\n%s", pp(th_free_pc.as_dict()))
+            log.debug("Thresholds used MBytes:\n%s", pp(th_used_abs.as_dict()))
+            log.debug("Thresholds used percent:\n%s", pp(th_used_pc.as_dict()))
+
+        self.add_perfdata(label = 'total_size', value = vg_state.size_mb,
+                uom = 'MiB')
+        self.add_perfdata(label = 'free_size', value = vg_state.free_mb,
+                uom = 'MiB', threshold = th_free_abs)
+        self.add_perfdata(label = 'free_percent',
+                value = float("%0.2f" % (vg_state.percent_free)), uom = '%',
+                threshold = th_free_pc)
+        self.add_perfdata(label = 'alloc_size', value = vg_state.used_mb,
+                uom = 'MiB', threshold = th_used_abs)
+        self.add_perfdata(label = 'alloc_percent',
+                value = float("%0.2f" % (vg_state.percent_used)), uom = '%',
+                threshold = th_used_pc)
+
+        state = th_free_abs.get_status(vg_state.free_mb)
+
+        out = "%d MiB total, %d MiB free (%0.1f%%), %d MiB allocated (%0.1f%%)" % (
+                vg_state.size_mb, vg_state.free_mb, vg_state.percent_free,
+                vg_state.used_mb, vg_state.percent_used)
+
+        self.exit(state, out)
 
 #==============================================================================
 
