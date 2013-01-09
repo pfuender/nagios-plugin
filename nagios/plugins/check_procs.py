@@ -16,6 +16,7 @@ import pwd
 import re
 import signal
 import subprocess
+import locale
 
 from numbers import Number
 
@@ -773,6 +774,10 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if self.verbose > 1:
             log.debug("Executing %r ...", cmd_str)
 
+        current_locale = os.environ.get('LC_NUMERIC')
+        if self.verbose > 2:
+            log.debug("Current locale is %r, setting to 'C'.", current_locale)
+        os.environ['LC_NUMERIC'] = 'C'
         signal.signal(signal.SIGALRM, exec_alarm_caller)
         signal.alarm(timeout)
 
@@ -787,8 +792,12 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             (stdoutdata, stderrdata) = cmd_obj.communicate()
         except ExecutionTimeoutError, e:
             self.die(str(e))
-
-        signal.alarm(0)
+        finally:
+            signal.alarm(0)
+            if current_locale:
+                os.environ['LC_NUMERIC'] = current_locale
+            else:
+                del os.environ['LC_NUMERIC']
 
         if self.verbose > 2:
             log.debug("Got from STDOUT:\n%s", stdoutdata)

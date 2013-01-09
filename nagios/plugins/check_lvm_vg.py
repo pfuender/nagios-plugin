@@ -16,8 +16,10 @@ import pwd
 import re
 import signal
 import subprocess
+import locale
 
 from numbers import Number
+from subprocess import CalledProcessError
 
 # Third party modules
 
@@ -210,7 +212,7 @@ class LvmVgState(object):
 
     #------------------------------------------------------------
     @property
-        def attr_vgs(self):
+    def attr_vgs(self):
         """The attributes of the VG in a representation like in vgs."""
 
         if self._attr is None:
@@ -418,6 +420,63 @@ class LvmVgState(object):
         out += ", ".join(fields) + ")>"
         return out
 
+    #--------------------------------------------------------------------------
+    def get_data(self, force = False):
+        """
+        Main method to retrieve the data about the VG with the 'vgs' command.
+
+        @param force: retrieve data, even if self.checked is True
+        @type force: bool
+
+        """
+
+        if self.checked and not force:
+            return
+
+        # vgs --unit m --noheadings --nosuffix --separator ';' --unbuffered \
+        #   -o vg_fmt,vg_name,vg_attr,vg_size,vg_free,vg_extent_size,vg_extent_count,vg_free_count storage
+
+        fields = ('vg_fmt', 'vg_name', 'vg_attr', 'vg_extent_size',
+                    'vg_extent_count', 'vg_free_count')
+
+        cmd = [
+                self.vgs_cmd,
+                '--unit', 'm',
+                '--noheadings', '--nosuffix',
+                '--separator', ';',
+                '--unbuffered',
+                '-o', ','.join(fields),
+                self.vg
+        ]
+        cmd_str = ' '.join(cmd)
+
+        # TODO: got the timeout from somewhere
+        timeout = 15
+
+        output = ''
+        def exec_alarm_caller(signum, sigframe):
+            raise ExecutionTimeoutError(timeout, cmd_str)
+
+        current_locale = os.environ.get('LC_NUMERIC')
+        if self.verbose > 2:
+            log.debug("Current locale is %r, setting to 'C'.", current_locale)
+        os.environ['LC_NUMERIC'] = 'C'
+        signal.signal(signal.SIGALRM, exec_alarm_caller)
+        signal.alarm(timeout)
+
+        try:
+            output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
+        finally:
+            signal.alarm(0)
+            if current_locale:
+                os.environ['LC_NUMERIC'] = current_locale
+            else:
+                del os.environ['LC_NUMERIC']
+
+        if self.verbose > 2:
+            log.debug("Got output:\n%s", output)
+
+
 #==============================================================================
 class CheckLvmVgPlugin(ExtNagiosPlugin):
     """
@@ -578,11 +637,24 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
+        vg_state = LvmVgState(
+                vg = self.vg, vgs_cmd = self.vgs_cmd, verbose = self.verbose)
+
+        try:
+            vg_state.get_data()
+        except (ExecutionTimeoutError, VgNotExistsError),  e:
+            self.die(str(e))
+        except CalledProcessError, e:
+            msg = "The %r command returned %d with the message:\n%s" % (
+                    self.vgs_cmd, e.returncode, e.output)
+            self.die(msg)
+
+        if self.verbose > 2:
+            log.debug("Got a state of the volume group %r:\n%s",
+                    self.vg, vg_state)
+
         state = nagios.state.ok
         self.exit(state, "The stars are shining above us...")
-
-        # vgs --unit m --noheadings --nosuffix --separator ';' --unbuffered \
-        #   -o vg_fmt,vg_name,vg_attr,vg_size,vg_free,vg_extent_size,vg_extent_count,vg_free_count storage
 
 #==============================================================================
 
