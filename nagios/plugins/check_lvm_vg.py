@@ -46,6 +46,377 @@ log = logging.getLogger(__name__)
 
 VGS_CMD = os.sep + os.path.join('sbin', 'vgs')
 
+vg_attribute = {
+        'w': 'writeable',
+        'r': 'readonly',
+        'z': 'resizeable',
+        'x': 'exported',
+        'p': 'partial physical volumes',
+        'c': 'contiguous allocation',
+        'l': 'cling allocation',
+        'n': 'normal allocation',
+        'a': 'anywhere allocated',
+        'i': 'inherited allocation',
+        'C': 'clustered',
+}
+
+#==============================================================================
+class VgNotExistsError(ExtNagiosPluginError):
+    """Special exception indicating, that the volume group doesn't exists."""
+
+    #--------------------------------------------------------------------------
+    def __init__(self, vg):
+        self.vg = vg
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        return "Volume group %r doesn't exists." % (self.vg)
+
+#==============================================================================
+class LvmVgState(object):
+    """
+    A class for enapsulating and retrieving the state of an existing
+    LVM volume group.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, vg, vgs_cmd = VGS_CMD, verbose = 0, **kwargs):
+        """
+        Constructor.
+
+        @param vg: the name of the volume group
+        @type vg: str
+        @param vgs_cmd: the path to the vgs command
+        @type vgs_cmd: str
+        @param verbose: the verbosity level
+        @type verbose: int
+
+        """
+
+        self._vg = vg
+        """
+        @ivar: the name of the volume group
+        @type: str
+        """
+
+        self._vgs_cmd = vgs_cmd
+        """
+        @ivar: the underlaying 'vgs' command
+        @type: str
+        """
+
+        self._verbose = verbose
+        """
+        @ivar: the verbosity level
+        @type: int
+        """
+
+        self._checked = bool(kwargs.get('checked', False))
+        """
+        @ivar: flag, that the state of VG was even checked.
+        @type: bool
+        """
+
+        self._format = kwargs.get('format', None)
+        """
+        @ivar: LVM format of the VG
+        @type: str
+        """
+
+        self._attr = kwargs.get('attr', None)
+        """
+        @ivar: the attributes of the VG
+        @type: set
+        """
+
+        self._ext_size = None
+        """
+        @ivar: the extent size of the VG in MiBytes
+        @type: int
+        """
+        if 'ext_size' in kwargs:
+            self._ext_size = int(kwargs.get('ext_size'))
+
+        self._ext_count = None
+        """
+        @ivar: the total extent count of the VG
+        @type: int
+        """
+        if 'ext_count' in kwargs:
+            self._ext_count = int(kwargs.get('ext_count'))
+
+        self._ext_free = None
+        """
+        @ivar: the count of free extents of the VG
+        @type: int
+        """
+        if 'ext_free' in kwargs:
+            self._ext_free = int(kwargs.get('ext_free'))
+
+    #------------------------------------------------------------
+    @property
+    def vgs_cmd(self):
+        """The absolute path to the OS command 'vgs'."""
+        return self._vgs_cmd
+
+    #------------------------------------------------------------
+    @property
+    def vg(self):
+        """The volume group to check."""
+        return self._vg
+
+    #------------------------------------------------------------
+    @property
+    def verbose(self):
+        """The verbosity level."""
+        return self._verbose
+
+    #------------------------------------------------------------
+    @property
+    def checked(self):
+        """A flag, that the state of VG was even checked."""
+        return self._checked
+
+    #------------------------------------------------------------
+    @property
+    def format(self):
+        """The LVM format of the VG."""
+        return self._format
+
+    #------------------------------------------------------------
+    @property
+    def attr(self):
+        """The attributes of the VG."""
+        return self._attr
+
+    #------------------------------------------------------------
+    @property
+    def attr_str(self):
+        """A textual representation of the state of the vg."""
+
+        if self._attr is None:
+            return None
+
+        if not self._attr:
+            return 'unknown'
+
+        descs = []
+        # for the correct order:
+        for char in ('w', 'r', 'z', 'x', 'p', 'c', 'l', 'n', 'a', 'i', 'C'):
+            if char in self._attr:
+                descs.append(vg_attribute[char])
+
+        return ', '.join(descs)
+
+    #------------------------------------------------------------
+    @property
+        def attr_vgs(self):
+        """The attributes of the VG in a representation like in vgs."""
+
+        if self._attr is None:
+            return None
+
+        chars = ['-', '-', '-', '-', '-', '-']
+
+        if 'w' in self._attr:
+            chars[0] = 'w'
+        elif 'r' in self._attr:
+            chars[0] = 'r'
+
+        if 'z' in self._attr:
+            chars[1] = 'z'
+
+        if 'x' in self._attr:
+            chars[2] = 'x'
+
+        if 'p' in self._attr:
+            chars[3] = 'p'
+
+        for char in ('c', 'l', 'n', 'a', 'i'):
+            if char in self._attr:
+                chars[4] = char
+                break
+
+        if 'C' in self._attr:
+            chars[5] = 'c'
+
+        return ''.join(chars)
+
+    #------------------------------------------------------------
+    @property
+    def ext_size(self):
+        """The extent size of the VG in MiBytes."""
+        return self._ext_size
+
+    #------------------------------------------------------------
+    @property
+    def ext_count(self):
+        """The total extent count of the VG."""
+        return self._ext_count
+
+    #------------------------------------------------------------
+    @property
+    def size(self):
+        """The total size of the VG in Bytes."""
+
+        if self.ext_size is None or self.ext_count is None:
+            return None
+
+        return long(self.ext_size) * long(self.ext_count) * 1024l * 1024l
+
+    #------------------------------------------------------------
+    @property
+    def size_mb(self):
+        """The total size of the VG in MiBytes."""
+
+        if self.ext_size is None or self.ext_count is None:
+            return None
+        return self.ext_size * self.ext_count
+
+    #------------------------------------------------------------
+    @property
+    def ext_free(self):
+        """The count of free extents of the VG."""
+        return self._ext_free
+
+    #------------------------------------------------------------
+    @property
+    def free(self):
+        """The free size of the VG in Bytes."""
+
+        if self.ext_size is None or self.ext_free is None:
+            return None
+
+        return long(self.ext_size) * long(self.ext_free) * 1024l * 1024l
+
+    #------------------------------------------------------------
+    @property
+    def free_mb(self):
+        """The free size of the VG in MiBytes."""
+
+        if self.ext_size is None or self.ext_free is None:
+            return None
+
+        return self.ext_size * self.ext_free
+
+    #------------------------------------------------------------
+    @property
+    def percent_free(self):
+        """The percentage of free space in the VG."""
+
+        if (self.ext_count is None or self.ext_free is None or
+                self.ext_count == 0):
+            return None
+
+        return (float(self.ext_free) / float(self.ext_count)) * 100.0
+
+    #------------------------------------------------------------
+    @property
+    def ext_used(self):
+        """The count of used extents of the VG."""
+
+        if self.ext_count is None or self.ext_free is None:
+            return None
+
+        return self.ext_count - self.ext_free
+
+    #------------------------------------------------------------
+    @property
+    def used(self):
+        """The used size of the VG in Bytes."""
+
+        if self.ext_size is None or self.ext_used is None:
+            return None
+
+        return long(self.ext_size) * long(self.ext_used) * 1024l * 1024l
+
+    #------------------------------------------------------------
+    @property
+    def used_mb(self):
+        """The used size of the VG in MiBytes."""
+
+        if self.ext_size is None or self.ext_used is None:
+            return None
+
+        return self.ext_size * self.ext_used
+
+    #------------------------------------------------------------
+    @property
+    def percent_used(self):
+        """The percentage of used space in the VG."""
+
+        if (self.ext_count is None or self.ext_used is None or
+                self.ext_count == 0):
+            return None
+
+        return (float(self.ext_used) / float(self.ext_count)) * 100.0
+
+    #--------------------------------------------------------------------------
+    def as_dict(self):
+        """
+        Typecasting into a dictionary.
+
+        @return: structure as dict
+        @rtype:  dict
+
+        """
+
+        d = {}
+        d['__class__'] = self.__class__.__name__
+        d['vg'] = self.vg
+        d['vgs_cmd'] = self.vgs_cmd
+        d['verbose'] = self.verbose
+        d['checked'] = self.checked
+        d['format'] = self.format
+        d['attr'] = self.attr
+        d['attr_str'] = self.attr_str
+        d['attr_vgs'] = self.attr_vgs
+        d['ext_size'] = self.ext_size
+        d['ext_count'] = self.ext_count
+        d['size'] = self.size
+        d['size_mb'] = self.size_mb
+        d['ext_free'] = self.ext_free
+        d['free'] = self.free
+        d['free_mb'] = self.free_mb
+        d['percent_free'] = self.percent_free
+        d['ext_used'] = self.ext_used
+        d['used'] = self.used
+        d['used_mb'] = self.used_mb
+        d['percent_used'] = self.percent_used
+
+        return d
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+        """
+        Typecasting function for translating object structure into a string.
+
+        @return: structure as string
+        @rtype:  str
+
+        """
+
+        return pp(self.as_dict())
+
+    #--------------------------------------------------------------------------
+    def __repr__(self):
+        """Typecasting into a string for reproduction."""
+
+        out = "<%s(" % (self.__class__.__name__)
+
+        fields = []
+        fields.append("vg=%r" % (self.vg))
+        fields.append("vgs_cmd=%r" % (self.vgs_cmd))
+        fields.append("verbose=%r" % (self.verbose))
+        if self.checked:
+            fields.append("checked=%r" % (self.checked))
+            fields.append("attr=%r" % (self.attr))
+            fields.append("ext_size=%r" % (self.ext_size))
+            fields.append("ext_count=%r" % (self.ext_count))
+            fields.append("ext_free=%r" % (self.ext_free))
+
+        out += ", ".join(fields) + ")>"
+        return out
 
 #==============================================================================
 class CheckLvmVgPlugin(ExtNagiosPlugin):
@@ -97,7 +468,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         self._vgs_cmd = VGS_CMD
         """
-        @ivar: the underlaying 'ps' command
+        @ivar: the underlaying 'vgs' command
         @type: str
         """
         if not os.path.exists(self.vgs_cmd) or not os.access(
@@ -202,6 +573,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         if not self.argparser.args.vg:
             self.die("No volume group to check given.")
+        self._vg = self.argparser.args.vg
 
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
