@@ -298,6 +298,14 @@ class ExtNagiosPlugin(NagiosPlugin):
         self.verbose = self.argparser.args.verbose
 
     #--------------------------------------------------------------------------
+    def out(self, msg):
+        """Printing the message formatted to STDERR."""
+
+        msg = str(msg).strip()
+        msg = "  " + self.shortname + ': ' + msg + '\n'
+        sys.stderr.write(msg)
+
+    #--------------------------------------------------------------------------
     def init_root_logger(self):
         """
         Initiialize the root logger.
@@ -323,7 +331,7 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         # create log handler for console output
         lh_console = logging.StreamHandler(sys.stderr)
-        if self.verbose:
+        if self.verbose > 1:
             lh_console.setLevel(logging.DEBUG)
         else:
             lh_console.setLevel(logging.INFO)
