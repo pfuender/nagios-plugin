@@ -750,6 +750,10 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
                         "volume group %r are missing from the system.") % (
                         self.vg)))
 
+            if self.verbose:
+                self.out("Attributes of VG %r: %s" % (
+                        self.vg, vg_state.attr_str))
+
             (state, msg) = self.check_messages()
             self.exit(state, msg)
 
@@ -805,6 +809,14 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
                 warning = "@%d" % (w_free_pc), critical = "@%d" % (c_free_pc))
         th_used_pc = NagiosThreshold(
                 warning = "%f" % (w_used_pc), critical = "%f" % (c_used_pc))
+
+        if self.verbose:
+            self.out("VG %r total size: %8d MiBytes." % (
+                    self.vg, vg_state.size_mb))
+            self.out("VG %r used size:  %8d MiBytes (%0.2f%%)." % (
+                    self.vg, vg_state.used_mb, vg_state.percent_used))
+            self.out("VG %r free size:  %8d MiBytes (%0.2f%%)." % (
+                    self.vg, vg_state.free_mb, vg_state.percent_free))
 
         if self.verbose > 2:
             log.debug("Thresholds free MBytes:\n%s", pp(th_free_abs.as_dict()))
