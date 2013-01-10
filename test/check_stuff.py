@@ -19,9 +19,11 @@ libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, libdir)
 
 import general
-from general import ColoredFormatter, pp, init_root_logger
+from general import ColoredFormatter, init_root_logger
 
 import nagios
+
+from nagios.common import pp
 
 from nagios.plugin import NagiosPluginError
 from nagios.plugin import NagiosPlugin

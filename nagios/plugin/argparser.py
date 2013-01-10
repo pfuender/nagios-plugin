@@ -83,9 +83,10 @@ class NagiosPluginArgparse(object):
         @param usage: Short usage message used with --usage/-? and with missing
                       required arguments, and included in the longer --help
                       output. Can include %(prog)s placeholder which will be
-                      replaced with the plugin name, e.g.:
+                      replaced with the plugin name, e.g.::
 
                           usage = 'Usage: %(prog)s -H <hostname> -p <ports> [-v]'
+
         @type usage: str
         @param version: Plugin version number, included in the --version/-V
                         output, and in the longer --help output. e.g.::
@@ -436,7 +437,9 @@ class NagiosPluginArgparse(object):
 
         for arg in self.arguments:
 
-            dest = arg['kwargs']['dest']
+            dest = arg['names'][0]
+            if 'dest' in arg['kwargs']:
+                dest = arg['kwargs']['dest']
             if 'required' in arg['kwargs']:
                 required = arg['kwargs']['required']
                 if required:
@@ -608,6 +611,9 @@ class NagiosPluginArgparse(object):
             msg = ("The destination %r is allready used.") % (dest)
             raise NagiosPluginArgparseError(msg)
         self._used_arg_dests.append(dest)
+
+        if dest in names:
+            del kwargs['dest']
 
         for kword in kwargs:
             if not kword in valid_kwargs:

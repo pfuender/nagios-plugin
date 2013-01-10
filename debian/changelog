@@ -1,3 +1,51 @@
+python-nagios-plugin (0.4.1-1) unstable; urgency=low
+
+  * Version bump
+  * New method out() to ExtNagiosPlugin in nagios/plugins/__init__.py
+  * Modified output on verbose >= 1 in nagios/plugins/check_lvm_vg.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 10 Jan 2013 11:20:04 +0100
+
+python-nagios-plugin (0.4.0-1) unstable; urgency=low
+
+  * Version bump
+  * Added sample plugins
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 09 Jan 2013 16:56:47 +0100
+
+python-nagios-plugin (0.3.7-1) unstable; urgency=low
+
+  * Version bump
+  * Started with VG check scripts
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 08 Jan 2013 18:27:07 +0100
+
+python-nagios-plugin (0.3.6-1) unstable; urgency=low
+
+  * Version bump
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 08 Jan 2013 14:29:29 +0100
+
+python-nagios-plugin (0.3.5-1) unstable; urgency=low
+
+  * Version bump
+  * Started with first sample plugin bin/check_procs
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 07 Jan 2013 16:52:16 +0100
+
+python-nagios-plugin (0.3.4-1) unstable; urgency=low
+
+  * Version bump
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 07 Jan 2013 14:50:25 +0100
+
+python-nagios-plugin (0.3.3-1) unstable; urgency=low
+
+  * Version bump
+  * Declared for unstable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 04 Jan 2013 18:00:01 +0100
+
 python-nagios-plugin (0.3.2-2) stable; urgency=low
 
   * Version bump

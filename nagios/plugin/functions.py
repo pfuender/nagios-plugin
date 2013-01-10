@@ -144,9 +144,6 @@ def nagios_exit(code, message, plugin_object = None, no_status_line = False):
                 if callable(all_perfoutput):
                     output += ' | ' + all_perfoutput()
 
-    if output:
-        output += '\n'
-
     if _fake_exit:
         raise FakeExitError(code, output)
 
@@ -179,9 +176,12 @@ def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
     @type ok: list of str or str or None
     @param join: a string used to join the relevant list to generate the
                  message string returned. I.e. if the 'critical' list
-                 is non-empty, check_messages would return::
+                 is non-empty, check_messages would return
+                 as the result message::
+
                     join.join(critical)
-                as the result message.
+
+    @type join: str
     @param join_all: by default only one, the appropriate set of messages
                      are joined and returned in the result message. If the
                      result is critical, only the 'critical' messages
@@ -249,4 +249,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 expandtab
