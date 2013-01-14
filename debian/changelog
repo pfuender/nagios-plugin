@@ -1,3 +1,9 @@
+python-nagios-plugin (0.4.2-1) unstable; urgency=low
+
+  * Version bump
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 14 Jan 2013 16:19:28 +0100
+
 python-nagios-plugin (0.4.1-1) unstable; urgency=low
 
   * Version bump
