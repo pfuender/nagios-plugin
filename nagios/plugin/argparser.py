@@ -35,7 +35,7 @@ from nagios.plugin.config import NagiosPluginConfig
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.4.1'
+__version__ = '0.5.1'
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +54,95 @@ class NagiosPluginArgparseError(BaseNagiosError):
     """Special exceptions, which are raised in this module."""
 
     pass
+
+#==============================================================================
+class NagiosPluginArgparseAction(argparse.Action):
+    """Base class for self defined argparse actions."""
+
+    #--------------------------------------------------------------------------
+    def np_exit(self, parser, messages, state = nagios.state.ok):
+        """
+        Method to exit as a result of the actions.
+
+        @param messages: messages to emit to stderr on exit.
+        @type messages: str or list of str
+        @param state: the Nagios state value on exit of the application
+        @type state: int
+
+        """
+
+        msgs = messages
+        if isinstance(messages, basestring):
+            msgs = [msgs]
+        msg = "\n".join(msgs)
+        log.debug("Exiting with return value %d and a message %r.",
+                state, msg)
+        parser.exit(state, msg)
+
+#==============================================================================
+class NpUsageAction(NagiosPluginArgparseAction):
+    """Action class to react on the --usage parameter"""
+
+    #--------------------------------------------------------------------------
+    def __call__(self, parser, namespace, values, option_string = None):
+
+        #log.debug('Namespace: %r,  Values: %r, Option string: %r' % (
+        #        namespace, values, option_string))
+
+        self.np_exit(parser, parser.format_usage())
+
+#==============================================================================
+class NpHelpAction(NagiosPluginArgparseAction):
+    """Action class to react on the --help parameter"""
+
+    #--------------------------------------------------------------------------
+    def __call__(self, parser, namespace, values, option_string = None):
+
+        #log.debug('Namespace: %r,  Values: %r, Option string: %r' % (
+        #        namespace, values, option_string))
+
+        self.np_exit(parser, parser.format_help())
+
+#==============================================================================
+class NpArgParser(argparse.ArgumentParser):
+    """
+    Wrapper class to argparse.ArgumentParser to modify the error() and
+    the exit() method.
+    """
+
+    #--------------------------------------------------------------------------
+    def error(self, message):
+        """
+        Prints a usage message incorporating the message to stderr and exits.
+
+        @param message: the message to emit on exit.
+        @type message: str
+
+        """
+
+        try:
+            super(NpArgParser, self).error(message)
+        except SystemExit:
+            nagios_die('', no_status_line = True)
+
+    #--------------------------------------------------------------------------
+    def exit(self, status = 0, message = None):
+        """
+        Prints a usage message incorporating the message to stderr
+        and exits with the given return value.
+
+        @param status: the return value, which should given back
+                       to the operating system
+        @type status: int
+        @param message: the message to emit on exit.
+        @type message: str
+
+        """
+
+        try:
+            super(NpArgParser, self).exit(status, message)
+        except SystemExit:
+            nagios_exit(status, '', no_status_line = True)
 
 #==============================================================================
 class NagiosPluginArgparse(object):
@@ -394,7 +483,7 @@ class NagiosPluginArgparse(object):
         if self.licence:
             epilog += wrapper.fill(re_ws.sub(' ', self.licence))
 
-        parser = argparse.ArgumentParser(
+        parser = NpArgParser(
                 prog = self.plugin,
                 usage = self.usage,
                 description = desc,
@@ -406,33 +495,18 @@ class NagiosPluginArgparse(object):
         self._add_plugin_args(parser)
         self._add_std_args(parser)
 
-        log.debug("ArgumentParser object: %r", parser)
+        log.debug("NpArgParser object: %r", parser)
 
-        try:
-            self.args = parser.parse_args(args)
-        except SystemExit, e:
-            self._die()
+        self.args = parser.parse_args(args)
 
         log.debug("Got first commandline arguments: %r", self.args)
-
-        if self.args.usage:
-            self._finish(parser.format_usage())
-
-        if self.args.version:
-            self._finish(self._get_version_str())
-
-        if self.args.help:
-            self._finish(parser.format_help())
 
         if self.args.extra_opts:
             new_args = self._process_extra_opts(args, self.args.extra_opts)
             log.debug("Got new commandline parameters %r.", new_args)
             if new_args != args:
                 log.debug("Reevaluate commandline options ...")
-                try:
-                    self.args = parser.parse_args(new_args)
-                except SystemExit, e:
-                    self._die()
+                self.args = parser.parse_args(new_args)
                 log.debug("Got next commandline arguments: %r", self.args)
 
         for arg in self.arguments:
@@ -652,21 +726,24 @@ class NagiosPluginArgparse(object):
 
         std_group.add_argument(
                 '--usage', '-?',
-                action = 'store_true',
+                action = NpUsageAction,
+                nargs = '?',
                 dest = 'usage',
                 help = 'Print usage information',
         )
 
         std_group.add_argument(
                 '--help', '-h',
-                action = 'store_true',
+                action = NpHelpAction,
+                nargs = '?',
                 dest = 'help',
                 help = 'Print detailed help screen',
         )
 
         std_group.add_argument(
                 '--version', '-V',
-                action = 'store_true',
+                action = 'version',
+                version = self._get_version_str(),
                 dest = 'version',
                 help = 'Print version information',
         )
@@ -703,7 +780,61 @@ class NagiosPluginArgparse(object):
 
 if __name__ == "__main__":
 
-    pass
+    from nagios.plugin.functions import get_shortname
+    from nagios.color_syslog import ColoredFormatter
+
+    verbose = 0
+    if '-v' in sys.argv:
+        verbose = 1
+        verbose = sys.argv.count('-v')
+
+    shortname = get_shortname()
+
+    root_log = logging.getLogger()
+    root_log.setLevel(logging.INFO)
+    if verbose:
+        root_log.setLevel(logging.DEBUG)
+
+    format_str = shortname + ': '
+    if verbose:
+        if verbose > 1:
+            format_str += '%(name)s(%(lineno)d) %(funcName)s() '
+        else:
+            format_str += '%(name)s '
+    format_str += '%(levelname)s - %(message)s'
+    formatter = None
+    if verbose:
+        formatter = ColoredFormatter(format_str)
+    else:
+        formatter = logging.Formatter(format_str)
+
+    # create log handler for console output
+    lh_console = logging.StreamHandler(sys.stderr)
+    if verbose > 1:
+        lh_console.setLevel(logging.DEBUG)
+    else:
+        lh_console.setLevel(logging.INFO)
+    lh_console.setFormatter(formatter)
+
+    root_log.addHandler(lh_console)
+
+    na = NagiosPluginArgparse(
+            usage = '%(prog)s --hello',
+            url = 'http://www.profitbricks.com',
+            blurb = 'Senseless sample Nagios plugin.',
+            extra = 'Bla blub',
+    )
+
+    na.add_arg('-H', '--hello', action = 'store_true',
+            dest = 'hello', help = "Prints out 'Hello world!'")
+
+    log.debug("NagiosPluginArgparse object: %r", na)
+    log.debug("NagiosPluginArgparse object: %s", str(na))
+
+    na.parse_args()
+    if na.args.hello:
+        print "Hello world!"
+    sys.exit(0)
 
 #==============================================================================
 
