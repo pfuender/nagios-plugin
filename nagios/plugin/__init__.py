@@ -12,6 +12,7 @@ import os
 import sys
 import logging
 import signal
+import errno
 
 from numbers import Number
 
@@ -580,9 +581,9 @@ class NagiosPlugin(object):
         timeout = abs(int(timeout))
 
         if not os.path.isfile(filename):
-            raise IOError(errno.ENOENT, "File doesn't exists.", filename)
+            raise IOError(errno.ENOENT, "File doesn't exists", filename)
         if not os.access(filename, os.R_OK):
-            raise IOError(errno.EACCES, 'Read permission denied.', filename)
+            raise IOError(errno.EACCES, 'Read permission denied', filename)
 
         if not quiet:
             log.debug("Reading file content of %r ...", filename)
