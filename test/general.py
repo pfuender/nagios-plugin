@@ -109,10 +109,13 @@ class NeedTmpConfig(NeedConfig):
 
         super(NeedTmpConfig, self).setUp()
 
+        if self.verbose > 1:
+            log.debug("Creating a temporary config file ...")
         (fd, self.tmp_cfg, ) = tempfile.mkstemp(
                 prefix = "temp-plugins-", suffix =  '.ini')
 
-        log.debug("Creating temp configfile %r ...", self.tmp_cfg)
+        if self.verbose > 2:
+            log.debug("Creating temp configfile %r ...", self.tmp_cfg)
         f = os.fdopen(fd, 'w')
         f.write("[silly_options]\n")
         f.write("uhu1 = banane 1\n")
@@ -123,7 +126,8 @@ class NeedTmpConfig(NeedConfig):
     #--------------------------------------------------------------------------
     def tearDown(self):
 
-        log.debug("Removing temp configfile %r ...", self.tmp_cfg)
+        if self.verbose > 2:
+            log.debug("Removing temporary configfile %r ...", self.tmp_cfg)
         os.remove(self.tmp_cfg)
 
 #==============================================================================

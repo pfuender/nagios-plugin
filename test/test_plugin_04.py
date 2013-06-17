@@ -13,6 +13,7 @@ import unittest
 import os
 import sys
 import logging
+import tempfile
 
 from collections import OrderedDict
 
@@ -37,6 +38,40 @@ log = logging.getLogger(__name__)
 
 #==============================================================================
 class TestNagiosPlugin(NeedConfig):
+
+    #--------------------------------------------------------------------------
+    def setUp(self):
+
+        if self.verbose > 2:
+            log.debug("Setting up a TestNagiosPlugin object ...")
+        super(TestNagiosPlugin, self).setUp()
+
+        if self.verbose > 1:
+            log.debug("Creating a temporary file for reading ...")
+        (fd, self.tmp_file, ) = tempfile.mkstemp(
+                prefix = "temp-", suffix =  '.txt')
+        if self.verbose > 2:
+            log.debug("Writing temporary file %r ...", self.tmp_file)
+
+        f = os.fdopen(fd, 'w')
+        f.write("Hello world!\n")
+        f.close()
+
+        pass
+
+    #--------------------------------------------------------------------------
+    def tearDown(self):
+
+        if self.verbose > 2:
+            log.debug("Tearing down the TestNagiosPlugin object ...")
+        super(TestNagiosPlugin, self).tearDown()
+
+        if os.path.exists(self.tmp_file):
+            if self.verbose > 2:
+                log.debug("Removing temporary file %r ...", self.tmp_file)
+            os.remove(self.tmp_file)
+
+        pass
 
     #--------------------------------------------------------------------------
     def test_read_file(self):
