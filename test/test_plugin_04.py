@@ -36,6 +36,8 @@ from nagios.plugin.config import NoConfigfileFound
 
 log = logging.getLogger(__name__)
 
+TEST_CONTENT = "Hello world!\n"
+
 #==============================================================================
 class TestNagiosPlugin(NeedConfig):
 
@@ -54,7 +56,7 @@ class TestNagiosPlugin(NeedConfig):
             log.debug("Writing temporary file %r ...", self.tmp_file)
 
         f = os.fdopen(fd, 'w')
-        f.write("Hello world!\n")
+        f.write(TEST_CONTENT)
         f.close()
 
         pass
@@ -86,6 +88,9 @@ class TestNagiosPlugin(NeedConfig):
         )
         if self.verbose > 2:
             log.debug("NagiosPluginArgparse object: %s", str(plugin))
+        log.debug("Reading file %r ...", self.tmp_file)
+        content = plugin.read_file(self.tmp_file)
+        self.assertEqual(content, TEST_CONTENT)
 
 #==============================================================================
 
