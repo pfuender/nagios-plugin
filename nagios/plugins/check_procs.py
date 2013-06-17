@@ -426,7 +426,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         blurb = textwrap.dedent(blurb).strip()
 
         super(CheckProcsPlugin, self).__init__(
-                usage = usage, version = __version__, blurb = blurb,
+                usage = usage, blurb = blurb,
         )
 
         self._ps_cmd = PS_CMD

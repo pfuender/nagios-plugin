@@ -556,7 +556,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             blurb += "Checks the free space of the given volume group."
 
         super(CheckLvmVgPlugin, self).__init__(
-                usage = usage, version = __version__, blurb = blurb,
+                usage = usage, blurb = blurb,
         )
 
         self._check_state = bool(check_state)
