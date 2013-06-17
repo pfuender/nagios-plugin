@@ -442,7 +442,20 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         @type: str
         """
 
+        self._pid_max = 2 ** 15
+        """
+        @ivar: The maximum number of processes in the system,
+               defaults to 32768
+        @type: int
+        """
+
         self._add_args()
+
+    #------------------------------------------------------------
+    @property
+    def pid_max(self):
+        """The maximum number of processes in the system, defaults to 32768."""
+        return self._pid_max
 
     #------------------------------------------------------------
     @property
@@ -499,6 +512,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         d['ps_cmd'] = self.ps_cmd
         d['user'] = self.user
+        d['pid_max'] = self.pid_max
 
         return d
 
@@ -632,6 +646,11 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if not self.ps_cmd:
             msg = "Command %r not found." % (ps_cmd)
             self.die(msg)
+
+        if os.path.exists(PID_MAX_FILE):
+            log.debug("Reading %r ...", PID_MAX_FILE)
+            self._pid_max = int(self.read_file(PID_MAX_FILE, quiet = True))
+            log.debug("Got a pid_max value of %d processes.", self._pid_max)
 
         if self.argparser.args.user:
             self.user = self.argparser.args.user
@@ -914,4 +933,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et
