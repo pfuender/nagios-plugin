@@ -552,20 +552,28 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         Adding all necessary arguments to the commandline argument parser.
         """
 
+        msg_p  = "If given as a percentage, the range will taken as percent of "
+        msg_p += "the maximum number of processes of the system (taken from "
+        msg_p += "/proc/sys/kernel/pid_max)."
+
+        msg = "Generate warning state if metric is outside this range. " + msg_p
+
         self.add_arg(
                 '-w', '--warning',
                 metavar = 'RANGE',
                 dest = 'warning',
                 required = True,
-                help = 'Generate warning state if metric is outside this range',
+                help = msg,
         )
+
+        msg = "Generate critical state if metric is outside this range. " + msg_p
 
         self.add_arg(
                 '-c', '--critical',
                 metavar = 'RANGE',
                 dest = 'critical',
                 required = True,
-                help = 'Generate critical state if metric is outside this range',
+                help = msg,
         )
 
         self.add_arg(
