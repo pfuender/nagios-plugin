@@ -86,11 +86,56 @@ class TestNagiosPlugin(NeedConfig):
                 licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
                 extra = 'Bla blub',
         )
-        if self.verbose > 2:
+        if self.verbose > 3:
             log.debug("NagiosPluginArgparse object: %s", str(plugin))
         log.debug("Reading file %r ...", self.tmp_file)
         content = plugin.read_file(self.tmp_file)
         self.assertEqual(content, TEST_CONTENT)
+
+    #--------------------------------------------------------------------------
+    @unittest.skipIf(os.geteuid() == 0, "No sense to perform this as root.")
+    def test_no_permissions(self):
+
+        log.info("Testing trying to read a file without permissions.")
+        plugin = NagiosPlugin(
+                usage = '%(prog)s --hello',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Sample Nagios plugin for reading a file.',
+                licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
+                extra = 'Bla blub',
+        )
+        if self.verbose > 3:
+            log.debug("NagiosPluginArgparse object: %s", str(plugin))
+        log.debug("Chmod 000 to %r ...", self.tmp_file)
+        os.chmod(self.tmp_file, 0)
+        log.debug("Reading file %r ...", self.tmp_file)
+        with self.assertRaises(IOError) as cm:
+            content = plugin.read_file(self.tmp_file)
+        e = cm.exception
+        log.debug("%s raised on read_file() with a file without permissions: %s",
+                e.__class__.__name__, e)
+
+    #--------------------------------------------------------------------------
+    def test_read_non_existing(self):
+
+        log.info("Testing trying to read a non existing file.")
+        plugin = NagiosPlugin(
+                usage = '%(prog)s --hello',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Sample Nagios plugin for reading a file.',
+                licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
+                extra = 'Bla blub',
+        )
+        if self.verbose > 3:
+            log.debug("NagiosPluginArgparse object: %s", str(plugin))
+        log.debug("Removing %r ...", self.tmp_file)
+        os.remove(self.tmp_file)
+        log.debug("Reading file %r ...", self.tmp_file)
+        with self.assertRaises(IOError) as cm:
+            content = plugin.read_file(self.tmp_file)
+        e = cm.exception
+        log.debug("%s raised on read_file() with a non existing file: %s",
+                e.__class__.__name__, e)
 
 #==============================================================================
 
@@ -106,6 +151,8 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
 
     suite.addTest(TestNagiosPlugin('test_read_file', verbose))
+    suite.addTest(TestNagiosPlugin('test_no_permissions', verbose))
+    suite.addTest(TestNagiosPlugin('test_read_non_existing', verbose))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
