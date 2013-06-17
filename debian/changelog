@@ -1,14 +1,28 @@
-python-nagios-plugin (0.4.2-2) unstable; urgency=low
+python-nagios-plugin (0.4.2-3) unstable; urgency=low
 
   * Version bump
 
  -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 14 Jan 2013 16:25:38 +0100
+
+python-nagios-plugin (0.4.2-2) stable; urgency=low
+
+  * Version bump
+  * Declared for stable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 14 Jan 2013 16:23:10 +0100
 
 python-nagios-plugin (0.4.2-1) unstable; urgency=low
 
   * Version bump
 
  -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 14 Jan 2013 16:19:28 +0100
+
+python-nagios-plugin (0.4.1-2) stable; urgency=low
+
+  * Version bump
+  * Declared for stable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 10 Jan 2013 11:23:44 +0100
 
 python-nagios-plugin (0.4.1-1) unstable; urgency=low
 
