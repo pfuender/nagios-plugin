@@ -47,6 +47,8 @@ log = logging.getLogger(__name__)
 
 PS_CMD = os.sep + os.path.join('bin', 'ps')
 
+PID_MAX_FILE = os.sep + os.path.join('proc', 'sys', 'kernel', 'pid_max')
+
 valid_metrics = {
         'PROCS':   {'uom': '',       'label': 'procs'},
         'VSZ':     {'uom': 'KiByte', 'label': 'vsz'},
