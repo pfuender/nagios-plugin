@@ -1,3 +1,19 @@
+python-nagios-plugin (0.4.3-1) stable; urgency=low
+
+  * Declared for stable
+  * Minor changes on increase-version.sh
+  * Added exception class NPReadTimeoutError and method read_file() for
+    class NagiosPlugin in nagios/plugin/__init__.py
+  * Added module variable PID_MAX_FILE to nagios/plugins/check_procs.py
+  * Added test/test_plugin_04.py for unittests on reading files with a
+    NagiosPlugin object
+  * Got the max number of processes on the system from
+    /proc/sys/kernel/pid_max and saved this in self.pid_max.
+  * Added possibility to give the thresholds for bin/check_procs as a
+    percentage of pid_max and updated the command line options for this
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 17 Jun 2013 12:55:35 +0200
+
 python-nagios-plugin (0.4.2-3) unstable; urgency=low
 
   * Version bump
