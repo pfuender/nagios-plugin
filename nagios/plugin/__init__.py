@@ -11,6 +11,7 @@
 import os
 import sys
 import logging
+import signal
 
 from numbers import Number
 
@@ -38,7 +39,7 @@ from nagios.plugin.performance import NagiosPerformance
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.1'
+__version__ = '0.4.0'
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +48,42 @@ class NagiosPluginError(BaseNagiosError):
     """Special exceptions, which are raised in this module."""
 
     pass
+
+#==============================================================================
+class NPReadTimeoutError(NagiosPluginError, IOError):
+    """
+    Special error class indicating a timout error on reading of a file.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, timeout, filename):
+        """
+        Constructor.
+
+        @param timeout: the timout in seconds leading to the error
+        @type timeout: float
+        @param filename: the filename leading to the error
+        @type filename: str
+
+        """
+
+        t_o = None
+        try:
+            t_o = float(timeout)
+        except ValueError:
+            pass
+        self.timeout = t_o
+
+        strerror = "Timeout error on reading"
+        if t_o is not None:
+            strerror += " (timeout after %0.1f secs)" % (t_o)
+
+        if filename is None:
+            super(NPReadTimeoutErrorr, self).__init__(
+                    errno.ETIMEDOUT, strerror)
+        else:
+            super(NPReadTimeoutErrorr, self).__init__(
+                    errno.ETIMEDOUT, strerror, filename)
 
 #==============================================================================
 class NagiosPlugin(object):
@@ -506,6 +543,63 @@ class NagiosPlugin(object):
                 args)
 
         return nagios.plugin.functions.check_messages(**args)
+
+    #--------------------------------------------------------------------------
+    def read_file(self, filename, timeout = 2, quiet = False):
+        """
+        Reads the content of the given filename.
+
+        @raise IOError: if file doesn't exists or isn't readable
+        @raise PbReadTimeoutError: on timeout reading the file
+
+        @param filename: name of the file to read
+        @type filename: str
+        @param timeout: the amount in seconds when this method should timeout
+        @type timeout: int
+        @param quiet: increases the necessary verbosity level to
+                      put some debug messages
+        @type quiet: bool
+
+        @return: file content
+        @rtype:  str
+
+        """
+
+        def read_alarm_caller(signum, sigframe):
+            '''
+            This nested function will be called in event of a timeout
+
+            @param signum:   the signal number (POSIX) which happend
+            @type signum:    int
+            @param sigframe: the frame of the signal
+            @type sigframe:  object
+            '''
+
+            raise NPReadTimeoutError(timeout, filename)
+
+        timeout = abs(int(timeout))
+
+        if not os.path.isfile(filename):
+            raise IOError(errno.ENOENT, "File doesn't exists.", filename)
+        if not os.access(filename, os.R_OK):
+            raise IOError(errno.EACCES, 'Read permission denied.', filename)
+
+        if not quiet:
+            log.debug("Reading file content of %r ...", filename)
+
+        signal.signal(signal.SIGALRM, read_alarm_caller)
+        signal.alarm(timeout)
+
+        content = ''
+        fh = open(filename, 'r')
+        for line in fh.readlines():
+            content += line
+        fh.close()
+
+        signal.alarm(0)
+
+        return content
+
 
 #==============================================================================
 
