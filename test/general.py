@@ -73,6 +73,19 @@ def init_root_logger(verbose = 0):
 class NeedConfig(unittest.TestCase):
 
     #--------------------------------------------------------------------------
+    def __init__(self, methodName = 'runTest', verbose = 0):
+
+        self._verbose = int(verbose)
+
+        super(NeedConfig, self).__init__(methodName)
+
+    #--------------------------------------------------------------------------
+    @property
+    def verbose(self):
+        """The verbosity level."""
+        return getattr(self, '_verbose', 0)
+
+    #--------------------------------------------------------------------------
     def setUp(self):
 
         nagios.plugin.functions._fake_exit = True
@@ -121,4 +134,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
