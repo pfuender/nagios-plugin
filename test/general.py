@@ -73,6 +73,19 @@ def init_root_logger(verbose = 0):
 class NeedConfig(unittest.TestCase):
 
     #--------------------------------------------------------------------------
+    def __init__(self, methodName = 'runTest', verbose = 0):
+
+        self._verbose = int(verbose)
+
+        super(NeedConfig, self).__init__(methodName)
+
+    #--------------------------------------------------------------------------
+    @property
+    def verbose(self):
+        """The verbosity level."""
+        return getattr(self, '_verbose', 0)
+
+    #--------------------------------------------------------------------------
     def setUp(self):
 
         nagios.plugin.functions._fake_exit = True
@@ -96,10 +109,13 @@ class NeedTmpConfig(NeedConfig):
 
         super(NeedTmpConfig, self).setUp()
 
+        if self.verbose > 1:
+            log.debug("Creating a temporary config file ...")
         (fd, self.tmp_cfg, ) = tempfile.mkstemp(
                 prefix = "temp-plugins-", suffix =  '.ini')
 
-        log.debug("Creating temp configfile %r ...", self.tmp_cfg)
+        if self.verbose > 2:
+            log.debug("Creating temp configfile %r ...", self.tmp_cfg)
         f = os.fdopen(fd, 'w')
         f.write("[silly_options]\n")
         f.write("uhu1 = banane 1\n")
@@ -110,7 +126,8 @@ class NeedTmpConfig(NeedConfig):
     #--------------------------------------------------------------------------
     def tearDown(self):
 
-        log.debug("Removing temp configfile %r ...", self.tmp_cfg)
+        if self.verbose > 2:
+            log.debug("Removing temporary configfile %r ...", self.tmp_cfg)
         os.remove(self.tmp_cfg)
 
 #==============================================================================
@@ -121,4 +138,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

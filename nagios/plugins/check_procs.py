@@ -47,6 +47,8 @@ log = logging.getLogger(__name__)
 
 PS_CMD = os.sep + os.path.join('bin', 'ps')
 
+PID_MAX_FILE = os.sep + os.path.join('proc', 'sys', 'kernel', 'pid_max')
+
 valid_metrics = {
         'PROCS':   {'uom': '',       'label': 'procs'},
         'VSZ':     {'uom': 'KiByte', 'label': 'vsz'},
@@ -95,6 +97,8 @@ pattern_time += r'(?P<mins>\d+):(?P<secs>\d+)'
 if __name__ == '__main__':
     print "Search pattern for a time description: %r" % (pattern_time)
 re_time = re.compile(pattern_time)
+
+re_percent = re.compile(r'^\s*(\d+(?:\.\d*)?)\s*%\s*$')
 
 #==============================================================================
 class ProcessInfo(object):
@@ -177,7 +181,7 @@ class ProcessInfo(object):
             try:
                 uid = pwd.getpwnam(usr).pw_uid
             except KeyError, e:
-                log.warn("Invalid user name %r.", usr)
+                log.debug("Invalid user name %r in process list.", usr)
                 uid = -1
             self._user = usr
             self._uid = uid
@@ -440,7 +444,46 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         @type: str
         """
 
+        self._pid_max = 2 ** 15
+        """
+        @ivar: The maximum number of processes in the system,
+               defaults to 32768
+        @type: int
+        """
+
+        self._warning = NagiosRange(self.pid_max * 70 / 100)
+        """
+        @ivar: the warning threshold of the test, defaults to
+               70 % of the maximum number of processes in the system
+        @type: NagiosRange
+        """
+
+        self._critical = NagiosRange(self.pid_max * 90 / 100)
+        """
+        @ivar: the critical threshold of the test, defaults to
+               90 % of the maximum number of processes in the system
+        @type: NagiosRange
+        """
+
         self._add_args()
+
+    #------------------------------------------------------------
+    @property
+    def pid_max(self):
+        """The maximum number of processes in the system, defaults to 32768."""
+        return self._pid_max
+
+    #------------------------------------------------------------
+    @property
+    def warning(self):
+        """The warning threshold of the test."""
+        return self._warning
+
+    #------------------------------------------------------------
+    @property
+    def critical(self):
+        """The critical threshold of the test."""
+        return self._critical
 
     #------------------------------------------------------------
     @property
@@ -497,6 +540,9 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         d['ps_cmd'] = self.ps_cmd
         d['user'] = self.user
+        d['pid_max'] = self.pid_max
+        d['warning'] = self.warning
+        d['critical'] = self.critical
 
         return d
 
@@ -506,22 +552,28 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         Adding all necessary arguments to the commandline argument parser.
         """
 
+        msg_p  = "If given as a percentage, the range will taken as percent of "
+        msg_p += "the maximum number of processes of the system (taken from "
+        msg_p += "/proc/sys/kernel/pid_max)."
+
+        msg = "Generate warning state if metric is outside this range. " + msg_p
+
         self.add_arg(
                 '-w', '--warning',
-                type = NagiosRange,
                 metavar = 'RANGE',
                 dest = 'warning',
                 required = True,
-                help = 'Generate warning state if metric is outside this range',
+                help = msg,
         )
+
+        msg = "Generate critical state if metric is outside this range. " + msg_p
 
         self.add_arg(
                 '-c', '--critical',
-                type = NagiosRange,
                 metavar = 'RANGE',
                 dest = 'critical',
                 required = True,
-                help = 'Generate critical state if metric is outside this range',
+                help = msg,
         )
 
         self.add_arg(
@@ -631,6 +683,13 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             msg = "Command %r not found." % (ps_cmd)
             self.die(msg)
 
+        if os.path.exists(PID_MAX_FILE):
+            log.debug("Reading %r ...", PID_MAX_FILE)
+            self._pid_max = int(self.read_file(PID_MAX_FILE, quiet = True))
+            log.debug("Got a pid_max value of %d processes.", self._pid_max)
+            self._warning = NagiosRange(self.pid_max * 70 / 100)
+            self._critical = NagiosRange(self.pid_max * 90 / 100)
+
         if self.argparser.args.user:
             self.user = self.argparser.args.user
             if self.user is None:
@@ -638,9 +697,29 @@ class CheckProcsPlugin(ExtNagiosPlugin):
                         self.argparser.args.user)
                 self.die(msg)
 
+        match = re_percent.search(self.argparser.args.warning)
+        if match:
+            percent = float(match.group(1))
+            warning = int(self.pid_max * percent / 100)
+            self._warning = NagiosRange(warning)
+        else:
+            self._warning = NagiosRange(self.argparser.args.warning)
+
+        match = re_percent.search(self.argparser.args.critical)
+        if match:
+            percent = float(match.group(1))
+            critical = int(self.pid_max * percent / 100)
+            self._critical = NagiosRange(critical)
+        else:
+            self._critical = NagiosRange(self.argparser.args.critical)
+
+        if self.verbose > 1:
+            log.debug("Got thresholds: warning: %s, critical: %s.",
+                    self.warning, self.critical)
+
         self.set_thresholds(
-                warning = self.argparser.args.warning,
-                critical = self.argparser.args.critical,
+                warning = self.warning,
+                critical = self.critical,
         )
 
         if self.verbose > 2:
@@ -799,7 +878,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             else:
                 del os.environ['LC_NUMERIC']
 
-        if self.verbose > 2:
+        if self.verbose > 3:
             log.debug("Got from STDOUT:\n%s", stdoutdata)
             log.debug("Got from STDERR:\n%s", stderrdata)
 
@@ -876,7 +955,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             found_processes.append(pinfo)
 
         # What did we found:
-        if self.verbose > 1:
+        if self.verbose > 2:
             if found_processes:
                 r = []
                 for pinfo in found_processes:
@@ -912,4 +991,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et

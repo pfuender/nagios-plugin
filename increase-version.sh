@@ -79,6 +79,7 @@ fi
 FIRST_LINE_CHANGELOG=$(cat debian/changelog | head -n 1)
 CUR_VERSION=$(echo "${FIRST_LINE_CHANGELOG}" | sed -e 's/^.*(//' -e 's/).*//')
 CUR_STAGE=$(echo "${FIRST_LINE_CHANGELOG}" | sed -e 's/.*)[ 	][ 	]*//' -e 's/;.*//')
+PKG_NAME=$(echo "${FIRST_LINE_CHANGELOG}" | sed -e 's/[ 	][ 	]*(.*//')
 
 #--------------------------------------------------
 my_debchange() {
@@ -102,7 +103,7 @@ my_debchange() {
 
     TMP_FILE="debian/changelog.new"
 
-    echo "py-provisioning-daemon (${version}) ${stage}; urgency=low" >"${TMP_FILE}"
+    echo "${PKG_NAME} (${version}) ${stage}; urgency=low" >"${TMP_FILE}"
     echo >>"${TMP_FILE}"
     for entry in "$@"; do
         if [ "${entry}" != "" ] ; then
