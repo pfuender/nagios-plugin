@@ -101,6 +101,11 @@ class NeedConfig(unittest.TestCase):
         bogus = os.sep + os.path.join('random', 'bogus', 'path')
         os.environ['NAGIOS_CONFIG_PATH'] = bogus + ':' + self.test_dir
 
+    #--------------------------------------------------------------------------
+    def tearDown(self):
+
+        pass
+
 #==============================================================================
 class NeedTmpConfig(NeedConfig):
 
