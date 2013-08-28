@@ -31,7 +31,7 @@ from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
