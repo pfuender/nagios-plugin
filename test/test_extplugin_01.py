@@ -13,6 +13,7 @@ import unittest
 import os
 import sys
 import logging
+import tempfile
 
 from collections import OrderedDict
 
@@ -62,8 +63,70 @@ class TestExtNagiosPlugin(NeedConfig):
         plugin.set_thresholds(warning = '10:25', critical = "~:25")
         plugin.add_message(nagios.state.ok, 'bli', 'bla')
         plugin.add_message('warning', 'blub')
-        log.debug("NagiosPluginArgparse object: %r", plugin)
-        log.debug("NagiosPluginArgparse object: %s", str(plugin))
+        log.debug("ExtNagiosPlugin object: %r", plugin)
+        log.debug("ExtNagiosPlugin object: %s", str(plugin))
+
+    #--------------------------------------------------------------------------
+    def test_prepend_search_path(self):
+
+        log.info("Testing Prepending a path to the search path.")
+
+        tmpdir = tempfile.mkdtemp()
+
+        try:
+
+            tdir_real = os.path.realpath(tmpdir)
+            tdir_rel = os.path.relpath(tmpdir)
+            log.debug("Using %r for prepending to search path.", tdir_rel)
+
+            plugin = ExtNagiosPlugin(
+                    usage = '%(prog)s --hello',
+                    url = 'http://www.profitbricks.com',
+                    blurb = 'Senseless sample Nagios plugin.',
+                    licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
+                    extra = 'Bla blub',
+                    verbose = self.verbose,
+                    prepend_searchpath = tdir_rel,
+            )
+            log.debug("ExtNagiosPlugin object: %r", plugin)
+            log.debug("ExtNagiosPlugin object: %s", str(plugin))
+            log.debug("Got as first search path: %r", plugin.search_path[0])
+            self.assertEqual(tdir_real, plugin.search_path[0])
+
+        finally:
+
+            os.rmdir(tmpdir)
+
+    #--------------------------------------------------------------------------
+    def test_append_search_path(self):
+
+        log.info("Testing appending a path to the search path.")
+
+        tmpdir = tempfile.mkdtemp()
+
+        try:
+
+            tdir_real = os.path.realpath(tmpdir)
+            tdir_rel = os.path.relpath(tmpdir)
+            log.debug("Using %r for appending to search path.", tdir_rel)
+
+            plugin = ExtNagiosPlugin(
+                    usage = '%(prog)s --hello',
+                    url = 'http://www.profitbricks.com',
+                    blurb = 'Senseless sample Nagios plugin.',
+                    licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
+                    extra = 'Bla blub',
+                    verbose = self.verbose,
+                    append_searchpath = tdir_rel,
+            )
+            log.debug("ExtNagiosPlugin object: %r", plugin)
+            log.debug("ExtNagiosPlugin object: %s", str(plugin))
+            log.debug("Got as last search path: %r", plugin.search_path[-1])
+            self.assertEqual(tdir_real, plugin.search_path[-1])
+
+        finally:
+
+            os.rmdir(tmpdir)
 
 #==============================================================================
 
@@ -80,6 +143,8 @@ if __name__ == '__main__':
     suite = unittest.TestSuite()
 
     suite.addTest(TestExtNagiosPlugin('test_plugin_object', verbose))
+    suite.addTest(TestExtNagiosPlugin('test_prepend_search_path', verbose))
+    suite.addTest(TestExtNagiosPlugin('test_append_search_path', verbose))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
