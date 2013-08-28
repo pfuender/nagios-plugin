@@ -134,7 +134,8 @@ class ExtNagiosPlugin(NagiosPlugin):
     def __init__(self, usage = None, shortname = None,
             version = nagios.__version__, url = None, blurb = None,
             licence = lgpl3_licence_text, extra = None, plugin = None,
-            timeout = default_timeout, verbose = 0):
+            timeout = default_timeout, verbose = 0, prepend_searchpath = None,
+            append_searchpath = None,):
         """
         Constructor of the ExtNagiosPlugin class.
 
@@ -175,6 +176,12 @@ class ExtNagiosPlugin(NagiosPlugin):
         @type timeout: int
         @param verbose: verbosity level inside the module
         @type verbose: int
+        @param prepend_searchpath: a single path oor a list of paths to prepend
+                                   to the search path list
+        @type prepend_searchpath: str or list of str
+        @param append_searchpath: a single path oor a list of paths to append
+                                  to the search path list
+        @type append_searchpath: str or list of str
 
         """
 
@@ -198,6 +205,12 @@ class ExtNagiosPlugin(NagiosPlugin):
                 timeout = timeout
         )
 
+        self._search_path = caller_search_path()
+        """
+        @ivar: a list of existing paths to search for executables
+        @type: list of str
+        """
+
     #------------------------------------------------------------
     @property
     def verbose(self):
@@ -212,6 +225,12 @@ class ExtNagiosPlugin(NagiosPlugin):
         else:
             self._verbose = val
 
+    #------------------------------------------------------------
+    @property
+    def search_path(self):
+        """A list of existing paths to search for executables."""
+        return self._search_path[:]
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -225,6 +244,7 @@ class ExtNagiosPlugin(NagiosPlugin):
         d = super(ExtNagiosPlugin, self).as_dict()
 
         d['verbose'] = self.verbose
+        d['search_path'] = self.search_path
 
         return d
 
@@ -347,4 +367,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 expandtab shiftwidth=4 softtabstop=4
