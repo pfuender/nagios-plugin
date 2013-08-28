@@ -295,11 +295,10 @@ class ExtNagiosPlugin(NagiosPlugin):
                 return None
             return os.path.normpath(cmd)
 
-        search_paths = caller_search_path()
         if self.verbose > 2:
-            log.debug("Searching command in %r ...", search_paths)
+            log.debug("Searching command in %r ...", self.search_path)
 
-        for d in search_paths:
+        for d in self.search_path:
             p = os.path.join(d, cmd)
             if os.path.exists(p):
                 if self.verbose > 2:
