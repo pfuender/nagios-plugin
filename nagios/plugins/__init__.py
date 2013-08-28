@@ -205,7 +205,22 @@ class ExtNagiosPlugin(NagiosPlugin):
                 timeout = timeout
         )
 
-        self._search_path = caller_search_path()
+        pre = None
+        if prepend_searchpath:
+            if isinstance(prepend_searchpath, basestring):
+                pre = (prepend_searchpath, )
+            else:
+                pre = tuple(prepend_searchpath[:])
+
+        post = None
+        if append_searchpath:
+            if isinstance(append_searchpath, basestring):
+                post = (append_searchpath, )
+            else:
+                post = tuple(append_searchpath[:])
+
+        self._search_path = caller_search_path(
+                prepend = pre, append = post)
         """
         @ivar: a list of existing paths to search for executables
         @type: list of str
