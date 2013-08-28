@@ -19,7 +19,7 @@ import pprint
 __author__ = 'Frank Brehm <frank.brehm@profitbricks.com>'
 __copyright__ = '(C) 2010-2013 by profitbricks.com'
 __contact__ = 'frank.brehm@profitbricks.com'
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 __license__ = 'GPL3'
 
 log = logging.getLogger(__name__)
@@ -78,6 +78,11 @@ def caller_search_path(prepend = None, append = None):
         '/sbin',
         '/usr/sbin',
         '/usr/local/sbin',
+        '/opt/bin',
+        '/opt/icinga/bin',
+        '/opt/nagios/bin',
+        '/usr/local/icinga/bin',
+        '/usr/local/nagios/bin',
     ]
 
     for d in default_path:
