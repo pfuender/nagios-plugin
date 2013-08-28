@@ -88,8 +88,9 @@ class TestExtNagiosPlugin(NeedConfig):
                     verbose = self.verbose,
                     prepend_searchpath = tdir_rel,
             )
-            log.debug("ExtNagiosPlugin object: %r", plugin)
-            log.debug("ExtNagiosPlugin object: %s", str(plugin))
+            if self.verbose > 1:
+                log.debug("ExtNagiosPlugin object: %r", plugin)
+                log.debug("ExtNagiosPlugin object: %s", str(plugin))
             log.debug("Got as first search path: %r", plugin.search_path[0])
             self.assertEqual(tdir_real, plugin.search_path[0])
 
@@ -119,14 +120,39 @@ class TestExtNagiosPlugin(NeedConfig):
                     verbose = self.verbose,
                     append_searchpath = tdir_rel,
             )
-            log.debug("ExtNagiosPlugin object: %r", plugin)
-            log.debug("ExtNagiosPlugin object: %s", str(plugin))
+            if self.verbose > 1:
+                log.debug("ExtNagiosPlugin object: %r", plugin)
+                log.debug("ExtNagiosPlugin object: %s", str(plugin))
             log.debug("Got as last search path: %r", plugin.search_path[-1])
             self.assertEqual(tdir_real, plugin.search_path[-1])
 
         finally:
 
             os.rmdir(tmpdir)
+
+    #--------------------------------------------------------------------------
+    def test_get_command(self):
+
+        log.info("Testing method get_command() of ExtNagiosPlugin ...")
+
+        plugin = ExtNagiosPlugin(
+                usage = '%(prog)s --hello',
+                url = 'http://www.profitbricks.com',
+                blurb = 'Senseless sample Nagios plugin.',
+                licence = 'Licence: GNU Lesser General Public License (LGPL), Version 3',
+                extra = 'Bla blub',
+                verbose = self.verbose,
+        )
+        if self.verbose > 2:
+            log.debug("ExtNagiosPlugin object: %r", plugin)
+            log.debug("ExtNagiosPlugin object: %s", str(plugin))
+
+        log.debug("Testing for (obviously) existing command 'ls' ...")
+        cmd = plugin.get_command('ls')
+        log.debug("Got 'ls' command: %r", cmd)
+        self.assertNotEqual(cmd, '')
+
+        ls_cmd = os.sep  +os.path.join('bin', 'ls')
 
 #==============================================================================
 
@@ -145,6 +171,7 @@ if __name__ == '__main__':
     suite.addTest(TestExtNagiosPlugin('test_plugin_object', verbose))
     suite.addTest(TestExtNagiosPlugin('test_prepend_search_path', verbose))
     suite.addTest(TestExtNagiosPlugin('test_append_search_path', verbose))
+    suite.addTest(TestExtNagiosPlugin('test_get_command', verbose))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
