@@ -411,6 +411,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         re_slot = re.compile(r'^\s*(?:\[(\d+:\d+)\]|(\d+:\d+))\s*$')
         re_enc_slot = re.compile(r'^(\d+):(\d+)$')
 
+        self._megaraid = True
+
         # A single Device Id was given
         match = re_device_id.search(dev)
         if match:
@@ -519,7 +521,53 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         state = nagios.state.ok
         out = "All seems to be ok."
 
+        re_is_sas = re.compile(r'^\s*Transport\s+protocol\s*:\s*SAS\s*$',
+                (re.IGNORECASE | re.MULTILINE))
+
+        smart_output = self._exec_smartctl()
+
+        is_sas = False
+        if re_is_sas.search(smart_output):
+            is_sas = True
+
+        if is_sas:
+            log.info("Disk is a SAS disk.")
+        else:
+            log.info("Disk is NOT a SAS disk.")
+
         self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def _exec_smartctl(self):
+        """
+        Execute smartctl with all necessary parameters.
+
+        @return: the output on STDOUT
+        @rtype: str
+
+        """
+
+        cmd_list = [self.smartctl_cmd, '-x']
+        dev_desc = self.device
+        if self.megaraid:
+            cmd_list.append('-d')
+            cmd_list.append('megaraid,%d' % (self.device_id))
+            dev_desc = "%s => megaraid %d" % (self.device, self.device_id)
+        cmd_list.append(self.device)
+
+        (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd_list)
+
+        if stdoutdata is None:
+            stdoutdata = ''
+        stdoutdata = stdoutdata.strip()
+        if not stdoutdata:
+            self.die("Got no output from smartctl %s." % (dev_desc))
+
+        if self.verbose > 2:
+            log.debug("Got output from smartctl %s:\n%s" % (
+                    dev_desc, stdoutdata))
+
+        return stdoutdata
 
 #==============================================================================
 
