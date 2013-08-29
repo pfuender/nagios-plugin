@@ -530,12 +530,72 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         if re_is_sas.search(smart_output):
             is_sas = True
 
+        self.disk_data = {
+                'model': None,
+                'serial': None,
+                'health_state': None,
+                'nr_grown_defects': 0,
+        }
+
         if is_sas:
             log.info("Disk is a SAS disk.")
+            self._eval_sas_disk(smart_output)
         else:
             log.info("Disk is NOT a SAS disk.")
 
+        log.debug("Evaluated disk data:\n%s", pp(self.disk_data))
+
         self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def _eval_sas_disk(self, smart_output):
+
+        re_health_state = re.compile(r'^SMART\s+Health\s+Status\s*:\s*(\S.*)',
+                re.IGNORECASE)
+        re_el_gd_list = re.compile(r'^Elements\s+in\s+grown\s+defect\s+list\s*:\s*(\d+)',
+                re.IGNORECASE)
+        re_vendor = re.compile(r'^Vendor\s*:\s*(\S.*)', re.IGNORECASE)
+        re_product = re.compile(r'^Product\s*:\s*(\S.*)', re.IGNORECASE)
+        re_serial = re.compile(r'^Serial\s+number\s*:\s*(\S.*)', re.IGNORECASE)
+
+        for line in smart_output.splitlines():
+            line = line.strip()
+            if line == '':
+                continue
+
+            match = re_health_state.search(line)
+            if match:
+                self.disk_data['health_state'] = match.group(1)
+                continue
+
+            match = re_el_gd_list.search(line)
+            if match:
+                self.disk_data['nr_grown_defects'] = int(match.group(1))
+                continue
+
+            match = re_vendor.search(line)
+            if match:
+                self.disk_data['vendor'] = match.group(1)
+                continue
+
+            match = re_product.search(line)
+            if match:
+                self.disk_data['product'] = match.group(1)
+                continue
+
+            match = re_serial.search(line)
+            if match:
+                self.disk_data['serial'] = match.group(1)
+                continue
+
+        if 'vendor' in self.disk_data:
+            if 'product' in self.disk_data:
+                self.disk_data['model'] = (self.disk_data['vendor'] + ' ' +
+                        self.disk_data['product'])
+            else:
+                self.disk_data['model'] = self.disk_data['vendor']
+        elif 'product' in self.disk_data:
+            self.disk_data['model'] = self.disk_data['product']
 
     #--------------------------------------------------------------------------
     def _exec_smartctl(self):
