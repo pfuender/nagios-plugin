@@ -17,6 +17,7 @@ import re
 import signal
 import subprocess
 import locale
+import stat
 
 from numbers import Number
 from subprocess import CalledProcessError
@@ -342,6 +343,65 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         if not self.argparser.args.device:
             self.die("No device to check given.")
+
+        dev = os.path.basename(self.argparser.args.device)
+        dev_dev = os.sep + os.path.join('dev', dev)
+        sys_dev = os.sep + os.path.join('sys', 'block', dev)
+
+        if not os.path.isdir(sys_dev):
+            self.die("Device %r is not a block device." % (dev))
+
+        if not os.path.exists(dev_dev):
+            self.die("Device %r doesn't exists." % (dev_dev))
+
+        dev_stat = os.stat(dev_dev)
+        dev_mode = dev_stat.st_mode
+        if not stat.S_ISBLK(dev_mode):
+            self.die("%r is not a block device." % (dev_dev))
+
+        self._device = dev_dev
+
+        if self.argparser.args.megaraid:
+            self._init_megacli_dev(self.argparser.args.megaraid)
+
+
+    #--------------------------------------------------------------------------
+    def _init_megacli_dev(self, dev):
+        """
+        Initializes self.device_id and self.megaraid_slot in case of checking
+        smartctl on a device on a MagaRaid adpter.
+        """
+
+        self._device_id = None
+        self._megaraid_slot = None
+
+        re_device_id = re.compile(r'^\s*(\d+)\s*$')
+        re_slot = re.compile(r'^\s*(?:\[(\d+:\d+)\]|(\d+:\d+))\s*$')
+        re_enc_slot = re.compile(r'^(\d+):(\d+)$')
+
+        # A single Device Id was given
+        match = re_device_id.search(dev)
+        if match:
+            self._device_id = int(match.group(1))
+            return
+
+        # A pair of Enclosure-Id : Sot-Id was given
+        match = re_slot.search(dev)
+        if not match:
+            self.die("Invalid MegaRaid descriptor %r given." % (dev))
+
+        pair = match.group(1)
+        if pair is None:
+            pair = match.group(2)
+
+        match = re_enc_slot.search(pair)
+        if not match:
+            self.die("Ooops, pair %r didn't match pattern %r???" % (
+                    pair, re_enc_slot.pattern))
+
+        self._megaraid_slot = (int(match.group(1)), int(match.group(2)))
+
+        return
 
     #--------------------------------------------------------------------------
     def __call__(self):
