@@ -56,6 +56,42 @@ DEFAULT_WARN_SECTORS = 4
 DEFAULT_CRIT_SECTORS = 10
 
 #==============================================================================
+class MegaCliExecTimeoutError(ExtNagiosPluginError, IOError):
+    """
+    Special error class indicating a timout error on
+    executing MegaCli.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, timeout, cmdline):
+        """
+        Constructor.
+
+        @param timeout: the timout in seconds leading to the error
+        @type timeout: float
+        @param filename: the commandline leading to the error
+        @type filename: str
+
+        """
+
+        t_o = None
+        try:
+            t_o = float(timeout)
+        except ValueError:
+            pass
+        self.timeout = t_o
+
+        self.cmdline = cmdline
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+
+        msg = "Error executing: %s (timeout after %0.1f secs)" % (
+                self.cmdline, self.timeout)
+
+        return msg
+
+#==============================================================================
 class CheckSmartStatePlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking the SMART state of a physical
@@ -140,6 +176,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         @type: tuple of two int
         """
 
+        self._adapter_nr = 0
+        """
+        @ivar: the number of the MegaRaid adapter (e.g. 0)
+        @type: str
+        """
+
         self._init_megacli_cmd()
 
         self._add_args()
@@ -198,6 +240,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
     #------------------------------------------------------------
     @property
+    def adapter_nr(self):
+        """The number of the MegaRaid adapter (e.g. 0)."""
+        return self._adapter_nr
+
+    #------------------------------------------------------------
+    @property
     def timeout(self):
         """The timeout on execution of commands in seconds."""
         return self._timeout
@@ -214,6 +262,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         d = super(CheckSmartStatePlugin, self).as_dict()
 
+        d['adapter_nr'] = self.adapter_nr
         d['smartctl_cmd'] = self.smartctl_cmd
         d['megacli_cmd'] = self.megacli_cmd
         d['megaraid'] = self.megaraid
@@ -330,6 +379,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         super(CheckSmartStatePlugin, self).parse_args(args)
 
+        self.init_root_logger()
+
         self._warn_sectors = NagiosRange(end = self.argparser.args.warning)
         self._crit_sectors = NagiosRange(end = self.argparser.args.critical)
 
@@ -401,6 +452,123 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         self._megaraid_slot = (int(match.group(1)), int(match.group(2)))
 
+        return self._init_megaraid_device_id()
+
+    #--------------------------------------------------------------------------
+    def _init_megaraid_device_id(self):
+        """
+        Evaluates the Magaraid Device Id from the given Enclosure Id and
+        Slot Id.
+        """
+
+        if not self._megaraid_slot:
+            self.die("Ooops, need Enclosure Id and Slot Id to evaluate " +
+                    "the Magaraid Device Id.")
+
+        if not self.megacli_cmd:
+            self.die("Didn't found to MegaCli command to evaluate the " +
+                    "Magaraid Device Id.")
+
+        pd = '-PhysDrv[%d:%d]' % self._megaraid_slot
+
+        cmd_list = [
+                self.megacli_cmd,
+                '-pdInfo',
+                ('-PhysDrv[%d:%d]' % self._megaraid_slot),
+                '-a', '0',
+                '-NoLog',
+        ]
+        cmd_str = self.megacli_cmd
+        for arg in cmd_list[1:]:
+            cmd_str += ' ' + ("%r" % (arg))
+        if self.verbose > 1:
+            log.debug("Executing: %s", cmd_str)
+
+        stdoutdata = ''
+        stderrdata = ''
+        ret = None
+        timeout = abs(int(self.timeout))
+
+        def exec_alarm_caller(signum, sigframe):
+            '''
+            This nested function will be called in event of a timeout
+
+            @param signum:   the signal number (POSIX) which happend
+            @type signum:    int
+            @param sigframe: the frame of the signal
+            @type sigframe:  object
+            '''
+
+            raise MegaCliExecTimeoutError(timeout, cmd_str)
+
+        signal.signal(signal.SIGALRM, exec_alarm_caller)
+        signal.alarm(timeout)
+
+        # And execute it ...
+        try:
+            cmd_obj = subprocess.Popen(
+                    cmd_list,
+                    close_fds = False,
+                    stderr = subprocess.PIPE,
+                    stdout = subprocess.PIPE,
+            )
+
+            (stdoutdata, stderrdata) = cmd_obj.communicate()
+            ret = cmd_obj.wait()
+
+        except MegaCliExecTimeoutError, e:
+            self.die(str(e))
+
+        finally:
+            signal.alarm(0)
+
+        if self.verbose > 1:
+            log.debug("Returncode: %s" % (ret))
+        if stderrdata:
+            msg = "Output on StdErr: %r." % (stderrdata.strip())
+            log.debug(msg)
+
+        re_no_adapter = re.compile(r'^\s*User\s+specified\s+controller\s+is\s+not\s+present',
+                re.IGNORECASE)
+        re_exit_code = re.compile(r'^\s*Exit\s*Code\s*:\s+0x([0-9a-f]+)', re.IGNORECASE)
+        # Adapter 0: Device at Enclosure - 1, Slot - 22 is not found.
+        re_not_found = re.compile(r'Device\s+at.*not\s+found\.', re.IGNORECASE)
+
+        exit_code = ret
+        no_adapter_found = False
+        if stdoutdata:
+            for line in stdoutdata.splitlines():
+
+                if re_no_adapter.search(line):
+                    self.die('The specified controller %d is not present.' % (
+                            self.adapter_nr))
+
+                if re_not_found.search(line):
+                        self.die(line.strip())
+
+                match = re_exit_code.search(line)
+                if match:
+                    exit_code = int(match.group(1), 16)
+                    continue
+
+        if not stdoutdata:
+            self.die('No ouput from: %s' % (cmd_str))
+
+        # Device Id: 38
+        re_dev_id = re.compile(r'^\s*Device\s+Id\s*:\s*(\d+)', re.IGNORECASE)
+        dev_id = None
+
+        for line in stdoutdata.splitlines():
+            match = re_dev_id.search(line)
+            if match:
+                dev_id = int(match.group(1))
+                break
+
+        if dev_id is None:
+            self.die("No device Id found for PhysDrv [%d:%d] on the megaraid adapter." % 
+                self._megaraid_slot)
+
+        self._device_id = dev_id
         return
 
     #--------------------------------------------------------------------------
@@ -410,7 +578,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         """
 
         self.parse_args()
-        self.init_root_logger()
 
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
