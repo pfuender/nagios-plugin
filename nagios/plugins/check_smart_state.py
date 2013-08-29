@@ -14,13 +14,10 @@ import logging
 import textwrap
 import pwd
 import re
-import signal
-import subprocess
 import locale
 import stat
 
 from numbers import Number
-from subprocess import CalledProcessError
 
 # Third party modules
 
@@ -47,7 +44,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 log = logging.getLogger(__name__)
 
@@ -462,55 +459,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 '-a', '0',
                 '-NoLog',
         ]
-        cmd_str = self.megacli_cmd
-        for arg in cmd_list[1:]:
-            cmd_str += ' ' + ("%r" % (arg))
-        if self.verbose > 1:
-            log.debug("Executing: %s", cmd_str)
 
-        stdoutdata = ''
-        stderrdata = ''
-        ret = None
-        timeout = abs(int(self.timeout))
-
-        def exec_alarm_caller(signum, sigframe):
-            '''
-            This nested function will be called in event of a timeout
-
-            @param signum:   the signal number (POSIX) which happend
-            @type signum:    int
-            @param sigframe: the frame of the signal
-            @type sigframe:  object
-            '''
-
-            raise MegaCliExecTimeoutError(timeout, cmd_str)
-
-        signal.signal(signal.SIGALRM, exec_alarm_caller)
-        signal.alarm(timeout)
-
-        # And execute it ...
-        try:
-            cmd_obj = subprocess.Popen(
-                    cmd_list,
-                    close_fds = False,
-                    stderr = subprocess.PIPE,
-                    stdout = subprocess.PIPE,
-            )
-
-            (stdoutdata, stderrdata) = cmd_obj.communicate()
-            ret = cmd_obj.wait()
-
-        except MegaCliExecTimeoutError, e:
-            self.die(str(e))
-
-        finally:
-            signal.alarm(0)
-
-        if self.verbose > 1:
-            log.debug("Returncode: %s" % (ret))
-        if stderrdata:
-            msg = "Output on StdErr: %r." % (stderrdata.strip())
-            log.debug(msg)
+        (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd_list)
 
         re_no_adapter = re.compile(r'^\s*User\s+specified\s+controller\s+is\s+not\s+present',
                 re.IGNORECASE)
