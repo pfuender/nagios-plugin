@@ -1,3 +1,26 @@
+python-nagios-plugin (0.4.5-1) stable; urgency=low
+
+  * Added test/test_extplugin_01.py
+  * Added some additional search paths in nagios/common.py
+  * Added search_path as a property to ExtNagiosPlugin in
+    nagios/plugins/__init__.py
+  * Added prepend_searchpath and append_searchpath in calling
+    caller_search_path() in __init__() of ExtNagiosPlugin in
+    nagios/plugins/__init__.py
+  * Added tests for prepending and appending paths to the search path of
+    ExtNagiosPlugin
+  * Integrated property search_path in execution method get_command() in
+    nagios/plugins/__init__.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 28 Aug 2013 19:23:07 +0200
+
+python-nagios-plugin (0.4.4-2) stable; urgency=low
+
+  * Declared for stable
+  * Minimal changes because of showing correct version by plugins
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 17 Jun 2013 15:06:48 +0200
+
 python-nagios-plugin (0.4.4-1) unstable; urgency=low
 
   * Version bump

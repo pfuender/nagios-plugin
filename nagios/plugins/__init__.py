@@ -31,7 +31,7 @@ from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
@@ -134,7 +134,8 @@ class ExtNagiosPlugin(NagiosPlugin):
     def __init__(self, usage = None, shortname = None,
             version = nagios.__version__, url = None, blurb = None,
             licence = lgpl3_licence_text, extra = None, plugin = None,
-            timeout = default_timeout, verbose = 0):
+            timeout = default_timeout, verbose = 0, prepend_searchpath = None,
+            append_searchpath = None,):
         """
         Constructor of the ExtNagiosPlugin class.
 
@@ -175,6 +176,12 @@ class ExtNagiosPlugin(NagiosPlugin):
         @type timeout: int
         @param verbose: verbosity level inside the module
         @type verbose: int
+        @param prepend_searchpath: a single path oor a list of paths to prepend
+                                   to the search path list
+        @type prepend_searchpath: str or list of str
+        @param append_searchpath: a single path oor a list of paths to append
+                                  to the search path list
+        @type append_searchpath: str or list of str
 
         """
 
@@ -198,6 +205,27 @@ class ExtNagiosPlugin(NagiosPlugin):
                 timeout = timeout
         )
 
+        pre = None
+        if prepend_searchpath:
+            if isinstance(prepend_searchpath, basestring):
+                pre = (prepend_searchpath, )
+            else:
+                pre = tuple(prepend_searchpath[:])
+
+        post = None
+        if append_searchpath:
+            if isinstance(append_searchpath, basestring):
+                post = (append_searchpath, )
+            else:
+                post = tuple(append_searchpath[:])
+
+        self._search_path = caller_search_path(
+                prepend = pre, append = post)
+        """
+        @ivar: a list of existing paths to search for executables
+        @type: list of str
+        """
+
     #------------------------------------------------------------
     @property
     def verbose(self):
@@ -212,6 +240,12 @@ class ExtNagiosPlugin(NagiosPlugin):
         else:
             self._verbose = val
 
+    #------------------------------------------------------------
+    @property
+    def search_path(self):
+        """A list of existing paths to search for executables."""
+        return self._search_path[:]
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -225,6 +259,7 @@ class ExtNagiosPlugin(NagiosPlugin):
         d = super(ExtNagiosPlugin, self).as_dict()
 
         d['verbose'] = self.verbose
+        d['search_path'] = self.search_path
 
         return d
 
@@ -260,11 +295,10 @@ class ExtNagiosPlugin(NagiosPlugin):
                 return None
             return os.path.normpath(cmd)
 
-        search_paths = caller_search_path()
         if self.verbose > 2:
-            log.debug("Searching command in %r ...", search_paths)
+            log.debug("Searching command in %r ...", self.search_path)
 
-        for d in search_paths:
+        for d in self.search_path:
             p = os.path.join(d, cmd)
             if os.path.exists(p):
                 if self.verbose > 2:
@@ -347,4 +381,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 expandtab shiftwidth=4 softtabstop=4
