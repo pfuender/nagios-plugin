@@ -46,11 +46,13 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
 DEFAULT_MEGARAID_PATH = '/opt/MegaRAID/MegaCli'
+DEFAULT_WARN_SECTORS = 4
+DEFAULT_CRIT_SECTORS = 10
 
 #==============================================================================
 class CheckSmartStatePlugin(ExtNagiosPlugin):
@@ -107,6 +109,36 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         @type: int
         """
 
+        self._warn_sectors = NagiosRange(end = DEFAULT_WARN_SECTORS)
+        """
+        @ivar: number of grown defect sectors leading to a warning
+        @type: NagiosRange
+        """
+
+        self._crit_sectors = NagiosRange(end = DEFAULT_CRIT_SECTORS)
+        """
+        @ivar: number of grown defect sectors leading to a critical message
+        @type: NagiosRange
+        """
+
+        self._device = None
+        """
+        @ivar: the device to check
+        @type: str
+        """
+
+        self._device_id = None
+        """
+        @ivar: the MegaRaid Device Id of the PD on the MegaRAID controller.
+        @type: int
+        """
+
+        self._megaraid_slot = None
+        """
+        @ivar: the MegaRaid enclusure-Id/slot-Id pair to check
+        @type: tuple of two int
+        """
+
         self._init_megacli_cmd()
 
         self._add_args()
@@ -135,6 +167,36 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
     #------------------------------------------------------------
     @property
+    def warn_sectors(self):
+        """The number of grown defect sectors leading to a warning."""
+        return self._warn_sectors
+
+    #------------------------------------------------------------
+    @property
+    def crit_sectors(self):
+        """The number of grown defect sectors leading to a critical message."""
+        return self._crit_sectors
+
+    #------------------------------------------------------------
+    @property
+    def device(self):
+        """The device to check."""
+        return self._device
+
+    #------------------------------------------------------------
+    @property
+    def device_id(self):
+        """The MegaRaid Device Id of the PD on the MegaRAID controller."""
+        return self._device_id
+
+    #------------------------------------------------------------
+    @property
+    def megaraid_slot(self):
+        """The MegaRaid enclusure-Id/slot-Id pair to check."""
+        return self._megaraid_slot
+
+    #------------------------------------------------------------
+    @property
     def timeout(self):
         """The timeout on execution of commands in seconds."""
         return self._timeout
@@ -154,6 +216,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         d['smartctl_cmd'] = self.smartctl_cmd
         d['megacli_cmd'] = self.megacli_cmd
         d['megaraid'] = self.megaraid
+        d['warn_sectors'] = self.warn_sectors
+        d['crit_sectors'] = self.crit_sectors
+        d['device'] = self.device
+        d['device_id'] = self.device_id
+        d['megaraid_slot'] = self.megaraid_slot
+        d['timeout'] = self.timeout
 
         return d
 
@@ -207,12 +275,71 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         """
 
         self.add_arg(
-                '-m', '--megaraid',
-                dest = 'megaraid',
-                action = 'store_true',
-                help = ('Is the given device a PhysicalDrive ' +
-                        'on a MegaRaid adapter.'),
+                '-w', '--warning',
+                metavar = 'SECTORS',
+                dest = 'warning',
+                required = True,
+                type = int,
+                default = DEFAULT_WARN_SECTORS,
+                help = ('The number of grown defect sectors ' +
+                        'leading to a warning (Default: %d).'),
         )
+
+        self.add_arg(
+                '-c', '--critical',
+                metavar = 'SECTORS',
+                dest = 'critical',
+                required = True,
+                type = int,
+                default = DEFAULT_CRIT_SECTORS,
+                help = ('The number of grown defect sectors ' +
+                        'leading to a critical message (Default: %d).'),
+        )
+
+        self.add_arg(
+                '-m', '--megaraid',
+                metavar = 'DEVICE_ID',
+                dest = 'megaraid',
+                help = ('If given, check the device DEVICE_ID on a MegaRAID ' +
+                        'controller. The DEVICE_ID might be given as a single ' +
+                        'Device Id (integer) or as an <enclosure-id:slot-id> ' +
+                        'pair of the MegaRaid adapter.'),
+        )
+
+        self.add_arg(
+                'device',
+                dest = 'device',
+                nargs = '?',
+                help = ("The device to check (given as 'sdX' or '/dev/sdX', " +
+                        "must exists)."),
+        )
+
+    #--------------------------------------------------------------------------
+    def parse_args(self, args = None):
+        """
+        Executes self.argparser.parse_args().
+
+        @param args: the argument strings to parse. If not given, they are
+                     taken from sys.argv.
+        @type args: list of str or None
+
+        """
+
+        super(CheckSmartStatePlugin, self).parse_args(args)
+
+        self._warn_sectors = NagiosRange(end = self.argparser.args.warning)
+        self._crit_sectors = NagiosRange(end = self.argparser.args.critical)
+
+        self.set_thresholds(
+                warning = self.warn_sectors,
+                critical = self.crit_sectors,
+        )
+
+        if self.argparser.args.timeout:
+            self._timeout = self.argparser.args.timeout
+
+        if not self.argparser.args.device:
+            self.die("No device to check given.")
 
     #--------------------------------------------------------------------------
     def __call__(self):
