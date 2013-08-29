@@ -11,6 +11,8 @@
 import os
 import sys
 import logging
+import subprocess
+import signal
 
 # Third party modules
 
@@ -31,7 +33,7 @@ from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +97,7 @@ class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
 
         @param timeout: the timeout in second, after which the exception
                         was raised.
-        @type timeout: float
+        @type timeout: int
         @param command: the commandline, which should be executed.
         @type command: str
 
@@ -103,9 +105,9 @@ class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
 
         t_o = None
         try:
-            t_o = float(timeout)
+            t_o = int(timeout)
         except ValueError, e:
-            log.error("Timeout %r was not an float value.", timeout)
+            log.error("Timeout %r was not an int value.", timeout)
         self.timeout = t_o
 
         self.command = command
@@ -120,7 +122,7 @@ class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
             msg = "Timeout after an unknown time on execution of %r." % (
                     self.command)
         else:
-            msg = "Error executing: %s (timeout after %0.1f secs)" % (
+            msg = "Error executing: %s (timeout after %d secs)" % (
                     self.command, self.timeout)
 
         return msg
@@ -332,7 +334,118 @@ class ExtNagiosPlugin(NagiosPlugin):
         return None
 
     #--------------------------------------------------------------------------
-    #def exec_cmd(
+    def exec_cmd(self,
+            cmd,
+            shell = False,
+            stdout = None,
+            stderr = None,
+            bufsize = 0,
+            drop_stderr = False,
+            close_fds = False,
+            **kwargs ):
+        """
+        Executing a OS command.
+
+        @param cmd: the cmd you wanne call
+        @type cmd: list of strings or str
+        @param shell: execute the command with a shell
+        @type shell: bool
+        @param stdout: file descriptor for stdout,
+                       if not given, self.stdout is used
+        @type stdout: int
+        @param stderr: file descriptor for stderr,
+                       if not given, self.stderr is used
+        @type stderr: int
+        @param bufsize: size of the buffer for stdout
+        @type bufsize: int
+        @param drop_stderr: drop all output on stderr, independend
+                            of any value of stderr
+        @type drop_stderr: bool
+        @param close_fds: closing all open file descriptors
+                          (except 0, 1 and 2) on calling subprocess.Popen()
+        @type close_fds: bool
+        @param kwargs: any optional named parameter (must be one
+            of the supported suprocess.Popen arguments)
+        @type kwargs: dict
+
+        @return: tuple of::
+            - return value of calling process,
+            - output on STDOUT,
+            - output on STDERR
+
+        """
+
+        cmd_list = cmd
+        if isinstance(cmd, basestring):
+            cmd_list = [cmd]
+
+        use_shell = bool(shell)
+
+        cmd_list = [str(element) for element in cmd_list]
+        cmd_str = cmd_list[0]
+        for arg in cmd_list[1:]:
+            cmd_str += ' ' + ("%r" % (arg))
+        if self.verbose > 1:
+            log.debug("Executing: %s", cmd_str)
+
+        used_stdout = subprocess.PIPE
+        if stdout is not None:
+            used_stdout = stdout
+
+        used_stderr = subprocess.PIPE
+        if drop_stderr:
+            used_stderr = None
+        elif stderr is not None:
+            used_stderr = stderr
+
+        stdoutdata = ''
+        stderrdata = ''
+        ret = None
+        timeout = abs(int(self.timeout))
+
+        def exec_alarm_caller(signum, sigframe):
+            '''
+            This nested function will be called in event of a timeout
+
+            @param signum:   the signal number (POSIX) which happend
+            @type signum:    int
+            @param sigframe: the frame of the signal
+            @type sigframe:  object
+            '''
+
+            raise ExecutionTimeoutError(timeout, cmd_str)
+
+        signal.signal(signal.SIGALRM, exec_alarm_caller)
+        signal.alarm(timeout)
+
+        # And execute it ...
+        try:
+            cmd_obj = subprocess.Popen(
+                    cmd_list,
+                    shell = use_shell,
+                    close_fds = close_fds,
+                    stderr = used_stderr,
+                    stdout = used_stdout,
+                    bufsize = bufsize,
+                    **kwargs
+            )
+
+            (stdoutdata, stderrdata) = cmd_obj.communicate()
+            ret = cmd_obj.wait()
+
+        except ExecutionTimeoutError, e:
+            self.die(str(e))
+
+        finally:
+            signal.alarm(0)
+
+        if self.verbose > 1:
+            log.debug("Returncode: %s" % (ret))
+        if stderrdata:
+            msg = "Output on StdErr: %r." % (stderrdata.strip())
+            log.debug(msg)
+
+        return (ret, stdoutdata, stderrdata)
 
     #--------------------------------------------------------------------------
     def parse_args(self, args = None):
