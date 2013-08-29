@@ -505,6 +505,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 self._megaraid_slot)
 
         self._device_id = dev_id
+        log.debug("Got a Device Id of %d." % (dev_id))
         return
 
     #--------------------------------------------------------------------------
@@ -535,6 +536,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 'serial': None,
                 'health_state': None,
                 'nr_grown_defects': 0,
+                'temperature': None,
         }
 
         if is_sas:
@@ -542,10 +544,104 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
             self._eval_sas_disk(smart_output)
         else:
             log.info("Disk is NOT a SAS disk.")
+            self._eval_sata_disk(smart_output)
 
         log.debug("Evaluated disk data:\n%s", pp(self.disk_data))
 
         self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def _eval_sata_disk(self, smart_output):
+
+        re_health_state = re.compile(r'^SMART\s+overall-health\s+self-assessment\s+test\s+result\s*:\s*(\S.*)',
+                re.IGNORECASE)
+        re_model = re.compile(r'^Device\s+Model\s*:\s*(\S.*)', re.IGNORECASE)
+        #   5 Reallocated_Sector_Ct   -O--CK   100   100   000    -    0
+        re_realloc = re.compile(r'^\d+\s+Reallocated_Sector_Ct\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        # 187 Reported_Uncorrect      -O--CK   100   100   000    -    0
+        re_rep_uncorr = re.compile(r'^\d+\s+Reported_Uncorrect\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        # 197 Current_Pending_Sector  -O--CK   100   100   000    -    0
+        re_cur_pend_sect = re.compile(r'^\d+\s+Current_Pending_Sector\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        # yxz Offline_Uncorrectable   -O--CK   100   100   000    -    0
+        re_offl_uncor = re.compile(r'^\d+\s+Offline_Uncorrectable\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        # xyz Reallocated_Event_Count -O--CK   100   100   000    -    0
+        re_realloc_evt = re.compile(r'^\d+\s+Reallocated_Event_Count\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        # zyx Erase_Fail_Count        -O--CK   100   100   000    -    0
+        re_erase_fail_count = re.compile(r'^\d+\s+Erase_Fail_Count\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        # 194 Temperature_Celsius     -O---K   100   100   000    -    25
+        re_temp = re.compile(r'^\d+\s+Temperature_Celsius\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+
+        for line in smart_output.splitlines():
+            line = line.strip()
+            if line == '':
+                continue
+
+            match = re_health_state.search(line)
+            if match:
+                self.disk_data['health_state'] = match.group(1)
+                continue
+
+            match = re_model.search(line)
+            if match:
+                self.disk_data['model'] = match.group(1)
+                continue
+
+            match = re_realloc.search(line)
+            if match:
+                self.disk_data['realloc_sectors'] = int(match.group(1))
+                continue
+
+            match = re_rep_uncorr.search(line)
+            if match:
+                self.disk_data['reported_uncorrect'] = int(match.group(1))
+                continue
+
+            match = re_cur_pend_sect.search(line)
+            if match:
+                self.disk_data['current_pending_sector'] = int(match.group(1))
+                continue
+
+            match = re_offl_uncor.search(line)
+            if match:
+                self.disk_data['offline_uncorretable'] = int(match.group(1))
+                continue
+
+            match = re_realloc_evt.search(line)
+            if match:
+                self.disk_data['realloc_event_count'] = int(match.group(1))
+                continue
+
+            match = re_erase_fail_count.search(line)
+            if match:
+                self.disk_data['erase_fail_count'] = int(match.group(1))
+                continue
+
+            match = re_temp.search(line)
+            if match:
+                self.disk_data['temperature'] = int(match.group(1))
+                continue
+
+        self.disk_data['nr_grown_defects'] = 0
+        if 'realloc_sectors' in self.disk_data:
+            self.disk_data['nr_grown_defects'] += self.disk_data['realloc_sectors']
+        if 'reported_uncorrect' in self.disk_data:
+            self.disk_data['nr_grown_defects'] += self.disk_data['reported_uncorrect']
+        if 'current_pending_sector' in self.disk_data:
+            self.disk_data['nr_grown_defects'] += self.disk_data['current_pending_sector']
+        if 'offline_uncorretable' in self.disk_data:
+            self.disk_data['nr_grown_defects'] += self.disk_data['offline_uncorretable']
+        if 'realloc_event_count' in self.disk_data:
+            self.disk_data['nr_grown_defects'] += self.disk_data['realloc_event_count']
+        if 'erase_fail_count' in self.disk_data:
+            self.disk_data['nr_grown_defects'] += self.disk_data['erase_fail_count']
+        
 
     #--------------------------------------------------------------------------
     def _eval_sas_disk(self, smart_output):
@@ -557,6 +653,11 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         re_vendor = re.compile(r'^Vendor\s*:\s*(\S.*)', re.IGNORECASE)
         re_product = re.compile(r'^Product\s*:\s*(\S.*)', re.IGNORECASE)
         re_serial = re.compile(r'^Serial\s+number\s*:\s*(\S.*)', re.IGNORECASE)
+        re_non_medium_errs = re.compile(r'^Non-medium\s+error\s+count\s*:\s*(\d+)',
+                re.IGNORECASE)
+        # Current Drive Temperature:     34 C
+        re_temp = re.compile(r'^Current\s+Drive\s+Temperature\s*:\s*(\d+)(?:\s*([CF]))?',
+                re.IGNORECASE)
 
         for line in smart_output.splitlines():
             line = line.strip()
@@ -588,6 +689,21 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 self.disk_data['serial'] = match.group(1)
                 continue
 
+            match = re_non_medium_errs.search(line)
+            if match:
+                self.disk_data['non_medium_errors'] = int(match.group(1))
+                continue
+
+            match = re_temp.search(line)
+            if match:
+                unit = 'C'
+                if match.group(2) and match.group(2).upper() == 'F':
+                    unit = 'F'
+                temp = float(match.group(1))
+                if unit == 'F':
+                    temp = ((temp - 32.0) * 5.0 / 9.0) + 0.5
+                self.disk_data['temperature'] = int(temp)
+
         if 'vendor' in self.disk_data:
             if 'product' in self.disk_data:
                 self.disk_data['model'] = (self.disk_data['vendor'] + ' ' +
@@ -607,6 +723,9 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         """
 
+        re_no_mega_sas = re.compile(r'failed:\s+SATA\s+device\s+detected,',
+             re.IGNORECASE)   
+
         cmd_list = [self.smartctl_cmd, '-x']
         dev_desc = self.device
         if self.megaraid:
@@ -622,6 +741,19 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         stdoutdata = stdoutdata.strip()
         if not stdoutdata:
             self.die("Got no output from smartctl %s." % (dev_desc))
+
+        if self.megaraid:
+            if re_no_mega_sas.search(stdoutdata):
+                cmd_list = [self.smartctl_cmd, '-x']
+                cmd_list.append('-d')
+                cmd_list.append('sat+megaraid,%d' % (self.device_id))
+                cmd_list.append(self.device)
+                (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd_list)
+                if stdoutdata is None:
+                    stdoutdata = ''
+                stdoutdata = stdoutdata.strip()
+                if not stdoutdata:
+                    self.die("Got no output from smartctl %s is SATA attempt.")
 
         if self.verbose > 2:
             log.debug("Got output from smartctl %s:\n%s" % (
