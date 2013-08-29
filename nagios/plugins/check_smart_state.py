@@ -274,6 +274,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         Adding all necessary arguments to the commandline argument parser.
         """
 
+        arg_help = ('The number of grown defect sectors leading to a ' +
+                    'warning (Default: %d).') % (DEFAULT_WARN_SECTORS)
         self.add_arg(
                 '-w', '--warning',
                 metavar = 'SECTORS',
@@ -281,10 +283,11 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 required = True,
                 type = int,
                 default = DEFAULT_WARN_SECTORS,
-                help = ('The number of grown defect sectors ' +
-                        'leading to a warning (Default: %d).'),
+                help = arg_help,
         )
 
+        arg_help = ('The number of grown defect sectors leading to a ' +
+                    'critical message (Default: %d).') % (DEFAULT_CRIT_SECTORS)
         self.add_arg(
                 '-c', '--critical',
                 metavar = 'SECTORS',
@@ -292,8 +295,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 required = True,
                 type = int,
                 default = DEFAULT_CRIT_SECTORS,
-                help = ('The number of grown defect sectors ' +
-                        'leading to a critical message (Default: %d).'),
+                help = arg_help,
         )
 
         self.add_arg(
