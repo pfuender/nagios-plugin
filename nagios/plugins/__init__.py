@@ -83,7 +83,7 @@ class CommandNotFoundError(ExtNagiosPluginError):
         return msg
 
 #-------------------------------------------------------------------------------
-class ExecutionTimeoutError(ExtNagiosPluginError):
+class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
     """
     Special error class indicating a timout error on executing an operation
     """
@@ -95,17 +95,18 @@ class ExecutionTimeoutError(ExtNagiosPluginError):
 
         @param timeout: the timeout in second, after which the exception
                         was raised.
-        @type timeout: int
-        @param command: the command, which should be executed.
+        @type timeout: float
+        @param command: the commandline, which should be executed.
         @type command: str
 
         """
 
-        self.timeout = None
+        t_o = None
         try:
-            self.timeout = int(timeout)
+            t_o = float(timeout)
         except ValueError, e:
-            log.error("Timeout %r was not an integer value.", timeout)
+            log.error("Timeout %r was not an float value.", timeout)
+        self.timeout = t_o
 
         self.command = command
 
@@ -119,7 +120,8 @@ class ExecutionTimeoutError(ExtNagiosPluginError):
             msg = "Timeout after an unknown time on execution of %r." % (
                     self.command)
         else:
-            msg = "Timeout after %d seconds on execution of %r." % (self.command)
+            msg = "Error executing: %s (timeout after %0.1f secs)" % (
+                    self.command, self.timeout)
 
         return msg
 
@@ -205,6 +207,12 @@ class ExtNagiosPlugin(NagiosPlugin):
                 timeout = timeout
         )
 
+        self._timeout = default_timeout
+        """
+        @ivar: the timeout on execution of commands in seconds
+        @type: int
+        """
+
         pre = None
         if prepend_searchpath:
             if isinstance(prepend_searchpath, basestring):
@@ -246,6 +254,12 @@ class ExtNagiosPlugin(NagiosPlugin):
         """A list of existing paths to search for executables."""
         return self._search_path[:]
 
+    #------------------------------------------------------------
+    @property
+    def timeout(self):
+        """The timeout on execution of commands in seconds."""
+        return self._timeout
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -260,6 +274,7 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         d['verbose'] = self.verbose
         d['search_path'] = self.search_path
+        d['timeout'] = self.timeout
 
         return d
 
@@ -317,6 +332,9 @@ class ExtNagiosPlugin(NagiosPlugin):
         return None
 
     #--------------------------------------------------------------------------
+    #def exec_cmd(
+
+    #--------------------------------------------------------------------------
     def parse_args(self, args = None):
         """
         Executes self.argparser.parse_args().
@@ -330,6 +348,9 @@ class ExtNagiosPlugin(NagiosPlugin):
         super(ExtNagiosPlugin, self).parse_args(args)
 
         self.verbose = self.argparser.args.verbose
+
+        if self.argparser.args.timeout:
+            self._timeout = self.argparser.args.timeout
 
     #--------------------------------------------------------------------------
     def out(self, msg):

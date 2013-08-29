@@ -140,12 +140,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         @type: bool
         """
 
-        self._timeout = default_timeout
-        """
-        @ivar: the timeout on execution of commands in seconds
-        @type: int
-        """
-
         self._warn_sectors = NagiosRange(end = DEFAULT_WARN_SECTORS)
         """
         @ivar: number of grown defect sectors leading to a warning
@@ -244,12 +238,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         """The number of the MegaRaid adapter (e.g. 0)."""
         return self._adapter_nr
 
-    #------------------------------------------------------------
-    @property
-    def timeout(self):
-        """The timeout on execution of commands in seconds."""
-        return self._timeout
-
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -271,7 +259,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         d['device'] = self.device
         d['device_id'] = self.device_id
         d['megaraid_slot'] = self.megaraid_slot
-        d['timeout'] = self.timeout
 
         return d
 
@@ -388,9 +375,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 warning = self.warn_sectors,
                 critical = self.crit_sectors,
         )
-
-        if self.argparser.args.timeout:
-            self._timeout = self.argparser.args.timeout
 
         if not self.argparser.args.device:
             self.die("No device to check given.")
