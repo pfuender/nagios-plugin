@@ -137,13 +137,13 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         @type: bool
         """
 
-        self._warn_sectors = NagiosRange(end = DEFAULT_WARN_SECTORS)
+        self._warn_sectors = NagiosRange(start = 0, end = DEFAULT_WARN_SECTORS)
         """
         @ivar: number of grown defect sectors leading to a warning
         @type: NagiosRange
         """
 
-        self._crit_sectors = NagiosRange(end = DEFAULT_CRIT_SECTORS)
+        self._crit_sectors = NagiosRange(start = 0, end = DEFAULT_CRIT_SECTORS)
         """
         @ivar: number of grown defect sectors leading to a critical message
         @type: NagiosRange
@@ -365,8 +365,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         self.init_root_logger()
 
-        self._warn_sectors = NagiosRange(end = self.argparser.args.warning)
-        self._crit_sectors = NagiosRange(end = self.argparser.args.critical)
+        self._warn_sectors = NagiosRange(start = 0, end = self.argparser.args.warning)
+        self._crit_sectors = NagiosRange(start = 0, end = self.argparser.args.critical)
 
         self.set_thresholds(
                 warning = self.warn_sectors,
@@ -540,13 +540,66 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         }
 
         if is_sas:
-            log.info("Disk is a SAS disk.")
+            log.debug("Disk is a SAS disk.")
             self._eval_sas_disk(smart_output)
         else:
-            log.info("Disk is NOT a SAS disk.")
+            log.debug("Disk is a SATA disk.")
             self._eval_sata_disk(smart_output)
 
         log.debug("Evaluated disk data:\n%s", pp(self.disk_data))
+
+        err_msgs = []
+
+        if is_sas:
+            if self.disk_data['health_state'].lower() != 'ok':
+                state = self.max_state(state, nagios.state.critical)
+                err_msgs.append("SMART Health Status is %r." % (
+                        self.disk_data['health_state']))
+        else:
+            if self.disk_data['health_state'].lower() != 'passed':
+                state = self.max_state(state, nagios.state.critical)
+                err_msgs.append("SMART overall-health self-assessment test result is %r." % (
+                        self.disk_data['health_state']))
+
+        gd_count = self.disk_data['nr_grown_defects']
+        if self.threshold:
+            gd_state = self.threshold.get_status(gd_count)
+            if gd_state != nagios.state.ok:
+                state = self.max_state(state, gd_state)
+                err_msgs.append("%d elements in list of grown defects." % (
+                        gd_count))
+            self.add_perfdata(
+                    label = 'gd_list',
+                    value = gd_count,
+                    threshold = self.threshold,
+            )
+        else:
+            self.add_perfdata(
+                    label = 'gd_list',
+                    value = gd_count,
+            )
+
+        if self.disk_data['temperature'] is not None:
+            self.add_perfdata(
+                    label = 'temperature',
+                    value = self.disk_data['temperature'],
+                    uom = "°C",
+            )
+
+        out = ""
+        if is_sas:
+            out = "SAS "
+        else:
+            out = "SATA "
+        dev = self.device
+        if self.megaraid:
+            dev = "[%d:%d]" % self.megaraid_slot
+        out += "HDD %s " % (dev)
+
+        if err_msgs:
+            out += ", ".join(err_msgs)
+        else:
+            out += "SMART Health Status seems to be okay."
 
         self.exit(state, out)
 
@@ -560,7 +613,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         re_realloc = re.compile(r'^\d+\s+Reallocated_Sector_Ct\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
                 re.IGNORECASE)
         # 187 Reported_Uncorrect      -O--CK   100   100   000    -    0
-        re_rep_uncorr = re.compile(r'^\d+\s+Reported_Uncorrect\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+        re_rep_uncorr = re.compile(r'^\d+\s+Reported_Uncorrect\s+(\S+)\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
                 re.IGNORECASE)
         # 197 Current_Pending_Sector  -O--CK   100   100   000    -    0
         re_cur_pend_sect = re.compile(r'^\d+\s+Current_Pending_Sector\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
@@ -577,6 +630,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         # 194 Temperature_Celsius     -O---K   100   100   000    -    25
         re_temp = re.compile(r'^\d+\s+Temperature_Celsius\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
                 re.IGNORECASE)
+
+        use_uncorrect = True
 
         for line in smart_output.splitlines():
             line = line.strip()
@@ -600,7 +655,10 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
             match = re_rep_uncorr.search(line)
             if match:
-                self.disk_data['reported_uncorrect'] = int(match.group(1))
+                uncorrect_tags = match.group(1).lower()
+                if uncorrect_tags[0] == 'p':
+                    use_uncorrect = False
+                self.disk_data['reported_uncorrect'] = int(match.group(2))
                 continue
 
             match = re_cur_pend_sect.search(line)
@@ -631,7 +689,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         self.disk_data['nr_grown_defects'] = 0
         if 'realloc_sectors' in self.disk_data:
             self.disk_data['nr_grown_defects'] += self.disk_data['realloc_sectors']
-        if 'reported_uncorrect' in self.disk_data:
+        if 'reported_uncorrect' in self.disk_data and use_uncorrect:
             self.disk_data['nr_grown_defects'] += self.disk_data['reported_uncorrect']
         if 'current_pending_sector' in self.disk_data:
             self.disk_data['nr_grown_defects'] += self.disk_data['current_pending_sector']
