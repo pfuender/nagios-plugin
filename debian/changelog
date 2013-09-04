@@ -1,3 +1,17 @@
+python-nagios-plugin (0.5.0-1) unstable; urgency=low
+
+  * Declared for unstable
+  * Added bin/check_smart_state and nagios/plugins/check_smart_state.py
+  * Moved property timeout into nagios/plugins/__init__.py
+  * Added method exec_cmd() to ExtNagiosPlugin class in
+    nagios/plugins/__init__.py
+  * Changed nagios/plugins/check_lvm_vg.py and
+    nagios/plugins/check_procs.py to use exec_cmd() from
+    nagios/plugins/__init__.py
+  * Added bin/check_uname and nagios/plugins/check_uname.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 04 Sep 2013 18:21:19 +0200
+
 python-nagios-plugin (0.4.5-1) stable; urgency=low
 
   * Added test/test_extplugin_01.py

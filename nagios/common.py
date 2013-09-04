@@ -19,7 +19,7 @@ import pprint
 __author__ = 'Frank Brehm <frank.brehm@profitbricks.com>'
 __copyright__ = '(C) 2010-2013 by profitbricks.com'
 __contact__ = 'frank.brehm@profitbricks.com'
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 __license__ = 'GPL3'
 
 log = logging.getLogger(__name__)
@@ -84,6 +84,10 @@ def caller_search_path(prepend = None, append = None):
         '/usr/local/icinga/bin',
         '/usr/local/nagios/bin',
     ]
+
+    # A tribute to my current company 'ProfitBricks GmbH, Berlin, Germany'
+    # Frank Brehm, August 2013
+    default_path.append('/opt/profitbricks/bin')
 
     for d in default_path:
         search_path_list.append(d)

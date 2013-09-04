@@ -11,3 +11,4 @@ trace
 /*.egg-info
 /dist
 /Nagios-Plugin-*
+*.log

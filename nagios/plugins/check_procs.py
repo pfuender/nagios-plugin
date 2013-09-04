@@ -14,8 +14,6 @@ import logging
 import textwrap
 import pwd
 import re
-import signal
-import subprocess
 import locale
 
 from numbers import Number
@@ -41,7 +39,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 
 log = logging.getLogger(__name__)
 
@@ -840,39 +838,17 @@ class CheckProcsPlugin(ExtNagiosPlugin):
                 'comm', 'args')
 
         cmd = [self.ps_cmd, '-e', '-o', ','.join(fields)]
-        cmd_str = ' '.join(cmd)
-        timeout = abs(int(self.argparser.args.timeout))
-
-        cmd_obj = None
         stdoutdata = ''
         stderrdata = ''
-
-        def exec_alarm_caller(signum, sigframe):
-            raise ExecutionTimeoutError(timeout, cmd_str)
-
-        if self.verbose > 1:
-            log.debug("Executing %r ...", cmd_str)
 
         current_locale = os.environ.get('LC_NUMERIC')
         if self.verbose > 2:
             log.debug("Current locale is %r, setting to 'C'.", current_locale)
         os.environ['LC_NUMERIC'] = 'C'
-        signal.signal(signal.SIGALRM, exec_alarm_caller)
-        signal.alarm(timeout)
 
         try:
-            cmd_obj = subprocess.Popen(
-                    cmd,
-                    stderr = subprocess.PIPE,
-                    stdout = subprocess.PIPE,
-                    bufsize = 0,
-                    close_fds = False,
-            )
-            (stdoutdata, stderrdata) = cmd_obj.communicate()
-        except ExecutionTimeoutError, e:
-            self.die(str(e))
+            (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd)
         finally:
-            signal.alarm(0)
             if current_locale:
                 os.environ['LC_NUMERIC'] = current_locale
             else:
@@ -919,8 +895,12 @@ class CheckProcsPlugin(ExtNagiosPlugin):
                     if char in pinfo.state:
                         found = True
                         break
-                if not found:
+                if found:
                     if self.verbose > 2:
+                        log.debug("State %r found in %r (%d).", state,
+                                pinfo.state, pinfo.pid)
+                else:
+                    if self.verbose > 3:
                         log.debug("State %r not found in %r (%d).", state,
                                 pinfo.state, pinfo.pid)
                     continue

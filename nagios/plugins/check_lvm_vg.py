@@ -14,8 +14,6 @@ import logging
 import textwrap
 import pwd
 import re
-import signal
-import subprocess
 import locale
 import math
 
@@ -45,7 +43,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
@@ -88,10 +86,13 @@ class LvmVgState(object):
     """
 
     #--------------------------------------------------------------------------
-    def __init__(self, vg, vgs_cmd = VGS_CMD, verbose = 0, timeout = 15, **kwargs):
+    def __init__(self, plugin, vg, vgs_cmd = VGS_CMD, verbose = 0,
+            timeout = 15, **kwargs):
         """
         Constructor.
 
+        @plugin: reference of the parent plugin object
+        @type: CheckLvmVgPlugin
         @param vg: the name of the volume group
         @type vg: str
         @param vgs_cmd: the path to the vgs command
@@ -101,6 +102,15 @@ class LvmVgState(object):
         @param timeout: the timeout in execution the 'vgs' command
         @type timeout: int
 
+        """
+
+        if not isinstance(plugin, CheckLvmVgPlugin):
+            raise ExtNagiosPluginError(("Given parameter plugin is not a " +
+                    "CheckLvmVgPlugin object, instead: %r") % (plugin))
+        self.plugin = plugin
+        """
+        @ivar: a reference of the parent plugin object
+        @type: CheckLvmVgPlugin
         """
 
         self._vg = vg
@@ -470,34 +480,21 @@ class LvmVgState(object):
                 '-o', ','.join(fields),
                 self.vg
         ]
-        cmd_str = ' '.join(cmd)
-
-        timeout = abs(int(self.timeout))
-
-        output = ''
-        def exec_alarm_caller(signum, sigframe):
-            raise ExecutionTimeoutError(timeout, cmd_str)
 
         current_locale = os.environ.get('LC_NUMERIC')
         if self.verbose > 2:
             log.debug("Current locale is %r, setting to 'C'.", current_locale)
         os.environ['LC_NUMERIC'] = 'C'
-        signal.signal(signal.SIGALRM, exec_alarm_caller)
-        signal.alarm(timeout)
 
         try:
-            output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
+            (ret, stdoutdata, stderrdata) = self.plugin.exec_cmd(cmd)
         finally:
-            signal.alarm(0)
             if current_locale:
                 os.environ['LC_NUMERIC'] = current_locale
             else:
                 del os.environ['LC_NUMERIC']
 
-        if self.verbose > 2:
-            log.debug("Got output:\n%s", output)
-
-        fields = output.strip().split(';')
+        fields = stdoutdata.strip().split(';')
         if self.verbose > 2:
             log.debug("Got fields:\n%s", pp(fields))
 
@@ -714,7 +711,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
         #-----------------------------------------------------------
         # Getting current state of VG
         vg_state = LvmVgState(
-                vg = self.vg, vgs_cmd = self.vgs_cmd,
+                plugin = self, vg = self.vg, vgs_cmd = self.vgs_cmd,
                 verbose = self.verbose, timeout = self.argparser.args.timeout)
 
         try:
@@ -853,4 +850,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et
