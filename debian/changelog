@@ -10,7 +10,7 @@ python-nagios-plugin (0.5.0-1) unstable; urgency=low
     nagios/plugins/__init__.py
   * Added bin/check_uname and nagios/plugins/check_uname.py
 
- -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 04 Sep 2013 18:00:19 +0200
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 04 Sep 2013 18:07:19 +0200
 
 python-nagios-plugin (0.4.5-1) stable; urgency=low
 
