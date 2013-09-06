@@ -66,8 +66,8 @@ class MegaCliExecTimeoutError(ExtNagiosPluginError, IOError):
 
         @param timeout: the timout in seconds leading to the error
         @type timeout: float
-        @param filename: the commandline leading to the error
-        @type filename: str
+        @param cmdline: the commandline leading to the error
+        @type cmdline: str
 
         """
 

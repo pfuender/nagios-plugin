@@ -91,8 +91,8 @@ class LvmVgState(object):
         """
         Constructor.
 
-        @plugin: reference of the parent plugin object
-        @type: CheckLvmVgPlugin
+        @param plugin: reference of the parent plugin object
+        @type plugin: CheckLvmVgPlugin
         @param vg: the name of the volume group
         @type vg: str
         @param vgs_cmd: the path to the vgs command
