@@ -1,3 +1,10 @@
+python-nagios-plugin (0.5.2-3) unstable; urgency=low
+
+  * Declared for unstable
+  * Added 'Recommends: smartmontools' to debian/control
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 06 Sep 2013 14:26:18 +0200
+
 python-nagios-plugin (0.5.2-2) stable; urgency=low
 
   * Added bin/check_smart_state and bin/check_uname to setup.py
