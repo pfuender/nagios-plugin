@@ -525,11 +525,27 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         re_is_sas = re.compile(r'^\s*Transport\s+protocol\s*:\s*SAS\s*$',
                 (re.IGNORECASE | re.MULTILINE))
 
+        re_no_smart = re.compile(r'(Device\s+does\s+not\s+support\s+SMART)',
+                (re.IGNORECASE | re.MULTILINE))
+
         smart_output = self._exec_smartctl()
 
         is_sas = False
         if re_is_sas.search(smart_output):
             is_sas = True
+
+        match = re_no_smart.search(smart_output)
+        if match:
+            msg = ''
+            if is_sas:
+                msg = "SAS "
+            else:
+                msg = "SATA "
+            dev = self.device
+            if self.megaraid:
+                dev = "[%d:%d]" % self.megaraid_slot
+            msg += "HDD %s: %s" % (dev, match.group(1))
+            self.die(msg)
 
         self.disk_data = {
                 'model': None,
@@ -537,6 +553,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 'health_state': None,
                 'nr_grown_defects': 0,
                 'temperature': None,
+                'hours_on': None,
         }
 
         if is_sas:
@@ -613,6 +630,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         else:
             out += "SMART Health Status seems to be okay."
 
+        if (self.disk_data['hours_on'] is not None and
+                isinstance(self.disk_data['hours_on'], Number)):
+            days = self.disk_data['hours_on'] / 24
+            hours = self.disk_data['hours_on'] % 24
+            out += " Power on: %d days, %d hours." % (days, hours)
+
         self.exit(state, out)
 
     #--------------------------------------------------------------------------
@@ -641,6 +664,9 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 re.IGNORECASE)
         # 194 Temperature_Celsius     -O---K   100   100   000    -    25
         re_temp = re.compile(r'^\d+\s+Temperature_Celsius\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+                re.IGNORECASE)
+        #   9 Power_On_Hours          -O--CK   100   100   000    -    2139
+        re_hours = re.compile(r'^\d+\s+Power_On_Hours\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+(?:\.\d*)?)',
                 re.IGNORECASE)
 
         use_uncorrect = True
@@ -698,6 +724,11 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 self.disk_data['temperature'] = int(match.group(1))
                 continue
 
+            match = re_hours.search(line)
+            if match:
+                hours = int(float(match.group(1)) + 0.5)
+                self.disk_data['hours_on'] = hours
+
         self.disk_data['nr_grown_defects'] = 0
         if 'realloc_sectors' in self.disk_data:
             self.disk_data['nr_grown_defects'] += self.disk_data['realloc_sectors']
@@ -727,6 +758,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 re.IGNORECASE)
         # Current Drive Temperature:     34 C
         re_temp = re.compile(r'^Current\s+Drive\s+Temperature\s*:\s*(\d+)(?:\s*([CF]))?',
+                re.IGNORECASE)
+        re_hours = re.compile(r'^number\s+of\s+hours\s+powered\s+up\s*=\s*(\d+(?:\.\d*)?)',
                 re.IGNORECASE)
 
         for line in smart_output.splitlines():
@@ -773,6 +806,11 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 if unit == 'F':
                     temp = ((temp - 32.0) * 5.0 / 9.0) + 0.5
                 self.disk_data['temperature'] = int(temp)
+
+            match = re_hours.search(line)
+            if match:
+                hours = int(float(match.group(1)) + 0.5)
+                self.disk_data['hours_on'] = hours
 
         if 'vendor' in self.disk_data:
             if 'product' in self.disk_data:
