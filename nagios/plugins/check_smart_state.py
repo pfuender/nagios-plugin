@@ -550,6 +550,18 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         err_msgs = []
 
+        if self.disk_data['health_state'] is None:
+            msg = "Could not detect SMART Health Status of "
+            if is_sas:
+                msg += "SAS "
+            else:
+                msg += "SATA "
+            dev = self.device
+            if self.megaraid:
+                dev = "[%d:%d]" % self.megaraid_slot
+            msg += "HDD %s." % (dev)
+            self.die(msg)
+
         if is_sas:
             if self.disk_data['health_state'].lower() != 'ok':
                 state = self.max_state(state, nagios.state.critical)
