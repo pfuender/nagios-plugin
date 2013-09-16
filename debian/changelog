@@ -1,3 +1,16 @@
+python-nagios-plugin (0.5.4-1) stable; urgency=low
+
+  * Added detection of power on hours to
+    nagios/plugins/check_smart_state.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 10 Sep 2013 10:44:44 +0200
+
+python-nagios-plugin (0.5.3-2) stable; urgency=low
+
+  * Declared for stable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 10 Sep 2013 10:01:39 +0200
+
 python-nagios-plugin (0.5.3-1) unstable; urgency=low
 
   * Bugfixing for undetectable SMART status in
