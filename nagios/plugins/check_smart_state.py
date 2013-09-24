@@ -444,51 +444,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         Slot Id.
         """
 
-        if not self._megaraid_slot:
-            self.die("Ooops, need Enclosure Id and Slot Id to evaluate " +
-                    "the Magaraid Device Id.")
-
-        if not self.megacli_cmd:
-            self.die("Didn't found to MegaCli command to evaluate the " +
-                    "Magaraid Device Id.")
-
-        pd = '-PhysDrv[%d:%d]' % self._megaraid_slot
-
-        cmd_list = [
-                self.megacli_cmd,
-                '-pdInfo',
-                ('-PhysDrv[%d:%d]' % self._megaraid_slot),
-                '-a', '0',
-                '-NoLog',
-        ]
-
-        (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd_list)
-
-        re_no_adapter = re.compile(r'^\s*User\s+specified\s+controller\s+is\s+not\s+present',
-                re.IGNORECASE)
-        re_exit_code = re.compile(r'^\s*Exit\s*Code\s*:\s+0x([0-9a-f]+)', re.IGNORECASE)
-        # Adapter 0: Device at Enclosure - 1, Slot - 22 is not found.
-        re_not_found = re.compile(r'Device\s+at.*not\s+found\.', re.IGNORECASE)
-
-        exit_code = ret
-        no_adapter_found = False
-        if stdoutdata:
-            for line in stdoutdata.splitlines():
-
-                if re_no_adapter.search(line):
-                    self.die('The specified controller %d is not present.' % (
-                            self.adapter_nr))
-
-                if re_not_found.search(line):
-                        self.die(line.strip())
-
-                match = re_exit_code.search(line)
-                if match:
-                    exit_code = int(match.group(1), 16)
-                    continue
-
-        if not stdoutdata:
-            self.die('No ouput from: %s' % (cmd_str))
+        stdoutdata = self.get_megaraid_pd_state()
 
         # Device Id: 38
         re_dev_id = re.compile(r'^\s*Device\s+Id\s*:\s*(\d+)', re.IGNORECASE)
