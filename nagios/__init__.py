@@ -10,7 +10,7 @@
 __author__ = 'Frank Brehm <frank.brehm@profitbricks.com>'
 __copyright__ = '© 2010-2013 by profitbricks.com'
 __contact__ = 'frank.brehm@profitbricks.com'
-__version__ = '0.5.4'
+__version__ = '0.5.5'
 __license__ = 'GPL3'
 
 #==============================================================================
