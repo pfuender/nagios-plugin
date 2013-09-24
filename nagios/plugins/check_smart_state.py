@@ -444,13 +444,46 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         Slot Id.
         """
 
+        stdoutdata = self.get_megaraid_pd_state()
+
+        # Device Id: 38
+        re_dev_id = re.compile(r'^\s*Device\s+Id\s*:\s*(\d+)', re.IGNORECASE)
+        dev_id = None
+
+        for line in stdoutdata.splitlines():
+            match = re_dev_id.search(line)
+            if match:
+                dev_id = int(match.group(1))
+                break
+
+        if dev_id is None:
+            self.die("No device Id found for PhysDrv [%d:%d] on the megaraid adapter." % 
+                self._megaraid_slot)
+
+        self._device_id = dev_id
+        log.debug("Got a Device Id of %d." % (dev_id))
+        return
+
+    #--------------------------------------------------------------------------
+    def get_megaraid_pd_state(self):
+        """
+        Retrieves the state of the appropriate MegaRaid Physical Device, if
+        the given device is a MegarRaid disk.
+
+        It dies, if the state could not retrieved.
+
+        @return: the output of 'megacli -pdinfo -physdrv[E:S] -a0'
+        @rtype: str
+
+        """
+
         if not self._megaraid_slot:
-            self.die("Ooops, need Enclosure Id and Slot Id to evaluate " +
-                    "the Magaraid Device Id.")
+            self.die("Ooops, need Enclosure Id and Slot Id to retrieve " +
+                    "the state of the Magaraid Physical Device.")
 
         if not self.megacli_cmd:
-            self.die("Didn't found to MegaCli command to evaluate the " +
-                    "Magaraid Device Id.")
+            self.die("Didn't found to MegaCli command to retrieve the " +
+                    "state of the Magaraid Physical Device.")
 
         pd = '-PhysDrv[%d:%d]' % self._megaraid_slot
 
@@ -487,26 +520,58 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                     exit_code = int(match.group(1), 16)
                     continue
 
+        log.debug("Exitcode of '%s -pdInfo -PhysDrv[%d:%d] -a 0': %d.",
+                self.megacli_cmd, self._megaraid_slot[0],
+                self._megaraid_slot[1], exit_code)
+
         if not stdoutdata:
             self.die('No ouput from: %s' % (cmd_str))
 
-        # Device Id: 38
-        re_dev_id = re.compile(r'^\s*Device\s+Id\s*:\s*(\d+)', re.IGNORECASE)
-        dev_id = None
+        return stdoutdata
+
+    #--------------------------------------------------------------------------
+    def get_megaraid_pd_spin_state(self):
+        """
+        Retrieves the spin state of a Magaraid Physical Drive.
+
+        @return: the spin state as one of 'up', 'down' or None
+        @rtype: str or None
+
+        """
+
+        stdoutdata = self.get_megaraid_pd_state()
+
+        # The line of interest:
+        #Firmware state: Unconfigured(good), Spun down
+
+        re_fw_state = re.compile(r'^\s*Firmware\s+state:\s*(\S.*)',
+                re.IGNORECASE)
+        re_spin_state = re.compile(r'Spun\s+(Down|Up)', re.IGNORECASE)
+        fw_state = None
 
         for line in stdoutdata.splitlines():
-            match = re_dev_id.search(line)
+            match = re_fw_state.search(line)
             if match:
-                dev_id = int(match.group(1))
+                fw_state = match.group(1).strip()
                 break
 
-        if dev_id is None:
-            self.die("No device Id found for PhysDrv [%d:%d] on the megaraid adapter." % 
-                self._megaraid_slot)
+        if fw_state is None:
+            log.debug(("Could not retrieve firmware state of Magaraid " +
+                    "Physical Device [%d:%d]."), self._megaraid_slot[0],
+                    self._megaraid_slot[1])
+            return None
 
-        self._device_id = dev_id
-        log.debug("Got a Device Id of %d." % (dev_id))
-        return
+        log.debug("Got a firmware state of Magaraid Physical Device [%d:%d]: %s",
+                self._megaraid_slot[0], self._megaraid_slot[1], fw_state)
+
+        match = re_spin_state.search(fw_state)
+        if not match:
+            log.debug(("Could not retrieve spin state of Magaraid " +
+                    "Physical Device [%d:%d] from %r."), self._megaraid_slot[0],
+                    self._megaraid_slot[1], fw_state)
+            return None
+
+        return match.group(1).lower()
 
     #--------------------------------------------------------------------------
     def __call__(self):
@@ -536,14 +601,25 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         match = re_no_smart.search(smart_output)
         if match:
+
             msg = ''
             if is_sas:
                 msg = "SAS "
             else:
                 msg = "SATA "
             dev = self.device
+
             if self.megaraid:
+
                 dev = "[%d:%d]" % self.megaraid_slot
+
+                # Exit with OK, if the disk is spun down
+                spin_state = self.get_megaraid_pd_spin_state()
+                if spin_state and spin_state == 'down':
+
+                    msg += "HDD %s: Spun Down" % (dev)
+                    self.exit(nagios.state.ok, msg)
+
             msg += "HDD %s: %s" % (dev, match.group(1))
             self.die(msg)
 
