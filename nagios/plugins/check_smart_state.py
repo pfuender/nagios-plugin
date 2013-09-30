@@ -590,8 +590,15 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         re_is_sas = re.compile(r'^\s*Transport\s+protocol\s*:\s*SAS\s*$',
                 (re.IGNORECASE | re.MULTILINE))
 
-        re_no_smart = re.compile(r'(Device\s+does\s+not\s+support\s+SMART)',
-                (re.IGNORECASE | re.MULTILINE))
+        no_smart_patterns = (
+            r'Device\s+does\s+not\s+support\s+SMART',
+            # SMART support is:     Unavailable - device lacks SMART capability.
+            r'SMART\s+support\s+is:\s+Unavailable\s+-\s+.*',
+        )
+        pattern = r'(' + r'|'.join(no_smart_patterns) + r')'
+        re_no_smart = re.compile(pattern, (re.IGNORECASE | re.MULTILINE))
+        if self.verbose > 2:
+            log.debug("No SMART pattern: %r", re_no_smart.pattern)
 
         smart_output = self._exec_smartctl()
 
@@ -608,10 +615,14 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
             else:
                 msg = "SATA "
             dev = self.device
+            if self.megaraid:
+                dev = "[%d:%d]" % self.megaraid_slot
+
+            reason = match.group(1).strip()
+            reason = re.sub(r'\s+', ' ', reason)
+            log.debug("No SMART of HDD %s: %s", dev, reason)
 
             if self.megaraid:
-
-                dev = "[%d:%d]" % self.megaraid_slot
 
                 # Exit with OK, if the disk is spun down
                 spin_state = self.get_megaraid_pd_spin_state()
@@ -620,7 +631,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                     msg += "HDD %s: Spun Down" % (dev)
                     self.exit(nagios.state.ok, msg)
 
-            msg += "HDD %s: %s" % (dev, match.group(1))
+            msg += "HDD %s: %s" % (dev, reason)
             self.die(msg)
 
         self.disk_data = {
