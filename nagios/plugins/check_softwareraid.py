@@ -16,6 +16,7 @@ import pwd
 import re
 import locale
 import stat
+import glob
 
 from numbers import Number
 
@@ -197,19 +198,46 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             self.die("%r is not a block device." % (dev_dev))
 
     #--------------------------------------------------------------------------
+    def collect_devices(self):
+        """
+        Method to collect all MD devices and to store them in self.devices.
+        """
+
+        mddev_pattern = os.sep + os.path.join('sys', 'block', 'md*')
+        log.debug("Collecting all MD devices with %r ...", mddev_pattern)
+
+        dirs = glob.glob(mddev_pattern)
+        if not dirs:
+            return
+
+        for md_dir in dirs:
+            if not os.path.isdir(md_dir):
+                if self.verbose:
+                    log.warn("Strange - %r is not a directory.", md_dir)
+                continue
+            dev = os.path.basename(md_dir)
+            self.devices.append(dev)
+
+        return
+
+    #--------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
         """
 
         self.parse_args()
+        if self.check_all:
+            self.collect_devices()
+            if not self.devices:
+                self.exit(nagios.state.ok, "No MD devices to check found.")
 
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
+        log.debug("MD devices to check: %r", self.devices)
 
         state = nagios.state.ok
-        out = "All seems to be ok."
-
+        out = "MD devices seems to be ok."
 
         self.exit(state, out)
 
