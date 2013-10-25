@@ -1,3 +1,9 @@
+python-nagios-plugin (0.5.6-1) stable; urgency=low
+
+  * Changes on 'No SMART' pattern in nagios/plugins/check_smart_state.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 30 Sep 2013 13:53:04 +0200
+
 python-nagios-plugin (0.5.5-1) stable; urgency=low
 
   * Give back OK on a smart test, if the appropriate MegaRaid disk is
