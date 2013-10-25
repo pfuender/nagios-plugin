@@ -41,6 +41,7 @@ setup(
     scripts = [
         'bin/check_procs',
         'bin/check_smart_state',
+        'bin/check_softwareraid',
         'bin/check_uname',
         'bin/check_vg_free',
         'bin/check_vg_state',
