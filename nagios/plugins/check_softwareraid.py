@@ -80,6 +80,39 @@ class RaidState(object):
 
         d = {}
         for key in self.__dict__:
+            if key == 'slaves':
+                continue
+            val = self.__dict__[key]
+            d[key] = val
+
+        d['slaves'] = {}
+        for sid in self.slaves:
+            if not self.slaves[sid]:
+                d['slaves'][sid] = None
+            else:
+                d['slaves'][sid] = self.slaves[sid].as_dict()
+
+        return d
+
+#==============================================================================
+class SlaveState(object):
+    """
+    Encapsulation class for the state of a slave device of a RAID device.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, nr, path):
+
+        self.nr = nr
+        self.path = path
+        self.block_device = None
+        self.state = None
+
+    #--------------------------------------------------------------------------
+    def as_dict(self):
+
+        d = {}
+        for key in self.__dict__:
             val = self.__dict__[key]
             d[key] = val
 
@@ -315,7 +348,20 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             link_target = os.readlink(slave_link)
             slave_dir = os.path.normpath(os.path.join(
                     os.path.dirname(slave_link), link_target))
-            state.slaves[i] = slave_dir
+
+            slave_state_file = os.path.join(slave_dir, 'state')
+            slave_block_file = os.path.join(slave_dir, 'block')
+            slave_state = self.read_file(slave_state_file).strip()
+            block_target = os.readlink(slave_block_file)
+            slave_block_device = os.path.normpath(os.path.join(
+                    os.path.dirname(slave_block_file), block_target))
+            slave_block_device = os.sep + os.path.join('dev', os.path.basename(slave_block_device))
+
+            slave = SlaveState(i, slave_dir)
+            slave.block_device = slave_block_device
+            slave.state = slave_state
+            state.slaves[i] = slave
+
             i += 1
 
         if self.verbose > 2:
