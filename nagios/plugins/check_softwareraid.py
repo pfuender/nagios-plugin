@@ -56,6 +56,8 @@ DEFAULT_TIMEOUT = 3
 Default timeout for all reading operations.
 """
 
+re_sync_completed = re.compile(r'(\d+)\s*/\s*(\d+)')
+
 #==============================================================================
 class RaidState(object):
     """
@@ -73,6 +75,9 @@ class RaidState(object):
         self.raid_level = None
         self.suspended = None
         self.sync_action = None
+        self.sectors_total = None
+        self.sectors_synced = None
+        self.sync_completed = None
         self.slaves = {}
 
     #--------------------------------------------------------------------------
@@ -336,6 +341,16 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             state.suspended = bool(int(self.read_file(suspended_file)))
         if os.path.exists(sync_action_file):
             state.sync_action = self.read_file(sync_action_file).strip()
+
+        if os.path.exists(sync_completed_file):
+            sync_state = self.read_file(sync_completed_file).strip()
+            match = re_sync_completed.search(sync_state)
+            if match:
+                state.sectors_synced = int(match.group(1))
+                state.sectors_total = int(match.group(2))
+                if state.sectors_total:
+                    state.sync_completed = (float(state.sectors_synced) /
+                            float(state.sectors_total))
 
         i = 0
         while i < state.nr_raid_disks:
