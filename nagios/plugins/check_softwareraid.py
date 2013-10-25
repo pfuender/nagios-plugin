@@ -33,6 +33,8 @@ from nagios.common import pp, caller_search_path
 from nagios.plugin import NagiosPluginError
 from nagios.plugin import NPReadTimeoutError
 
+from nagios.plugin.functions import max_state
+
 from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
@@ -370,7 +372,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             block_target = os.readlink(slave_block_file)
             slave_block_device = os.path.normpath(os.path.join(
                     os.path.dirname(slave_block_file), block_target))
-            slave_block_device = os.sep + os.path.join('dev', os.path.basename(slave_block_device))
+            slave_block_device = os.sep + os.path.join('dev',
+                    os.path.basename(slave_block_device))
 
             slave = SlaveState(i, slave_dir)
             slave.block_device = slave_block_device
@@ -382,7 +385,18 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Status results for %r:\n%s", dev, pp(state.as_dict()))
 
-        return None
+        # And evaluate the results ....
+        state_id = nagios.state.ok
+
+        # Check the array state
+        state_msg = "%s - %s" % (dev, state.array_state)
+        if state.array_state not in (
+                'readonly', 'read-auto', 'clean', 'active', 'active-idle'):
+            state_id = nagios.state.critical
+
+        #if state.degraded:
+
+        return (state_id, state_msg)
 
     #--------------------------------------------------------------------------
     def __call__(self):
@@ -431,6 +445,23 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             else:
                 self.ugly_ones.append(output)
 
+        if not self.checked_devices:
+            self.exit(nagios.state.ok, "No MD devices to check found.")
+
+        msgs = []
+        if self.bad_ones or self.ugly_ones:
+            for m in self.ugly_ones:
+                msgs.append(m)
+            for m in self.bad_ones:
+                msgs.append(m)
+        else:
+            msgs = self.good_ones[:]
+
+        out = ', '.join(msgs)
+        if self.ugly_ones:
+            state = nagios.state.critical
+        elif self.bad_ones:
+            state = nagios.state.warning
 
         self.exit(state, out)
 
