@@ -17,6 +17,7 @@ import re
 import locale
 import stat
 import glob
+import errno
 
 from numbers import Number
 
@@ -50,6 +51,40 @@ __version__ = '0.1.0'
 
 log = logging.getLogger(__name__)
 
+DEFAULT_TIMEOUT = 3
+"""
+Default timeout for all reading operations.
+"""
+
+#==============================================================================
+class RaidState(object):
+    """
+    Encapsulation class for the state of an MD device.
+    """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, device):
+
+        self.device = device
+
+        self.array_state = None
+        self.degraded = None
+        self.nr_raid_disks = None
+        self.raid_level = None
+        self.suspended = None
+        self.sync_action = None
+        self.slaves = {}
+
+    #--------------------------------------------------------------------------
+    def as_dict(self):
+
+        d = {}
+        for key in self.__dict__:
+            val = self.__dict__[key]
+            d[key] = val
+
+        return d
+
 #==============================================================================
 class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
     """
@@ -74,7 +109,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         blurb += "Checks the state of one or all  Linux software RAID devices."
 
         super(CheckSoftwareRaidPlugin, self).__init__(
-                usage = usage, blurb = blurb,
+                usage = usage, blurb = blurb, timeout = DEFAULT_TIMEOUT,
         )
 
         self.devices = []
@@ -221,6 +256,74 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         return
 
     #--------------------------------------------------------------------------
+    def check_mddev(self, dev):
+        """
+        Underlying method to check the state of a MD device.
+
+        @raise NPReadTimeoutError: on timeout reading a particular file
+                                   in sys filesystem
+        @raise IOError: if a sysfilesystem file disappears sinc start of
+                        this script
+
+        @param dev: the name of the MD device to check (e.g. 'md0', 'md400')
+        @type dev: str
+
+        @return: a tuple of two values:
+                    * the numeric (Nagios) state
+                    * a textual description of the state
+        @rtype: tuple of str and int
+
+        """
+
+        log.debug("Checking device %r ...", dev)
+
+        base_dir = os.sep + os.path.join('sys', 'block', dev)
+        base_mddir = os.path.join(base_dir, 'md')
+        array_state_file = os.path.join(base_mddir, 'array_state')
+        degraded_file = os.path.join(base_mddir, 'degraded')
+        raid_disks_file = os.path.join(base_mddir, 'raid_disks')
+        raid_level_file = os.path.join(base_mddir, 'level')
+        degraded_file = os.path.join(base_mddir, 'degraded')
+        suspended_file = os.path.join(base_mddir, 'suspended')
+        sync_action_file = os.path.join(base_mddir, 'sync_action')
+        sync_completed_file = os.path.join(base_mddir, 'sync_completed')
+
+        for sys_dir in (base_dir, base_mddir):
+            if not os.path.isdir(sys_dir):
+                raise IOError(errno.ENOENT, "Directory doesn't exists.", sys_dir)
+
+        state = RaidState(dev)
+
+        state.array_state = self.read_file(array_state_file).strip()
+        state.raid_level = self.read_file(raid_level_file).strip()
+        if os.path.exists(degraded_file):
+            state.degraded = bool(int(self.read_file(degraded_file)))
+        state.nr_raid_disks = int(self.read_file(raid_disks_file))
+        if os.path.exists(suspended_file):
+            state.suspended = bool(int(self.read_file(suspended_file)))
+        if os.path.exists(sync_action_file):
+            state.sync_action = self.read_file(sync_action_file).strip()
+
+        i = 0
+        while i < state.nr_raid_disks:
+            slave_link = os.path.join(base_mddir, 'rd%d' % (i))
+            if not os.path.exists(slave_link):
+                log.debug("Slave %d of raid %r doesn't exists.", i, dev)
+                state.slaves[i] = None
+                i += 1
+                continue
+            link_target = os.readlink(slave_link)
+            slave_dir = os.path.normpath(os.path.join(
+                    os.path.dirname(slave_link), link_target))
+            state.slaves[i] = slave_dir
+            i += 1
+
+        if self.verbose > 2:
+            log.debug("Status results for %r:\n%s", dev, pp(state.as_dict()))
+
+        return None
+
+    #--------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -238,6 +341,35 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         state = nagios.state.ok
         out = "MD devices seems to be ok."
+
+        for dev in sorted(self.devices,
+                cmp = lambda x, y: cmp(int(x.replace('md', '')), int(y.replace('md', '')))):
+            result = None
+            try:
+                result = self.check_mddev(dev)
+            except NPReadTimeoutError:
+                msg = "%s - timeout on getting information" % (dev)
+                self.ugly_ones.append(msg)
+            except IOError, e:
+                msg = "MD device %r disappeared during this script: %s" % (
+                        dev, e)
+                log.debug(msg)
+                continue
+            except Exception, e:
+                self.die("Unknown %r error on getting information about %r: %s" %
+                        (e.__class__.__name__, dev, e))
+            if result is None:
+                continue
+
+            self.checked_devices += 1
+            (state, output) = result
+            if state == nagios.state.ok:
+                self.good_ones.append(output)
+            elif state == nagios.state.warning:
+                self.bad_ones.append(output)
+            else:
+                self.ugly_ones.append(output)
+
 
         self.exit(state, out)
 
