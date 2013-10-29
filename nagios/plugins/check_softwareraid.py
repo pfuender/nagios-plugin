@@ -439,6 +439,17 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             if state.sync_completed is not None:
                 state_msg += " %.1f%%" % ((state.sync_completed * 100))
 
+            # Check state of slave devices
+            for i in state.slaves:
+                if state.slaves[i] is None:
+                    state_id = max_state(state_id, nagios.state.critical)
+                    state_msg += " slave [%d] fails." % (i)
+                    continue
+                if slave.state in ('in_sync', 'writemostly'):
+                    continue
+                bd = os.path.basename(slave.block_device)
+                state_msg += " slave [%d] %s" % (i, bd)
+
         return (state_id, state_msg)
 
     #--------------------------------------------------------------------------
