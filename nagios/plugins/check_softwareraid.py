@@ -502,6 +502,11 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         if not self.checked_devices:
             self.exit(nagios.state.ok, "No MD devices to check found.")
 
+        if self.verbose > 2:
+            log.debug("Ugly states: %s", pp(self.ugly_ones))
+            log.debug("Bad states: %s", pp(self.bad_ones))
+            log.debug("Good states: %s", pp(self.good_ones))
+
         msgs = []
         if self.bad_ones or self.ugly_ones:
             for m in self.ugly_ones:
