@@ -441,6 +441,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
             # Check state of slave devices
             for i in state.slaves:
+                log.debug("Evaluating state of slave [%d]", i)
                 if state.slaves[i] is None:
                     state_id = max_state(state_id, nagios.state.critical)
                     state_msg += ", slave [%d] fails" % (i)
