@@ -424,16 +424,16 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
             if state.sync_action is None:
                 state_id = max_state(state_id, nagios.state.critical)
-                state_msg += " unknown sync action"
+                state_msg += ", unknown sync action"
             elif state.sync_action == 'idle':
                 state_id = max_state(state_id, nagios.state.critical)
-                state_msg += " idle"
+                state_msg += ", idle"
             elif state.sync_action in ('resync', 'recover', 'check', 'repair'):
                 state_id = max_state(state_id, nagios.state.warning)
-                state_msg += " " + state.sync_action
+                state_msg += ", " + state.sync_action
             else:
                 state_id = max_state(state_id, nagios.state.unknown)
-                state_msg += " sync " + state.sync_action
+                state_msg += ", sync " + state.sync_action
 
             # Add percentage of sync completed to output
             if state.sync_completed is not None:
@@ -443,12 +443,12 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             for i in state.slaves:
                 if state.slaves[i] is None:
                     state_id = max_state(state_id, nagios.state.critical)
-                    state_msg += " slave [%d] fails." % (i)
+                    state_msg += ", slave [%d] fails" % (i)
                     continue
                 if slave.state in ('in_sync', 'writemostly'):
                     continue
                 bd = os.path.basename(slave.block_device)
-                state_msg += " slave [%d] %s" % (i, bd)
+                state_msg += ", slave [%d] %s" % (i, bd)
 
         return (state_id, state_msg)
 
@@ -511,7 +511,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         else:
             msgs = self.good_ones[:]
 
-        out = ', '.join(msgs)
+        out = '; '.join(msgs)
         if self.ugly_ones:
             state = nagios.state.critical
         elif self.bad_ones:
