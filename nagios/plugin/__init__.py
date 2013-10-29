@@ -80,10 +80,10 @@ class NPReadTimeoutError(NagiosPluginError, IOError):
             strerror += " (timeout after %0.1f secs)" % (t_o)
 
         if filename is None:
-            super(NPReadTimeoutErrorr, self).__init__(
+            super(NPReadTimeoutError, self).__init__(
                     errno.ETIMEDOUT, strerror)
         else:
-            super(NPReadTimeoutErrorr, self).__init__(
+            super(NPReadTimeoutError, self).__init__(
                     errno.ETIMEDOUT, strerror, filename)
 
 #==============================================================================
