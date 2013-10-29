@@ -446,6 +446,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                     state_id = max_state(state_id, nagios.state.critical)
                     state_msg += ", slave [%d] fails" % (i)
                     continue
+                slave = state.slaves[i]
                 if slave.state in ('in_sync', 'writemostly'):
                     continue
                 bd = os.path.basename(slave.block_device)
