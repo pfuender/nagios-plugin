@@ -317,15 +317,26 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         log.debug("Checking device %r ...", dev)
 
+        # Define directories and files in sysfs
+        # /sys/block/mdX
         base_dir = os.sep + os.path.join('sys', 'block', dev)
+        # /sys/block/mdX/md
         base_mddir = os.path.join(base_dir, 'md')
+        # /sys/block/mdX/md/array_state
         array_state_file = os.path.join(base_mddir, 'array_state')
+        # /sys/block/mdX/md/degraded
         degraded_file = os.path.join(base_mddir, 'degraded')
+        # /sys/block/mdX/md/raid_disks
         raid_disks_file = os.path.join(base_mddir, 'raid_disks')
+        # /sys/block/mdX/md/level
         raid_level_file = os.path.join(base_mddir, 'level')
+        # /sys/block/mdX/md/degraded
         degraded_file = os.path.join(base_mddir, 'degraded')
+        # /sys/block/mdX/md/suspended
         suspended_file = os.path.join(base_mddir, 'suspended')
+        # /sys/block/mdX/md/sync_action
         sync_action_file = os.path.join(base_mddir, 'sync_action')
+        # /sys/block/mdX/md/sync_completed
         sync_completed_file = os.path.join(base_mddir, 'sync_completed')
 
         for sys_dir in (base_dir, base_mddir):
@@ -334,16 +345,23 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         state = RaidState(dev)
 
+        # Array status
         state.array_state = self.read_file(array_state_file).strip()
+        # RAID level
         state.raid_level = self.read_file(raid_level_file).strip()
+        # degraded state, if available
         if os.path.exists(degraded_file):
             state.degraded = bool(int(self.read_file(degraded_file)))
+        # number of raid disks
         state.nr_raid_disks = int(self.read_file(raid_disks_file))
+        # suspended state, if available
         if os.path.exists(suspended_file):
             state.suspended = bool(int(self.read_file(suspended_file)))
+        # state of synchronisation, if available
         if os.path.exists(sync_action_file):
             state.sync_action = self.read_file(sync_action_file).strip()
 
+        # state of synchronisation process, if available
         if os.path.exists(sync_completed_file):
             sync_state = self.read_file(sync_completed_file).strip()
             match = re_sync_completed.search(sync_state)
@@ -392,9 +410,34 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         state_msg = "%s - %s" % (dev, state.array_state)
         if state.array_state not in (
                 'readonly', 'read-auto', 'clean', 'active', 'active-idle'):
-            state_id = nagios.state.critical
+            if state.array_state == 'write-pending':
+                state_id = nagios.state.warning
+            elif state.array_state in ('clear', 'inactive', 'readonly'):
+                state_id = nagios.state.critical
+            else:
+                state_id = nagios.state.unknown
 
-        #if state.degraded:
+        # Check degraded and synchronisation state
+        if state.degraded:
+
+            state_msg += ", degraded"
+
+            if state.sync_action is None:
+                state_id = max_state(state_id, nagios.state.critical)
+                state_msg += " unknown sync action"
+            elif state.sync_action == 'idle':
+                state_id = max_state(state_id, nagios.state.critical)
+                state_msg += " idle"
+            elif state.sync_action in ('resync', 'recover', 'check', 'repair'):
+                state_id = max_state(state_id, nagios.state.warning)
+                state_msg += " " + state.sync_action
+            else:
+                state_id = max_state(state_id, nagios.state.unknown)
+                state_msg += " sync " + state.sync_action
+
+            # Add percentage of sync completed to output
+            if state.sync_completed is not None:
+                state_msg += " %.1f%%" % ((state.sync_completed * 100))
 
         return (state_id, state_msg)
 
