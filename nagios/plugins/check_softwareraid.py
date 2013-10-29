@@ -448,7 +448,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 if slave.state in ('in_sync', 'writemostly'):
                     continue
                 bd = os.path.basename(slave.block_device)
-                state_msg += ", slave [%d] %s" % (i, bd)
+                state_msg += ", slave[%d]=%s %s" % (i, bd, slave.state)
 
         return (state_id, state_msg)
 
