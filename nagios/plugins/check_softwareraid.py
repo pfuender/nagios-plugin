@@ -49,7 +49,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
@@ -338,6 +338,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         sync_action_file = os.path.join(base_mddir, 'sync_action')
         # /sys/block/mdX/md/sync_completed
         sync_completed_file = os.path.join(base_mddir, 'sync_completed')
+        # /sys/block/mdX/md/dev-*
+        slavedir_pattern = os.path.join(base_mddir, 'dev-*')
 
         for sys_dir in (base_dir, base_mddir):
             if not os.path.isdir(sys_dir):
@@ -374,31 +376,45 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         i = 0
         while i < state.nr_raid_disks:
-            slave_link = os.path.join(base_mddir, 'rd%d' % (i))
-            if not os.path.exists(slave_link):
-                log.debug("Slave %d of raid %r doesn't exists.", i, dev)
-                state.slaves[i] = None
-                i += 1
-                continue
-            link_target = os.readlink(slave_link)
-            slave_dir = os.path.normpath(os.path.join(
-                    os.path.dirname(slave_link), link_target))
+            state.slaves[i] = None
+            i += 1
 
+        if self.verbose > 3:
+            log.debug("Searching for slave dirs with pattern %r ...",
+                    slavedir_pattern)
+        slavedirs = glob.glob(slavedir_pattern)
+        if self.verbose > 2:
+            log.debug("Found slave dirs: %r", slavedirs)
+
+        for slave_dir in slavedirs:
+
+            if self.verbose > 3:
+                log.debug8"Checking slave dir %r ...", slave_dir)
+
+            # Defining some sysfs files
+            # /sys/block/mdX/md/dev-XYZ/state
             slave_state_file = os.path.join(slave_dir, 'state')
+            # /sys/block/mdX/md/dev-XYZ/slot
+            slave_slot_file = os.path.join(slave_dir, 'slot')
+            # /sys/block/mdX/md/dev-XYZ/block
             slave_block_file = os.path.join(slave_dir, 'block')
+
+            # Reading some status files
+            slave_slot = int(self.read_file(slave_slot_file))
             slave_state = self.read_file(slave_state_file).strip()
+
+            # Retreiving the slave block device
             block_target = os.readlink(slave_block_file)
             slave_block_device = os.path.normpath(os.path.join(
                     os.path.dirname(slave_block_file), block_target))
             slave_block_device = os.sep + os.path.join('dev',
                     os.path.basename(slave_block_device))
 
-            slave = SlaveState(i, slave_dir)
+            slave = SlaveState(slave_slot, slave_dir)
             slave.block_device = slave_block_device
             slave.state = slave_state
-            state.slaves[i] = slave
+            state.slaves[slave_slot] = slave
 
-            i += 1
 
         if self.verbose > 2:
             log.debug("Status results for %r:\n%s", dev, pp(state.as_dict()))
