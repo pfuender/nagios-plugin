@@ -389,7 +389,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         for slave_dir in slavedirs:
 
             if self.verbose > 3:
-                log.debug8"Checking slave dir %r ...", slave_dir)
+                log.debug("Checking slave dir %r ...", slave_dir)
 
             # Defining some sysfs files
             # /sys/block/mdX/md/dev-XYZ/state
