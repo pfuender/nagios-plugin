@@ -114,6 +114,8 @@ class SlaveState(object):
         self.path = path
         self.block_device = None
         self.state = None
+        self.rdlink = None
+        self.rdlink_exists = None
 
     #--------------------------------------------------------------------------
     def as_dict(self):
@@ -403,6 +405,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             slave_slot = int(self.read_file(slave_slot_file))
             slave_state = self.read_file(slave_state_file).strip()
 
+            rd_link = os.path.join(base_mddir, 'rd%d' % (slave_slot))
+
             # Retreiving the slave block device
             block_target = os.readlink(slave_block_file)
             slave_block_device = os.path.normpath(os.path.join(
@@ -415,6 +419,11 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             slave.state = slave_state
             state.slaves[slave_slot] = slave
 
+            slave.rdlink = rd_link
+            if os.path.exists(rd_link):
+                slave.rdlink_exists = True
+            else:
+                slave.rdlink_exists = False
 
         if self.verbose > 2:
             log.debug("Status results for %r:\n%s", dev, pp(state.as_dict()))
@@ -467,6 +476,9 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                     continue
                 bd = os.path.basename(slave.block_device)
                 state_msg += ", slave[%d]=%s %s" % (i, bd, slave.state)
+                if not slave.rdlink_exists:
+                    state_msg += " failed"
+                    state_id = max_state(state_id, nagios.state.critical)
 
         return (state_id, state_msg)
 
