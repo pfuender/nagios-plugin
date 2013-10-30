@@ -402,10 +402,15 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             slave_block_file = os.path.join(slave_dir, 'block')
 
             # Reading some status files
-            slave_slot = int(self.read_file(slave_slot_file))
+            try:
+                slave_slot = int(self.read_file(slave_slot_file))
+            except ValueError:
+                slave_slot = None
             slave_state = self.read_file(slave_state_file).strip()
 
-            rd_link = os.path.join(base_mddir, 'rd%d' % (slave_slot))
+            rd_link = None
+            if slave_slot is not None:
+                rd_link = os.path.join(base_mddir, 'rd%d' % (slave_slot))
 
             # Retreiving the slave block device
             block_target = os.readlink(slave_block_file)
@@ -420,7 +425,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             state.slaves[slave_slot] = slave
 
             slave.rdlink = rd_link
-            if os.path.exists(rd_link):
+            if rd_link is not None and os.path.exists(rd_link):
                 slave.rdlink_exists = True
             else:
                 slave.rdlink_exists = False
