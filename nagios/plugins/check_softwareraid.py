@@ -474,13 +474,13 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 log.debug("Evaluating state of slave [%r]", i)
                 if state.slaves[i] is None:
                     state_id = max_state(state_id, nagios.state.critical)
-                    state_msg += ", slave [%d] fails" % (i)
+                    state_msg += ", slave [%r] fails" % (i)
                     continue
                 slave = state.slaves[i]
                 if slave.state in ('in_sync', 'writemostly'):
                     continue
                 bd = os.path.basename(slave.block_device)
-                state_msg += ", slave[%d]=%s %s" % (i, bd, slave.state)
+                state_msg += ", slave[%r]=%s %s" % (i, bd, slave.state)
                 if not slave.rdlink_exists:
                     state_msg += " failed"
                     state_id = max_state(state_id, nagios.state.critical)
