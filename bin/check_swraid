@@ -1,0 +1,435 @@
+#!/bin/bash
+
+# exit script if we try to use an uninitialised variable
+set -u
+
+# exit the script if any statement returns a non-true return value
+set -e
+
+if [ -f /usr/lib/nagios/plugins/utils.sh ] ; then
+    source /usr/lib/nagios/plugins/utils.sh
+fi
+
+## nagios return codes
+STATE_OK=${STATE_OK:-0}
+STATE_WARNING=${STATE_WARNING:-1}
+STATE_CRITICAL=${STATE_CRITICAL:-2}
+STATE_UNKNOWN=${STATE_UNKNOWN:-3}
+
+BASENAME="$(basename ${0})"
+
+#############################
+usage() {
+    cat <<EOF
+Checks the state of a MD RAID device.
+
+Usage: ${BASENAME} [Options] -D <MD device> -t <checktype>
+       ${BASENAME} --help|-h
+
+    Options:
+        -D|--device DEVICE
+                        the device to check without directory,
+                        e.g.: md112
+        -t|--type|--check-type CHECKTYPE
+                        is one of:
+                        - raid_state
+                        - raid_metadata
+                        - raid_degraded
+                        - raid_syncaction
+                        - raid_level
+                        - raid_bitmap_location
+                        - raid_bitmap_metadata
+                        - raid_component_state
+        -l|--level LEVEL
+                        the expected RAID level for checktype 'raid_level'
+        -d|--debug      debug output (sh -x)
+        -h|--help       show this output and exit
+EOF
+}
+
+#------------------------------------------------------------------------------
+debug="n"
+RAIDDEV=""
+CHECKTYPE=""
+LEVEL="raid1"
+
+set +e
+TEMP=$(getopt -o D:t:l:dh --long device:,type:,check-type:,level:,debug,help \
+        -n "${BASENAME}" -- "$@" )
+set -e
+
+if [ $? != 0 ] ; then
+    echo "Terminating..." >&2
+    exit ${STATE_UNKNOWN}
+fi
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+while true ; do
+    case "$1" in
+        -D|--device)
+            RAIDDEV="$2"
+            shift
+            shift
+            ;;
+        -t|--type|--check-type)
+            CHECKTYPE="$2"
+            shift
+            shift
+            ;;
+        -l|--level)
+            LEVEL="$2"
+            shift
+            shift
+            ;;
+        -d|--debug)
+            debug="y"
+            shift
+            ;;
+        -h|--help)
+            shift
+            usage
+            exit ${STATE_OK}
+            ;;
+        --) shift
+            break
+            ;;
+        *)  echo "Internal error!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+if [ "${debug}" = "y" ] ; then
+    set -x
+fi
+
+BLOCK_DIR=
+MD_DIR=
+
+if [ -z "${RAIDDEV}" ] ; then
+    echo "No device to check given."
+    usage
+    exit ${STATE_UNKNOWN}
+fi
+
+if [ -z "${CHECKTYPE}" ] ; then
+    echo "No checktype given."
+    usage
+    exit ${STATE_UNKNOWN}
+fi
+
+BLOCK_DIR="/sys/block/${RAIDDEV}"
+MD_DIR="${BLOCK_DIR}/md"
+
+if [ ! -d "${BLOCK_DIR}" ] ; then
+    echo "'${RAIDDEV}' is not a block device"
+    exit ${STATE_UNKNOWN}
+fi
+
+if [ ! -d "${MD_DIR}" ] ; then
+    echo "'${RAIDDEV}' is not a MD RAID device"
+    exit ${STATE_UNKNOWN}
+fi
+
+# Processing givel RAID level
+raid_level=$(echo "${LEVEL}" | tr '[:upper:]' '[:lower:]')
+case "${raid_level}" in
+    'linear')
+        raid_level='linear'
+        ;;
+    'raid0'|'0'|'stripe')
+        raid_level='raid0'
+        ;;
+    'raid1'|'1'|'mirror'):
+        raid_level='raid1'
+        ;;
+    'raid4'|'4'):
+        raid_level='raid4'
+        ;;
+    'raid5'|'5'):
+        raid_level='raid5'
+        ;;
+    'raid6'|'6'):
+        raid_level='raid6'
+        ;;
+    'raid10'|'10'):
+        raid_level='raid10'
+        ;;
+    *)
+        echo "Unknown RAID level '${LEVEL}' given."
+        exit ${STATE_UNKNOWN}
+esac
+
+#------------------------------------------------------------------------------
+
+# Cleanup actions
+cleanup() {
+    trap - INT TERM EXIT
+}
+
+# set a trap
+trap "cleanup; echo 'UNKNOWN: Exception while running ${BASENAME}'; exit ${STATE_UNKNOWN}" INT TERM EXIT
+
+# first specify default values
+RETVAL="${STATE_UNKNOWN}"
+MESSAGE="UNKNOWN - check does not exist."
+
+#-------------------------------
+raid_state() {
+    DATA="$(cat ${MD_DIR}/array_state)"
+
+    # set the exitcode in nagios style like 0=ok, 1=warning, 2=critical
+    case ${DATA} in
+        'read-auto'|'clean'|'active'|'active-idle')
+            RETVAL="${STATE_OK}"
+            MESSAGE="/dev/${RAIDDEV} OK: state '${DATA}'"
+        ;;
+        'write-pending')
+            RETVAL="${STATE_WARNING}"
+            MESSAGE="/dev/${RAIDDEV} WARNING: state '${DATA}'"
+        ;;
+        'clear'|'inactive'|'readonly')
+            RETVAL="${STATE_CRITICAL}"
+            MESSAGE="/dev/${RAIDDEV} CRITICAL: state '${DATA}'"
+        ;;
+        *)
+            RETVAL="${STATE_UNKNOWN}"
+            MESSAGE="/dev/${RAIDDEV} UNKNOWN: state '${DATA}'"
+        ;;
+    esac
+}
+
+#-------------------------------
+raid_metadata() {
+    DATA="$(cat ${MD_DIR}/metadata_version)"
+
+    case ${DATA:-"EMPTY"} in
+        '1.2')
+            RETVAL="${STATE_OK}"
+            MESSAGE="/dev/${RAIDDEV} OK: metadata_version '${DATA}'"
+        ;;
+        'EMPTY')
+            RETVAL="${STATE_UNKNOWN}"
+            MESSAGE="/dev/${RAIDDEV} UNKNOWN: metadata_version unset"
+        ;;
+        *)
+            RETVAL="${STATE_CRITICAL}"
+            MESSAGE="/dev/${RAIDDEV} CRITICAL: metadata_version '${DATA}'"
+        ;;
+    esac
+}
+
+#-------------------------------
+raid_degraded() {
+
+    if [ ! -f "${MD_DIR}/degraded" ] ; then
+        RETVAL="${STATE_UNKNOWN}"
+        MESSAGE="/dev/${RAIDDEV} UNKNOWN: data redundancy not supported"
+        return
+    fi
+
+    SYNC_ACTION="unknown"
+    if [ -f "${MD_DIR}/sync_action" ] ; then
+        SYNC_ACTION="$(cat ${MD_DIR}/sync_action)"
+    fi
+
+    DATA="$(cat ${MD_DIR}/degraded)"
+
+    case ${DATA:-"EMPTY"} in
+        '0')
+            RETVAL="${STATE_OK}"
+            MESSAGE="/dev/${RAIDDEV} OK: degraded '${DATA}'"
+        ;;
+        'EMPTY')
+            RETVAL="${STATE_UNKNOWN}"
+            MESSAGE="/dev/${RAIDDEV} UNKNOWN: degraded unset"
+        ;;
+        *)
+            RETVAL="${STATE_CRITICAL}"
+            MESSAGE="/dev/${RAIDDEV} CRITICAL: degraded '${DATA}'"
+            case ${SYNC_ACTION:-"EMPTY"} in
+                'idle')
+                    MESSAGE="${MESSAGE}, sync_action '${SYNC_ACTION}'"
+                    ;;
+                'resync'|'recover'|'check'|'repair')
+                    MESSAGE="/dev/${RAIDDEV} WARNING: degraded '${DATA}', sync_action '${SYNC_ACTION}'"
+                    RETVAL="${STATE_WARNING}"
+                    ;;
+                'EMPTY'|'unknown')
+                    ;;
+                *)
+                    MESSAGE="${MESSAGE}, sync_action '${SYNC_ACTION}'"
+                    ;;
+            esac
+        ;;
+    esac
+}
+
+#-------------------------------
+raid_syncaction() {
+
+    if [ ! -f "${MD_DIR}/sync_action" ] ; then
+        RETVAL="${STATE_UNKNOWN}"
+        MESSAGE="/dev/${RAIDDEV} UNKNOWN: data redundancy not supported"
+        return
+    fi
+    DATA="$(cat ${MD_DIR}/sync_action)"
+
+    case ${DATA:-"EMPTY"} in
+        'idle')
+            RETVAL="${STATE_OK}"
+            MESSAGE="/dev/${RAIDDEV} OK: sync_action '${DATA}'"
+        ;;
+        'EMPTY')
+            RETVAL="${STATE_UNKNOWN}"
+            MESSAGE="/dev/${RAIDDEV} UNKNOWN: sync_action unset"
+        ;;
+        'resync'|'recover'|'check'|'repair')
+            RETVAL="${STATE_WARNING}"
+            MESSAGE="/dev/${RAIDDEV} WARNING: sync_action '${DATA}'"
+        ;;
+        *)
+            RETVAL="${STATE_CRITICAL}"
+            MESSAGE="/dev/${RAIDDEV} CRITICAL: sync_action '${DATA}'"
+        ;;
+    esac
+}
+
+#-------------------------------
+raid_level() {
+    DATA="$(cat ${MD_DIR}/level)"
+
+    case ${DATA:-"EMPTY"} in
+        "${raid_level}")
+            RETVAL="${STATE_OK}"
+            MESSAGE="/dev/${RAIDDEV} OK: mdraid level '${DATA}'"
+        ;;
+        'EMPTY')
+            RETVAL="${STATE_UNKNOWN}"
+            MESSAGE="/dev/${RAIDDEV} UNKNOWN: mdraid level unset"
+        ;;
+        *)
+            RETVAL="${STATE_CRITICAL}"
+            MESSAGE="/dev/${RAIDDEV} CRITICAL: found mdraid level '${DATA}',"
+            MESSAGE="${MESSAGE} expected mdraid level '${raid_level}'"
+        ;;
+    esac
+}
+
+#-------------------------------
+raid_bitmap_location() {
+    DATA="$(cat ${MD_DIR}/bitmap/location)"
+    if [ "${DATA}" = "none" ] ; then
+        RETVAL="${STATE_UNKNOWN}"
+        MESSAGE="/dev/${RAIDDEV} UNKNOWN: bitmap/location unset"
+        return
+    fi
+
+    DATA_REGEX="$(echo "${DATA}" | egrep -o '^[+-]{1}[0-9]+$' | true)"
+
+    if [ "${DATA:-"EMPTY"}" == "EMPTY" ]; then
+        RETVAL="${STATE_UNKNOWN}"
+        MESSAGE="/dev/${RAIDDEV} UNKNOWN: bitmap/location unset"
+    elif [ "${DATA}" == "${DATA_REGEX}" ]; then
+        RETVAL="${STATE_OK}"
+        MESSAGE="/dev/${RAIDDEV} OK: bitmap/location '${DATA}'"
+    else
+        RETVAL="${STATE_CRITICAL}"
+        MESSAGE="/dev/${RAIDDEV} CRITICAL: bitmap/location '${DATA}'"
+    fi
+}
+
+#-------------------------------
+raid_bitmap_metadata() {
+    DATA="$(cat ${MD_DIR}/bitmap/metadata)"
+
+    case ${DATA:-"EMPTY"} in
+        'internal')
+            RETVAL="${STATE_OK}"
+            MESSAGE="/dev/${RAIDDEV} OK: bitmap metadata '${DATA}'"
+        ;;
+        'EMPTY')
+            RETVAL="${STATE_UNKNOWN}"
+            MESSAGE="/dev/${RAIDDEV} UNKNOWN: bitmap metadata unset"
+        ;;
+        *)
+            RETVAL="${STATE_CRITICAL}"
+            MESSAGE="/dev/${RAIDDEV} CRITICAL: bitmap metadata '${DATA}'"
+        ;;
+    esac
+}
+
+#-------------------------------
+raid_component_state() {
+
+    RAID_DISKS="$(cat ${MD_DIR}/raid_disks | egrep -o '[0-9]*')"
+    COMPONENT_STATE="$(cat ${MD_DIR}/dev-*/state | egrep -c '^in_sync$')"
+
+    SYNC_ACTION="unknown"
+    if [ -f "${MD_DIR}/sync_action" ] ; then
+        SYNC_ACTION="$(cat ${MD_DIR}/sync_action)"
+    fi
+
+    if [ ${RAID_DISKS} -eq ${COMPONENT_STATE} ] && [ ${RAID_DISKS} -ge 2 ]; then
+        RETVAL="${STATE_OK}"
+        MESSAGE="/dev/${RAIDDEV} OK: component devices in sync"
+    else
+        RETVAL="${STATE_CRITICAL}"
+        MESSAGE="/dev/${RAIDDEV} CRITICAL: one or more component devices not in sync"
+        case ${SYNC_ACTION:-"EMPTY"} in
+            'idle')
+                MESSAGE="${MESSAGE}, sync_action '${SYNC_ACTION}'"
+                ;;
+            'resync'|'recover'|'check'|'repair')
+                MESSAGE="/dev/${RAIDDEV} WARNING: one or more component devices not in sync, sync_action '${SYNC_ACTION}'"
+                RETVAL="${STATE_WARNING}"
+                ;;
+            'EMPTY'|'unknown')
+                ;;
+            *)
+                MESSAGE="${MESSAGE}, sync_action '${SYNC_ACTION}'"
+                ;;
+        esac
+    fi
+}
+
+#------------------------------------------------------------------------------
+case ${CHECKTYPE} in
+    'raid_state')
+        raid_state
+        ;;
+    'raid_metadata')
+        raid_metadata
+        ;;
+    'raid_degraded')
+        raid_degraded
+        ;;
+    'raid_syncaction')
+        raid_syncaction
+        ;;
+    'raid_level')
+        raid_level
+        ;;
+    'raid_bitmap_location')
+        raid_bitmap_location
+        ;;
+    'raid_bitmap_metadata')
+        raid_bitmap_metadata
+        ;;
+    'raid_component_state')
+        raid_component_state
+        ;;
+    *)
+        usage
+        MESSAGE="UNKNOWN: unknown checktype '${CHECKTYPE}' given."
+        RETVAL="${STATE_UNKNOWN}"
+        ;;
+esac
+
+cleanup
+echo "${MESSAGE}"
+exit ${RETVAL}
+
+# vim: ts=4 expandtab

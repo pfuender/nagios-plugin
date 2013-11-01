@@ -1,0 +1,534 @@
+#!/usr/bin/perl
+# nagios: -epn
+
+use warnings;
+use strict;
+
+use Readonly;
+use Data::Dumper;
+use File::Basename;
+use POSIX;
+
+BEGIN {
+	if ( -d "/usr/local/nagios/perl/lib" ) {
+		unshift(@INC, "/usr/local/nagios/perl/lib");
+	}
+	if ( -d "/opt/profitbricks/lib/perl" ) {
+		unshift(@INC, "/opt/profitbricks/lib/perl");
+	}
+	if ( -d "/opt/nagios/lib/perl" ) {
+		unshift(@INC, "/opt/nagios/lib/perl");
+	}
+	if ( -d "/opt/icinga/lib/perl" ) {
+		unshift(@INC, "/opt/icinga/lib/perl");
+	}
+}
+
+$Data::Dumper::Indent = 1;
+$Data::Dumper::Sortkeys = 1;
+
+$ENV{'PATH'}     = '/root/bin:/bin:/sbin:/usr/local/sbin:/usr/sbin:/usr/local/bin:/usr/bin:/usr/sfw/bin';
+$ENV{'BASH_ENV'} = '';
+$ENV{'ENV'}      = '';
+
+#use lib "/usr/local/nagios/perl/lib" if -d "/usr/local/nagios/perl/lib";
+#use lib "/opt/profitbricks/lib/perl" if -d "/opt/profitbricks/lib/perl";
+#use lib "/opt/icinga/lib/perl" if -d "/opt/icinga/lib/perl";
+
+use Nagios::Plugin;
+use Nagios::Plugin::Threshold
+
+$| = 1;
+
+delete $ENV{'LC_ALL'} if exists $ENV{'LC_ALL'};
+$ENV{'LC_CTYPE'} = 'POSIX';
+$ENV{'LC_NUMERIC'} = 'POSIX';
+$ENV{'LC_TIME'} = 'POSIX';
+$ENV{'LC_COLLATE'} = 'POSIX';
+$ENV{'LC_MONETARY'} = 'POSIX';
+$ENV{'LC_MESSAGES'} = 'POSIX';
+
+our ( $VERSION, $PROGNAME );
+
+$VERSION = '0.1.0';
+
+# get the base name of this script for use in the examples
+$PROGNAME = basename($0);
+
+my %C = ( 'min' => undef, 'max' => undef );
+my %W = ( 'min' => undef, 'max' => undef );
+
+my $c = undef;
+my $c_total = 1;
+my $w = undef;
+my $w_total = 1;
+
+my $usage = <<ENDE;
+Usage: %s [-v] [-t <timeout>] -c <critical threshold> -w <warning threshold> <volume_group>
+ENDE
+$usage =~ s/\s*$//;
+
+my $blurb = <<ENDE;
+Copyright (c) 2012 ProfitBricks GmbH, Berlin, Frank Brehm
+
+Checks the free space of the given volume group.
+
+ENDE
+
+my $args = {};
+
+my $p = Nagios::Plugin->new(
+    'shortname' => 'VG_FREE',
+    'usage'     => $usage,
+    'version'   => $VERSION,
+    'blurb'     => $blurb,
+    'timeout'   => 15,
+);
+
+$p->add_arg(
+    'spec'  => 'warning|w=s',
+    'help'  => ('Generate warning state if the free space of the VG is ' .
+                'below this value, maybe given absolute in MiBytes or as ' .
+                'percentage of the total size.'),
+    'required' => 1,
+);
+
+$p->add_arg(
+    'spec'  => 'critical|c=s',
+    'help'  => ('Generate critical state if the free space of the VG is ' .
+                'below this value, maybe given absolute in MiBytes or as ' .
+                'percentage of the total size.'),
+    'required' => 1,
+);
+
+# Parse arguments and process standard ones (e.g. usage, help, version)
+$p->getopts;
+
+our $verbose = $p->opts->verbose;
+
+##############################
+# perform sanity checking on command line options
+
+my $vg_name = pop();
+
+if ( not $vg_name ) {
+    $p->nagios_die("No volume group given.");
+}
+
+# critical-Parameter
+if ( $p->opts->critical =~ /^\s*(\d+)\s*%\s*$/ ) {
+    $c = int($1);
+    $c_total = undef;
+}
+elsif ( $p->opts->critical =~ /^\s*(\d+)\s*$/ ) {
+    $c = int($1);
+    $c_total = 1;
+}
+else {
+    $p->nagios_die( sprintf( "Invalid critical value '%s'.", $p->opts->critical ) );
+}
+
+# warning-Parameter
+if ( $p->opts->warning =~ /^\s*(\d+)\s*%\s*$/ ) {
+    $w = int($1);
+    $w_total = undef;
+}
+elsif ( $p->opts->warning =~ /^\s*(\d+)\s*$/ ) {
+    $w = int($1);
+    $w_total = 1;
+}
+else {
+    $p->nagios_die( sprintf( "Invalid warning value '%s'.", $p->opts->warning ) );
+}
+
+if ( $verbose >= 2 ) {
+    warn "Used filters:\n";
+    warn sprintf "  Critical:     %d %s\n", $c, ($c_total ? 'MiB' : '%');
+    warn sprintf "  Warning:      %d %s\n", $w, ($w_total ? 'MiB' : '%');
+    warn "  Volume group: '" . $vg_name . "'\n";
+    warn "  timeout:      " . $p->opts->timeout . " seconds\n";
+    warn "\n";
+}
+
+our $user = '';
+
+my $data = collect_vg_data();
+
+#Result of vgdisplay: $VAR1 = {
+#  'alloc_pe' => '7269764',
+#  'alloc_percent' => '84.6822437352908',
+#  'alloc_size' => 29079056,
+#  'free_pe' => '1314992',
+#  'free_percent' => '15.3177562647092',
+#  'free_size' => 5259968,
+#  'pe_size' => '4',
+#  'total_pe' => '8584756',
+#  'total_size' => 34339024
+#};
+
+my $warn = undef;
+my $crit = undef;
+
+if ($c_total) {
+    $crit = $c;
+}
+else {
+    $crit = POSIX::ceil($data->{'total_size'} * $c / 100);
+}
+
+if ($w_total) {
+    $warn = $w;
+}
+else {
+    $warn = POSIX::ceil($data->{'total_size'} * $w / 100);
+}
+
+if ($verbose > 2) {
+    warn "Result of vgdisplay: " .  Data::Dumper->Dump([$data]);
+}
+
+my $status = OK;
+
+my $out = sprintf( "%d MiB total, %d MiB free (%0.1f%%), %d MiB allocated (%0.1f%%)",
+        $data->{'total_size'}, $data->{'free_size'}, $data->{'free_percent'},
+        $data->{'alloc_size'}, $data->{'alloc_percent'});
+
+my $t = Nagios::Plugin::Threshold->set_thresholds(
+    'warning'  => $warn,
+    'critical' => $crit,
+);
+
+$p->add_perfdata(
+        'label' => 'total_size',
+        'value' => $data->{'total_size'},
+        'uom' => 'MiB',
+);
+
+$p->add_perfdata(
+        'label' => 'free_size',
+        'value' => $data->{'free_size'},
+        'uom' => 'MiB',
+        'threshold' => $t,
+);
+
+$p->add_perfdata(
+        'label' => 'free_percent',
+        'value' => sprintf("%0.2f", $data->{'free_percent'}),
+        'uom' => '%',
+);
+
+$p->add_perfdata(
+        'label' => 'alloc_size',
+        'value' => $data->{'alloc_size'},
+        'uom' => 'MiB',
+);
+
+$p->add_perfdata(
+        'label' => 'alloc_percent',
+        'value' => sprintf("%0.2f", $data->{'alloc_percent'}),
+        'uom' => '%',
+);
+
+if ($data->{'free_size'} <= $crit) {
+    $status = CRITICAL;
+}
+elsif ($data->{'free_size'} <= $warn) {
+    $status = WARNING;
+}
+
+$p->nagios_exit( $status, $out );
+
+#------------------------------------------------------------------
+
+sub collect_vg_data {
+
+    my $vgdisplay_cmd = '/sbin/vgdisplay';
+    my $timeout = $p->opts->timeout;
+
+    $p->nagios_die(sprintf("Could not find command '%s' ...", $vgdisplay_cmd))
+            if not -x $vgdisplay_cmd;
+
+    my @Lines = ();
+    my $cmd = sprintf("%s --units m %s", $vgdisplay_cmd, $vg_name);
+    warn sprintf "performing command '%s' ...\n", $cmd if $verbose;
+
+    #return;
+
+    eval {
+        local $SIG{ALRM} = sub { die "timeout\n" };
+        alarm $timeout;
+        @Lines = `$cmd`;
+        alarm 0;
+        if ( $? ) {
+            die "Abnormal result state " . $? . " of '" . $cmd . "'\n";
+        }
+    };
+    warn "\n" if $verbose;
+    if ($@) {
+        $p->nagios_die( "Terminated because of: " . $@ );
+    }
+    if ($verbose > 3) {
+        warn sprintf("Got result of '%s:\n", $cmd);
+        for my $line (@Lines) {
+            warn $line;
+        }
+        warn "\n";
+    }
+
+    #  --- Volume group ---
+    #  VG Name               storage
+    #  System ID             
+    #  Format                lvm2
+    #  Metadata Areas        1
+    #  Metadata Sequence No  2808
+    #  VG Access             read/write
+    #  VG Status             resizable
+    #  MAX LV                0
+    #  Cur LV                664
+    #  Open LV               234
+    #  Max PV                0
+    #  Cur PV                1
+    #  Act PV                1
+    #  VG Size               34339024.00 MiB
+    #  PE Size               4.00 MiB
+    #  Total PE              8584756
+    #  Alloc PE / Size       7267240 / 29068960.00 MiB
+    #  Free  PE / Size       1317516 / 5270064.00 MiB
+    #  VG UUID               e37wOX-Cv82-tlGy-7lCY-dKii-kZ8l-kL8oAM
+
+    my $data = {};
+    $data->{'total_size'} = 0;
+    $data->{'alloc_size'} = 0;
+    $data->{'free_size'} = 0;
+
+    for my $line (@Lines) {
+        $line =~ s/^\s+//;
+        $line =~ s/\s+$//;
+        next unless $line;
+
+        if ($line =~ /VG\s+Size\s+(\d+(?:\.\d*)?)/i) {
+            $data->{'total_size'} = $1 * 1.0;
+        }
+        if ($line =~ /PE\s+Size\s+(\d+(?:\.\d*)?)/i) {
+            $data->{'pe_size'} = $1 * 1.0;
+        }
+        if ($line =~ /Total\s+PE\s+(\d+)/i) {
+            $data->{'total_pe'} = $1 * 1;
+        }
+        if ($line =~ /Alloc\s+PE\s*\/\s*Size\s+(\d+)\s*\/\s*(\d+(?:\.\d*)?)/i) {
+            $data->{'alloc_pe'} = $1 * 1;
+            $data->{'alloc_size'} = $2 * 1.0;
+        }
+        if ($line =~ /Free\s+PE\s*\/\s*Size\s+(\d+)\s*\/\s*(\d+(?:\.\d*)?)/i) {
+            $data->{'free_pe'} = $1 * 1;
+            $data->{'free_size'} = $2 * 1.0;
+        }
+    }
+
+    $data->{'alloc_percent'} = undef;
+    $data->{'alloc_percent'} = ($data->{'alloc_size'} / $data->{'total_size'} * 100.0) if $data->{'total_size'};
+
+    $data->{'free_percent'} = undef;
+    $data->{'free_percent'} = ($data->{'free_size'} / $data->{'total_size'} * 100.0) if $data->{'total_size'};
+
+    return $data;
+
+    # '              bsagent   9154      18762     Z         -                      0         0         00:00                              <defunct> <defunct>'
+    #                user      pid       ppid      s         pcpu                   vsz       rss       time                               cmd       args
+#    my $match = '\\s*(\\S+)\\s+(\\d+)\\s+(\\d+)\\s+(\\S+)\\s+(-|\\d+(?:\\.\\d*))\\s+(\\d+)\\s+(\\d+)\\s+((?:(?:\\d+-)?\\d+:)?\\d+:\\d+)(?:\\s+(\\S+))\\s+(.*)';
+#    $match = '\\s*(\\S+)' . $match if $zone;
+#    warn sprintf( "Matching string: '" . $match . "'\n" ) if $verbose >= 2;
+#
+#    shift @Lines;
+#
+#    for my $line ( @Lines ) {
+#
+#        warn $line if $verbose > 3;
+#        chomp $line;
+#
+#        my @psfields;
+#        my $ps_info = {};
+#
+#        unless ( @psfields = $line =~/^$match$/ ) {
+#            warn "Could not parse line: '$line'\n";
+#            next;
+#        }
+#
+#        $ps_info->{'zone'}  = shift @psfields if $zone;
+#        $ps_info->{'user'}  = shift @psfields;
+#        $ps_info->{'pid'}   = shift @psfields;
+#        $ps_info->{'ppid'}  = shift @psfields;
+#        $ps_info->{'s'}     = shift @psfields;
+#        $ps_info->{'pcpu'}  = shift @psfields;
+#        $ps_info->{'vsz'}   = shift @psfields;
+#        $ps_info->{'rss'}   = shift @psfields;
+#        $ps_info->{'time'}  = shift @psfields;
+#        $ps_info->{'cmd'}   = shift @psfields;
+#        $ps_info->{'args'}  = shift @psfields;
+#
+#        $ps_info->{'pcpu'} = 0 if $ps_info->{'pcpu'} and $ps_info->{'pcpu'} eq "-";
+#        $ps_info->{'pcpu'} += 0 if defined $ps_info->{'pcpu'};
+#        $ps_info->{'rss'} += 0 if defined $ps_info->{'rss'};
+#        $ps_info->{'vsz'} += 0 if defined $ps_info->{'vsz'};
+#
+#        $ps_info->{'secs'}  = convert_to_seconds( $ps_info->{'time'} );
+#        $ps_info->{'cmd'}   = '' unless defined $ps_info->{'cmd'};
+#        $ps_info->{'args'}  = $ps_info->{'cmd'} unless defined $ps_info->{'args'};
+#
+#        if ( $verbose >= 3 ) {
+#            my $out = sprintf( "user=%s pid=%d ppid=%d s=%s pcpu=%s vsz=%d rss=%d time=%s secs cmd='%s' args='%s'\n",
+#                               $ps_info->{'user'}, $ps_info->{'pid'}, $ps_info->{'ppid'}, $ps_info->{'s'}, $ps_info->{'pcpu'},
+#                               $ps_info->{'vsz'}, $ps_info->{'rss'}, ( defined $ps_info->{'secs'} ? $ps_info->{'secs'} : '(unknown)' ),
+#                               $ps_info->{'cmd'}, $ps_info->{'args'} );
+#            $out = "zone=" . $ps_info->{'zone'} . " " . $out if $zone;
+#            warn $out;
+#
+#        }
+#
+#        # Ignore self
+#        next if $ps_info->{'pid'} == $$;
+#
+#        if ( $^O eq 'solaris' ) {
+#            $init_pid->{ $ps_info->{'pid'} } = 1 if ( $ps_info->{'cmd'} eq '/sbin/init' and $ps_info->{'pid'} == 1 )
+#                                                    or ( $ps_info->{'cmd'} eq 'zsched' and ( $ps_info->{'ppid'} == 1 or $ps_info->{'pid'} == $ps_info->{'ppid'} ) );
+#        }
+#        elsif ( $^O eq 'linux' ) {
+#            $init_pid->{ $ps_info->{'pid'} } = 1 if $ps_info->{'cmd'} =~ /init/ and $ps_info->{'ppid'} == 0;
+#        }
+#
+#        push @$found_procs, $ps_info;
+#
+#    }
+#
+#    # Filterung der Prozess-Liste
+#
+#    for my $ps_info ( @$found_procs ) {
+#
+#        my $found = 1;
+##        $found = 0 if $zone or $p->opts->state or $p->opts->ppid or defined $user or $p->opts->command or $p->opts->args or
+##                      defined $p->opts->rss or defined $p->opts->vsz or defined $p->opts->pcpu or $p->opts->init;
+#
+#        if ( $zone ) {
+#            $found = 0 unless $ps_info->{'zone'} eq $zone;
+#        }
+#
+#        if ( $p->opts->init ) {
+#            $found = 0 unless $init_pid->{ $ps_info->{'ppid'} };
+#        }
+#
+#        if ( $p->opts->state ) {
+#            my $state = $ps_info->{'s'};
+#            my $s = join( '|', split( //, uc($p->opts->state) ) );
+#            my $cnt = $state =~ /$s/;
+#            $found = 0 unless $cnt;
+#        }
+#
+#        if ( defined $p->opts->ppid ) {
+#            $found = 0 unless $ps_info->{'ppid'} == $p->opts->ppid;
+#        }
+#
+#        if ( defined $user ) {
+#            $found = 0 unless $user eq $ps_info->{'user'};
+#        }
+#
+#        if ( $p->opts->command ) {
+#            $found = 0 unless $p->opts->command eq $ps_info->{'cmd'};
+#        }
+#
+#        if ( $p->opts->args ) {
+#            my $c = $p->opts->args;
+#            $found = 0 unless $ps_info->{'args'} =~ /$c/;
+#        }
+#
+#        if ( defined $p->opts->rss ) {
+#            $found = 0 unless defined $ps_info->{'rss'} and $ps_info->{'rss'} >= $p->opts->rss;
+#        }
+#
+#        if ( defined $p->opts->vsz ) {
+#            $found = 0 unless defined $ps_info->{'vsz'} and $ps_info->{'vsz'} >= $p->opts->vsz;
+#        }
+#
+#        if ( defined $p->opts->pcpu ) {
+#            $found = 0 unless defined $ps_info->{'pcpu'} and $ps_info->{'pcpu'} >= $p->opts->pcpu;
+#        }
+#
+#        push @$filterd_procs, $ps_info if $found;
+#
+#    }
+#
+#    $found_procs = undef;
+#
+#    if ( $verbose >= 2 ) {
+#        warn "Gefundene Init-PID's: " . Dumper($init_pid);
+#        warn "Gefundene Prozesse: " . Dumper($filterd_procs);
+#    }
+#
+#    my @FilterDescs;
+#    push @FilterDescs, sprintf( "zone '%s'", $zone ) if $zone;
+#    push @FilterDescs, "init child" if $p->opts->init;
+#    push @FilterDescs, sprintf( "state '%s'", $p->opts->state ) if $p->opts->state;
+#    push @FilterDescs, sprintf( "PPID %s", $p->opts->ppid ) if defined $p->opts->ppid;
+#    push @FilterDescs, sprintf( "user '%s'", $user ) if defined $user;
+#    push @FilterDescs, sprintf( "command '%s'", $p->opts->command ) if $p->opts->command;
+#    push @FilterDescs, sprintf( "args '%s'", $p->opts->args ) if $p->opts->args;
+#    push @FilterDescs, sprintf( "rss %s", $p->opts->rss ) if defined $p->opts->rss;
+#    push @FilterDescs, sprintf( "vsz %s", $p->opts->vsz ) if defined $p->opts->vsz;
+#    push @FilterDescs, sprintf( "pcpu %s", $p->opts->pcpu ) if defined $p->opts->pcpu;
+#
+#    my $count = scalar(@$filterd_procs);
+#    my $value_total = 0;
+#    my $uom = '';
+#    my $perf_value = 'procs';
+#    for my $ps_info ( @$filterd_procs ) {
+#        my $value = 1;
+#        if ( $p->opts->metric eq 'VSZ' ) {
+#            $value = $ps_info->{'vsz'} || 0;
+#            $perf_value = 'vsz';
+#        }
+#        elsif ( $p->opts->metric eq 'RSS' ) {
+#            $value = $ps_info->{'rss'} || 0;
+#            $perf_value = 'rss';
+#        }
+#        elsif ( $p->opts->metric eq 'CPU' ) {
+#            $value = $ps_info->{'pcpu'} || 0;
+#            $uom = '%';
+#            $perf_value = 'cpu';
+#        }
+#        elsif ( $p->opts->metric eq 'ELAPSED' ) {
+#            $value = $ps_info->{'secs'} || 0;
+#            $uom = 'sec';
+#            $perf_value = 'elapsed_time';
+#        }
+#        $value_total += $value;
+#    }
+#
+#    warn sprintf "Ermittelte Gesamt-Metrik (%s): %s%s\n", $p->opts->metric, $value_total, $uom if $verbose;
+#
+
+}
+
+#------------------------------------------------------------------
+
+sub convert_to_seconds {
+
+    my $etime = shift;
+
+    my ( $days, $hours, $minutes, $seconds );
+    my $result = 0;
+
+    unless ( ( $days, $hours, $minutes, $seconds ) = $etime =~ /^\s*(?:(?:(\d+)-)?(\d+):)?(\d+):(\d+)/ ) {
+        return undef;
+    }
+
+    $days = 0 unless defined $days;
+    $hours = 0 unless defined $hours;
+    $result = ( $days * 86400 ) + ( $hours * 3600 ) + ( $minutes * 60 ) + $seconds;
+
+    return $result;
+
+}
+
+#------------------------------------------------------------------
+
+
+# vim: ts=4 expandtab filetype=perl fileencoding=utf-8

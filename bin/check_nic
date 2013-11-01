@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# exit script if we try to use an uninitialised variable
+set -u
+
+# exit the script if any statement returns a non-true return value
+set -e
+
+if [ -f /usr/lib/nagios/plugins/utils.sh ] ; then
+    source /usr/lib/nagios/plugins/utils.sh
+fi
+
+MY_BASE=$(basename $0 )
+
+#############################
+usage() {
+    cat <<EOF
+Checks the state of an interface.
+
+Usage: ${MY_BASE} [Options] <interface name>
+       ${MY_BASE} --help|-h
+
+    Options:
+        -d|--debug      debug output (sh -x)
+        -h|--help       show this output and exit
+EOF
+}
+
+#------------------------------------------------------------------------------
+debug="n"
+
+TEMP=$(getopt -o dh --long debug,help -n "${MY_BASE}" -- "$@" )
+
+if [ $? != 0 ] ; then
+    echo "Terminating..." >&2
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+while true ; do
+    case "$1" in
+        -d|--debug)
+            debug="y"
+            shift
+            ;;
+        --) shift
+            break
+            ;;
+        *)  echo "Internal error!"
+            exit ${STATE_UNKNOWN:-3}
+            ;;
+    esac
+done
+
+if [ "${debug}" = "y" ] ; then
+    set -x
+fi
+
+NIC="${1:-"EMPTY"}"
+if [ "${NIC}" = "EMPTY" ] ; then
+    echo "No nic given."
+    usage
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+CARRIER_FILE="/sys/class/net/${NIC}/carrier"
+if [ ! -f "${CARRIER_FILE}" ] ; then
+    echo "Specified NIC '${NIC}' does not exist."
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+CARRIER="$(cat "${CARRIER_FILE}" 2>/dev/null || true)" 
+CARRIER="${CARRIER:-"2"}"
+
+OPERSTATE="$(cat /sys/class/net/${NIC}/operstate 2>/dev/null || true)"
+OPERSTATE="${OPERSTATE:-"2"}"
+
+# now make our decision based on the following matrix:
+
+# if up + cable     if up + NO cable        if down + cable
+# =============     ==========              ==================
+# carrier 1         carrier 0               cat: carrier: Invalid argument
+# operstate up      operstate down          operstate down
+
+EXITCODE="${STATE_OK:-0}"
+
+if [ ${CARRIER} -eq 0 ] && [ "${OPERSTATE}" == "down" ]; then
+    echo "${NIC} interface up, but no carrier (no cable)"
+    EXITCODE="${STATE_CRITICAL:-2}"
+elif [ ${CARRIER} -eq 1 ] && [ "${OPERSTATE}" == "down" ]; then
+    echo "${NIC} interface up, but operational state: down"
+    EXITCODE="${STATE_CRITICAL:-2}"
+elif [ ${CARRIER} -eq 2 ] && [ "${OPERSTATE}" == "down" ]; then
+    echo "${NIC} interface down and no carrier (no cable)"
+    EXITCODE="${STATE_CRITICAL:-2}"
+elif [ ${CARRIER} -eq 2 ] && [ "${OPERSTATE}" == "up" ]; then
+    echo "${NIC} interface down - but carrier available (cable is in)"
+    EXITCODE="${STATE_CRITICAL:-2}"
+else
+    echo "${NIC} interface up, carrier is available (cable is in)"
+fi
+
+exit ${EXITCODE}
+
+# vim: ts=4 expandtab

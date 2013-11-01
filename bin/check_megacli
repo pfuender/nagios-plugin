@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# exit script if we try to use an uninitialised variable
+set -u
+
+# exit the script if any statement returns a non-true return value
+set -e
+
+# be verbose
+#set -x
+
+## nagios return codes
+# STATE_OK=0
+# STATE_WARNING=1
+# STATE_CRITICAL=2
+# STATE_UNKNOWN=3
+
+BASENAME="$(basename ${0})"
+
+MY_BASE=$(basename $0 )
+
+# Cleanup actions
+cleanup() {
+    trap - INT TERM EXIT
+}
+
+# set a trap
+trap "cleanup; echo 'UNKNOWN: Exception while running ${BASENAME}'; exit 3" INT TERM EXIT
+
+CHECK_ADAPTER_DEGRADED="$(megacli -AdpAllInfo -aALL | egrep 'Degraded' | egrep -o '[0-9]+' || true)"
+CHECK_ADAPTER_OFFLINE="$(megacli -AdpAllInfo -aALL | egrep 'Offline' | egrep -o '[0-9]+' || true)"
+CHECK_ADAPTER_CRITICAL="$(megacli -AdpAllInfo -aALL | egrep 'Critical Disks' | egrep -o '[0-9]+' || true)"
+CHECK_ADAPTER_FAILED="$(megacli -AdpAllInfo -aALL | egrep 'Failed Disks' | egrep -o '[0-9]+' || true)"
+CHECK_LD="$(megacli -LDInfo -LALL -aALL | egrep '^State.*:.*' | egrep -v -c 'Optimal' || true)"
+
+if [ ${CHECK_ADAPTER_DEGRADED} -ne 0 ] || [ ${CHECK_ADAPTER_OFFLINE} -ne 0 ] || \
+   [ ${CHECK_ADAPTER_CRITICAL} -ne 0 ] || [ ${CHECK_ADAPTER_FAILED} -ne 0 ]  || \
+   [ ${CHECK_LD} -ne 0 ]; then
+    msg=""
+    if [ ${CHECK_ADAPTER_DEGRADED} -ne 0 ] ; then
+        msg="Adapter is in degraded mode."
+    fi
+    if [ ${CHECK_ADAPTER_OFFLINE} -ne 0 ] ; then
+        if [ -n "${msg}" ] ; then
+            msg="${msg}, "
+        fi
+        msg="${msg}Adapter is offline"
+    fi
+    if [ ${CHECK_ADAPTER_CRITICAL} -ne 0 ] ; then
+        if [ -n "${msg}" ] ; then
+            msg="${msg}, "
+        fi
+        msg="${msg}Adapter has critical disks"
+    fi
+    if [ ${CHECK_ADAPTER_FAILED} -ne 0 ] ; then
+        if [ -n "${msg}" ] ; then
+            msg="${msg}, "
+        fi
+        msg="${msg}Adapter has failed disks"
+    fi
+    if [ ${CHECK_LD} -ne 0 ] ; then
+        if [ -n "${msg}" ] ; then
+            msg="${msg}, "
+        fi
+        msg="${msg}Adapter has logical disks with errors"
+    fi
+    cleanup
+    echo "${MY_BASE} CRITICAL ${msg}"
+    exit 2
+fi
+
+CHECK_ADAPTER_BBU="$(megacli -AdpBbuCmd -GetBbuStatus -aALL | egrep -c '^Battery State: Optimal$' || true)"
+
+if [ ${CHECK_ADAPTER_BBU} -ne 1 ]; then
+    cleanup
+    echo "${MY_BASE} CRITICAL Adapter BBU has problems"
+    exit 2
+fi
+
+CHECK_PD_COUNTERS="$(megacli -PDList -aALL | grep -i 'count' | egrep -o '[0-9]+' | egrep -v -c '^0$' || true)"
+CHECK_PD_FIRMWARE="$(megacli -PDList -aALL | egrep -i '^Firmware state:' | egrep -v -c 'Online, Spun Up|Hotspare, Spun down|Hotspare, Spun Up' || true)"
+CHECK_PD_FOREIGN="$(megacli -PDList -aALL | egrep -i '^Foreign State:' | egrep -v -c 'None' || true)"
+
+if [ ${CHECK_PD_COUNTERS} -ne 0 ] || [ ${CHECK_PD_FIRMWARE} -ne 0 ] || [ ${CHECK_PD_FOREIGN} -ne 0 ]; then
+    msg=""
+    if [ ${CHECK_PD_COUNTERS} -ne 0 ] ; then
+        msg="Physical device count invalid"
+    fi
+    if [ ${CHECK_PD_FIRMWARE} -ne 0 ] ; then
+        if [ -n "${msg}" ] ; then
+            msg="${msg}, "
+        fi
+        msg="${msg}Physical device in a wrong state"
+    fi
+    if [ ${CHECK_PD_FOREIGN} -ne 0 ] ; then
+        if [ -n "${msg}" ] ; then
+            msg="${msg}, "
+        fi
+        msg="${msg}Physical device wrong foreign state"
+    fi
+    cleanup
+    echo "${MY_BASE} CRITICAL ${msg}"
+    exit 2
+fi
+
+cleanup
+echo "${MY_BASE} OK All Adapters, physical and logical drives in a good state."
+exit 0
+
+# vim: ts=4 et shiftwidth=4

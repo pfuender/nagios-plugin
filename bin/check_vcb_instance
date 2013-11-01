@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@author: Frank Brehm
+@contact: frank.brehm@profitbricks.com
+@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@summary: Nagios plugin ≡ check script to check the state
+          of a running instance of a VCB on a ProfitBricks Pserver.
+"""
+
+# Standard modules
+import os
+import sys
+
+# Third party modules
+
+# Mangeling import path
+libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+ndir = os.path.join(libdir, 'nagios')
+base_module = os.path.join(ndir, '__init__.py')
+if os.path.isdir(ndir) and os.path.isfile(base_module):
+	sys.path.insert(0, libdir)
+del libdir
+del ndir
+del base_module
+
+# Own modules
+
+try:
+    import nagios.plugins
+    from nagios.plugins.check_vcb_instance import CheckVcbInstancePlugin
+except ImportError, e:
+    sys.stderr.write("Import error.\n")
+    print str(e)
+    sys.exit(3)
+
+
+plugin = CheckVcbInstancePlugin()
+plugin()
+
+#==============================================================================
+
+# vim: fileencoding=utf-8 filetype=python ts=4 et

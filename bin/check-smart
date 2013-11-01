@@ -1,0 +1,235 @@
+#!/bin/bash
+
+# exit script if we try to use an uninitialised variable
+set -u
+
+# exit the script if any statement returns a non-true return value
+set -e
+
+if [ -f /usr/lib/nagios/plugins/utils.sh ] ; then
+    source /usr/lib/nagios/plugins/utils.sh
+fi
+
+## nagios return codes
+STATE_OK=${STATE_OK:-0}
+STATE_WARNING=${STATE_WARNING:-1}
+STATE_CRITICAL=${STATE_CRITICAL:-2}
+STATE_UNKNOWN=${STATE_UNKNOWN:-3}
+
+BASENAME="$(basename ${0})"
+
+#############################
+usage() {
+    cat <<EOF
+Checks the smart state of a physical HDD device.
+
+Usage: ${BASENAME} [Options] -D <HD device> -w <warn grown sectors> -c <critical grown sectors>
+       ${BASENAME} --help|-h
+
+    Options:
+        -D|--device DEVICE
+                        the device to check without directory,
+                        e.g.: sda
+        -w|--warn SECTORS
+                        number of grown defect sectors leading to a warning
+        -c|--crit SECTORS
+                        number of grown defect sectors leading to a critical message
+        -d|--debug      debug output (sh -x)
+        -h|--help       show this output and exit
+EOF
+}
+
+#------------------------------------------------------------------------------
+debug="n"
+HDD=""
+warn_sectors=""
+crit_sectors=""
+
+set +e
+TEMP=$(getopt -o D:w:c:dh --long device:,warn:,crit:,debug,help \
+        -n "${BASENAME}" -- "$@" )
+set -e
+
+if [ $? != 0 ] ; then
+    echo "Terminating..." >&2
+    exit ${STATE_UNKNOWN}
+fi
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+while true ; do
+    case "$1" in
+        -D|--device)
+            HDD="$2"
+            shift
+            shift
+            ;;
+        -w|--warn)
+            warn_sectors="$2"
+            shift
+            shift
+            ;;
+        -c|--crit)
+            crit_sectors="$2"
+            shift
+            shift
+            ;;
+        -d|--debug)
+            debug="y"
+            shift
+            ;;
+        -h|--help)
+            shift
+            usage
+            exit ${STATE_OK}
+            ;;
+        --) shift
+            break
+            ;;
+        *)  echo "UNKNOWN: Internal error, parameter '$1' not performed."
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+if [ "${debug}" = "y" ] ; then
+    set -x
+fi
+
+if [ -z "${HDD}" ] ; then
+    echo "UNKNOWN: No device to check given."
+    usage
+    exit ${STATE_UNKNOWN}
+fi
+
+BLOCK_DIR="/sys/block/${HDD}"
+if [ ! -d "${BLOCK_DIR}" ] ; then
+    echo "UNKNOWN: '${HDD}' is not a block device"
+    exit ${STATE_UNKNOWN}
+fi
+
+if [ -z "${warn_sectors}" ] ; then
+    echo "UNKNOWN: no warning limit for grown defect sectors given."
+    usage
+    exit ${STATE_UNKNOWN}
+fi
+
+if [ -z "${crit_sectors}" ] ; then
+    echo "UNKNOWN: no critical limit for grown defect sectors given."
+    usage
+    exit ${STATE_UNKNOWN}
+fi
+
+#------------------------------------------------------------------------------
+
+# Cleanup actions
+cleanup() {
+    trap - INT TERM EXIT
+}
+
+# set a trap
+trap "cleanup; echo 'UNKNOWN: Exception while running ${BASENAME}'; exit ${STATE_UNKNOWN}" INT TERM EXIT
+
+# first specify default values
+RETVAL="${STATE_UNKNOWN}"
+MESSAGE="UNKNOWN - check does not exist."
+
+if [ "${EUID}" = "0" ] ; then
+    SMARTDETAIL="$(/usr/sbin/smartctl -x /dev/${HDD} || true)"
+else
+    SMARTDETAIL="$(sudo /usr/sbin/smartctl -x /dev/${HDD} || true)"
+fi
+SASHDD="$(echo "${SMARTDETAIL}" | egrep -c '^[ ]*Transport protocol:[ ]*SAS$' || true)"
+
+if [ ${SASHDD} -eq 1 ]; then
+
+    HDD_TYPE="SAS"
+    SMART_HEALTH="$(echo "${SMARTDETAIL}" | \
+                    egrep -c '^[ 	]*SMART Health Status:[ ]*OK' || true)"
+    SMART_HEALTH_STATUS="$(echo "${SMARTDETAIL}" | \
+                    egrep '^[ 	]*SMART Health Status:.*' | \
+                    cut -d ":" -f 2- || true)"
+    SMART_GDLIST="$(echo "${SMARTDETAIL}" | \
+                    egrep '^[ 	]*Elements in grown defect list:' | \
+                    egrep -o '[0-9]*' || true)"
+
+else
+
+    HDD_TYPE="SATA"
+    SMART_HEALTH="$(echo "${SMARTDETAIL}" | \
+                    egrep -c '^[ 	]*SMART overall-health self-assessment test result: PASSED' || true)"
+    SMART_HEALTH_STATUS="$(echo "${SMARTDETAIL}" | \
+                    egrep '^[ 	]*SMART overall-health self-assessment test result:.*' | \
+                    cut -d ":" -f 2- || true)"
+
+    # Reallocated_Sector_Ct
+    SMART_REALLOCSECT="$(echo "${SMARTDETAIL}" | \
+                    egrep 'Reallocated_Sector_Ct' | \
+                    awk '{print $8}' | head -n 1)"
+    # Reported_Uncorrect
+    SMART_REPORTUNCOR="$(echo "${SMARTDETAIL}" | \
+                    egrep 'Reported_Uncorrect' | \
+                    awk '{print $8}' | head -n 1)"
+    # Current_Pending_Sector
+    SMART_PENDINGSECT="$(echo "${SMARTDETAIL}" | \
+                    egrep 'Current_Pending_Sector' | \
+                    awk '{print $8}' | head -n 1)"
+    # Offline_Uncorrectable
+    SMART_OFFLINEUNCO="$(echo "${SMARTDETAIL}" | \
+                    egrep 'Offline_Uncorrectable' | \
+                    awk '{print $8}' | head -n 1)"
+    # Reallocated_Event_Count
+    SMART_REALLOCEVEN="$(echo "${SMARTDETAIL}" | \
+                    egrep 'Reallocated_Event_Count' | \
+                    awk '{print $8}' | head -n 1)"
+    # Erase_Fail_Count
+    SMART_ERASEFAIL="$(echo "${SMARTDETAIL}" | \
+                    egrep 'Erase_Fail_Count' | \
+                    awk '{print $8}' | head -n 1)"
+
+    # in case we dont have values for certain devices, simply set to "0"
+    # SMART reports different values for HDDs and SSDs
+    SMART_REALLOCSECT="${SMART_REALLOCSECT:-"0"}"
+    SMART_REPORTUNCOR="${SMART_REPORTUNCOR:-"0"}"
+    SMART_PENDINGSECT="${SMART_PENDINGSECT:-"0"}"
+    SMART_OFFLINEUNCO="${SMART_OFFLINEUNCO:-"0"}"
+    SMART_REALLOCEVEN="${SMART_REALLOCEVEN:-"0"}"
+    SMART_ERASEFAIL="${SMART_ERASEFAIL:-"0"}"
+
+    SMART_GDLIST="$(echo "${SMART_REALLOCSECT} + ${SMART_REPORTUNCOR} + ${SMART_PENDINGSECT} + ${SMART_OFFLINEUNCO} + ${SMART_REALLOCEVEN} + ${SMART_ERASEFAIL}" | bc)"
+
+    # Seek_Error_Rate
+    #SMART_SEEK_ERROR_RATE="$(echo "${SMARTDETAIL}" | egrep 'Seek_Error_Rate' | awk '{print $8}' | head -n 1)"
+    #SMART_SEEK_ERROR_RATE="${SMART_SEEK_ERROR_RATE:-"0"}"
+
+    #if [ ${SMART_SEEK_ERROR_RATE} -gt 2000000 ]; then
+    #    echo "${HDD_TYPE} HDD /dev/${hdd} Seek_Error_Rate: ${SMART_SEEK_ERROR_RATE}"
+    #    EXITCODE="true"
+    #fi
+fi
+
+if [ ${SMART_HEALTH} -ne 1 ]; then
+    MESSAGE="CRTICAL: ${HDD_TYPE} HDD /dev/${HDD} SMART Health Status BAD: ${SMART_HEALTH_STATUS}"
+    RETVAL=${STATE_CRITICAL}
+elif [ ${SMART_GDLIST} -gt "${crit_sectors}" ] ; then
+    MESSAGE="CRTICAL: ${HDD_TYPE} HDD /dev/${HDD} has ${SMART_GDLIST} elements in list of grown defects (>${crit_sectors})"
+    RETVAL=${STATE_CRITICAL}
+elif [ ${SMART_GDLIST} -gt "${warn_sectors}" ]; then
+    MESSAGE="WARNING: ${HDD_TYPE} HDD /dev/${HDD} has ${SMART_GDLIST} elements in list of grown defects (>${warn_sectors})"
+    RETVAL=${STATE_WARNING}
+else
+    MESSAGE="OK: ${HDD_TYPE} HDD /dev/${HDD} SMART Health Status seems to be okay."
+    RETVAL=${STATE_OK}
+fi
+
+MESSAGE="${MESSAGE} | gd_list=${SMART_GDLIST};${warn_sectors};${crit_sectors}"
+
+cleanup
+echo "${MESSAGE}"
+exit ${RETVAL}
+
+# vim: ts=4 expandtab
