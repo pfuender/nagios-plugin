@@ -1,3 +1,17 @@
+python-nagios-plugin (1.0.0-1) unstable; urgency=low
+
+  * Version bump major version number
+  * Declared for unstable
+  * Added nagios/plugins/check_softwareraid.py and
+    bin/check_softwareraid
+  * Added bin/check_softwareraid to setup.py
+  * Bugfix in nagios/plugin/__init__.py
+  * Changed setup.py to install plugin scripts to
+    /usr/lib(64)?/nagios/plugins/pb
+  * Added many stuff from Repo so/storage-mgmt/icinga/opt.git
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 05 Nov 2013 15:39:41 +0100
+
 python-nagios-plugin (0.5.6-1) stable; urgency=low
 
   * Changes on 'No SMART' pattern in nagios/plugins/check_smart_state.py

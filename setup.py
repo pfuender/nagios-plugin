@@ -3,6 +3,10 @@
 
 import os
 import sys
+import glob
+import pprint
+import inspect
+
 from distutils.core import setup, Command
 
 # own modules:
@@ -20,8 +24,19 @@ import nagios
 
 packet_version = nagios.__version__
 
+pp = pprint.PrettyPrinter(indent=4)
+
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+plugins = glob.glob(os.path.join('bin', '*'))
+os_module_file = inspect.getfile(os)
+global_lib_dir = os_module_file[:os_module_file.index('/python')]
+plugin_dir = os.path.join(global_lib_dir, 'nagios', 'plugins', 'pb')
+
+datafiles = []
+datafiles.append((plugin_dir, plugins))
+#print pp.pformat(datafiles)
 
 setup(
     name = 'nagios',
@@ -38,13 +53,6 @@ setup(
         'nagios.plugin',
         'nagios.plugins',
     ],
-    scripts = [
-        'bin/check_procs',
-        'bin/check_smart_state',
-        'bin/check_uname',
-        'bin/check_vg_free',
-        'bin/check_vg_state',
-    ],
     classifiers = [
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',
@@ -56,6 +64,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    data_files = datafiles,
     requires = [
         #'pb_base (>= 0.3.10)',
     ]

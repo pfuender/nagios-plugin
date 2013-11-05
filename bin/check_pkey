@@ -1,0 +1,114 @@
+#!/bin/bash
+
+# exit script if we try to use an uninitialised variable
+set -u
+
+# exit the script if any statement returns a non-true return value
+set -e
+
+# be verbose
+#set -x
+
+if [ -f /usr/lib/nagios/plugins/utils.sh ] ; then
+    source /usr/lib/nagios/plugins/utils.sh
+fi
+
+MY_BASE=$(basename $0 )
+
+
+#############################
+usage() {
+    cat <<EOF
+Checks the state of an interface.
+
+Usage: ${MY_BASE} [Options] -i <interface name> -p <partition_key>
+       ${MY_BASE} --help|-h
+
+    Options:
+        -d|--debug      debug output (sh -x)
+        -h|--help       show this output and exit
+EOF
+}
+
+#------------------------------------------------------------------------------
+debug="n"
+IFACE=
+PKEY=
+
+TEMP=$(getopt -o dhi:p: --long debug,help,interface:,pkey: -n "${MY_BASE}" -- "$@" )
+
+if [ $? != 0 ] ; then
+    echo "Terminating..." >&2
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+while true ; do
+    case "$1" in
+        -d|--debug)
+            debug="y"
+            shift
+            ;;
+        -i|--interface)
+            IFACE="$2"
+            shift
+            shift
+            ;;-p|--pkey)
+            PKEY="$2"
+            shift
+            shift
+            ;;
+        --) shift
+            break
+            ;;
+        *)  echo "Internal error!"
+            exit ${STATE_UNKNOWN:-3}
+            ;;
+    esac
+done
+
+if [ "${debug}" = "y" ] ; then
+    set -x
+fi
+
+BLA="${1:-""}"
+if [ -n "${BLA}" ] ; then
+    echo "Superfluid argument '${BLA}' ..."
+    usage
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+if [ -z "${IFACE}" ] ; then
+    echo "No interface given."
+    usage
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+if [ -z "${PKEY}" ] ; then
+    echo "No partition key given."
+    usage
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+PKEY_FILE="/sys/class/net/${IFACE}/pkey"
+
+if [ ! -f "${PKEY_FILE}" ] ; then
+    echo "Interface '${IFACE}' is not Infiniband based."
+    exit ${STATE_UNKNOWN:-3}
+fi
+
+CUR_PKEY=$(cat "${PKEY_FILE}")
+
+EXITCODE="${STATE_OK:-0}"
+if [ "${PKEY}" = "${CUR_PKEY}" ] ; then
+    echo "Partition key '${PKEY}' on interface '${IFACE}' is ok."
+else
+    echo "Wrong partition key '${CUR_PKEY}' on interface '${IFACE}', expected '${PKEY}'."
+    EXITCODE="${STATE_CRITICAL:-2}"
+fi
+
+exit ${EXITCODE}
+
+# vim: ts=4 expandtab
