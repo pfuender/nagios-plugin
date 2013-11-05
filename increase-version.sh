@@ -228,8 +228,9 @@ if [ "${CUR_STAGE}" != "${WANT_STAGE}" ] ; then
     echo -e "[${GREEN}OK${NORMAL}]"
 fi
 
-scripts="nagios/__init__.py"
-for script in $scripts; do
+# Mangling Python scripts
+py_scripts="nagios/__init__.py"
+for script in $py_scripts; do
     if [ -f $script ] ; then
         echo -n "Performing $script ... "
         sed -i -e "s/__version__\\([ 	]*=[ 	]*\\)[^ 	]*/__version__\\1'${NEW_PB_VERSION}'/" $script
@@ -237,6 +238,17 @@ for script in $scripts; do
     fi
 done
 
-git status debian/changelog $scripts
+# Mangling Perl scripts
+pl_scripts="bin/check-procs.pl bin/check-vg-free"
+for script in $pl_scripts; do
+    if [ -f $script ] ; then
+        echo -n "Performing $script ... "
+        sed -i -e "s/\$VERSION\\([ 	]*=[ 	]*\\)[^ 	]*/\$VERSION\\1'${NEW_PB_VERSION}';/" $script
+        echo -e "[${GREEN}OK${NORMAL}]"
+    fi
+done
+
+
+git status debian/changelog $py_scripts $pl_scripts
 
 # vim: ts=4 expandtab
