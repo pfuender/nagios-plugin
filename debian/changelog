@@ -1,3 +1,9 @@
+python-nagios-plugin (1.0.2-1) stable; urgency=low
+
+  * Changed UOM of temperature in nagios/plugins/check_smart_state.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 19 Nov 2013 11:24:40 +0100
+
 python-nagios-plugin (1.0.1-1) stable; urgency=low
 
   * Some changes on bin/mail-host.sh and bin/mail-service.sh
