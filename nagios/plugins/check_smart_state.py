@@ -44,7 +44,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 log = logging.getLogger(__name__)
 
@@ -699,7 +699,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
             self.add_perfdata(
                     label = 'temperature',
                     value = self.disk_data['temperature'],
-                    uom = "°C",
+                    uom = "C",
             )
 
         out = ""
