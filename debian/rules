@@ -4,43 +4,39 @@
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
-LIB_PKGNAME := python-nagios-plugin
-BIN_PKGNAME := pb-nagios-plugins
-DOC_PKGNAME := python-nagios-plugin-doc
+LIB_PKGNAME_P2 := python-nagios-plugin
+LIB_PKGNAME_P3 := python3-nagios-plugin
+BIN_PKGNAME_P2 := pb-nagios-plugins
+BIN_PKGNAME_P3 := pb-nagios-plugins-python3
+DOC_PKGNAME    := python-nagios-plugin-doc
 
-INSTALL_DIR_LIB := $(CURDIR)/debian/$(LIB_PKGNAME)
-INSTALL_DIR_BIN := $(CURDIR)/debian/$(BIN_PKGNAME)
-DOC_DIR         := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
+INSTALL_DIR_LIB_P2 := $(CURDIR)/debian/$(LIB_PKGNAME_P2)
+INSTALL_DIR_LIB_P3 := $(CURDIR)/debian/$(LIB_PKGNAME_P3)
+INSTALL_DIR_BIN_P2 := $(CURDIR)/debian/$(BIN_PKGNAME_P2)
+INSTALL_DIR_BIN_P3 := $(CURDIR)/debian/$(BIN_PKGNAME_P3)
+DOC_DIR            := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
 
-build: build-stamp
+PYTHON2S     := $(shell pyversions -vr || true)
+PYTHON3S     := $(shell py3versions -vr || true)
 
-build-stamp:
+%:
+	dh $@ --with python2,python3
+
+override_dh_auto_build:
 	$(info )
 	$(info ########################)
 	$(info Building ...)
 	$(info )
 
 	dh_testdir
-	python setup.py build
-	touch build-stamp
+	@echo ""
+	@echo "Building Python 2 stuff ..."
+	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py build; done
+	@echo ""
+	@echo "Building Python 3 stuff ..."
+	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py build; done
 
-clean:
-	$(info )
-	$(info ########################)
-	$(info Cleaning ...)
-	$(info )
-
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	rm -rf build
-	-find . -name '*.py[co]' | xargs rm -f
-	dh_clean
-	rm -rf *.egg-info
-	rm -rf build
-	rm -rf man
-
-install: build
+override_dh_auto_install:
 	$(info )
 	$(info ########################)
 	$(info Installing ...)
@@ -53,9 +49,14 @@ install: build
 	dh_install
 
 	@echo ""
-	@echo "Installing Python stuff ..."
-	python setup.py install --force --root=$(INSTALL_DIR_LIB) --no-compile -O0 --install-layout=deb
-	python setup.py install --force --root=$(INSTALL_DIR_BIN) --no-compile -O0 --install-layout=deb
+	@echo "Installing Python 2 stuff ..."
+	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_LIB_P2) --install-layout=deb; done
+	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_BIN_P2) --install-layout=deb; done
+
+	@echo ""
+	@echo "Installing Python 3 stuff ..."
+	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_LIB_P3) --install-layout=deb; done
+	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_BIN_P3) --install-layout=deb; done
 
 	@echo ""
 	@echo "Documentation ..."
@@ -67,52 +68,109 @@ install: build
 
 	dh_link
 
-# Build architecture-independent files here.
+override_dh_auto_clean:
+	$(info )
+	$(info ########################)
+	$(info Cleaning ...)
+	$(info )
+
+	dh_auto_clean
+	rm -fv $(CURDIR)/debian/*debhelper.log
+	rm -rf $(CURDIR)/build
+	rm -rf *.egg-info
+
+binary: binary-indep
+binary-arch: build install
+	# nothing to do here.
+
 binary-indep: build install
+
+	dh_testroot -i
+	dh_prep -i
+	dh_installdirs -i
+
+	debian/rules override_dh_auto_install
+
+
 	$(info )
 	$(info ########################)
 	$(info Installing architecture-independent files ...)
 	$(info )
 
-	dh_testdir
-	dh_testroot
-	dh_installdocs
-	dh_installchangelogs
-	dh_installdebconf
-	#dh_installman
+#	dh $@ --with python2,python3
+
+	dh_install -i
+	dh_installdocs -i
+	dh_installchangelogs -i
+	dh_installexamples -i
+	dh_installman -i
+	dh_installcatalogs -i
+	dh_installcron -i
+	dh_installdebconf -i
+	dh_installemacsen -i
+	dh_installifupdown -i
+	dh_installinfo -i
 
 	@echo ""
-	@echo "Python support ..."
-	dh_pysupport
-	@echo ""
-	@echo "Cleaning $(INSTALL_DIR_LIB) ..."
-	rm -rv $(INSTALL_DIR_LIB)/usr/lib
-	rm -rv $(INSTALL_DIR_LIB)/usr/share/pyshared/nagios/plugins
-	sed -i -e '/\/plugins\//d' $(INSTALL_DIR_LIB)/usr/share/python-support/python-nagios-plugin.public
+	@echo "Python 2 support ..."
+	dh_python2 -i
 
 	@echo ""
-	@echo "Cleaning $(INSTALL_DIR_BIN) ..."
-	rm -v $(INSTALL_DIR_BIN)/usr/share/pyshared/nagios-*.egg-info
-	rm -v $(INSTALL_DIR_BIN)/usr/share/pyshared/nagios/*.py
-	rm -rv $(INSTALL_DIR_BIN)/usr/share/pyshared/nagios/plugin
-	sed -i -e '/\/plugin\//d' \
-		-e '/\/nagios-.*\.egg-info/d' \
-		-e '/\/nagios\/[^\/]*\.py/d' \
-		$(INSTALL_DIR_BIN)/usr/share/python-support/pb-nagios-plugins.public
+	@echo "Python 3 support ..."
+	dh_python3 -i
 
-	#dh_installinit --name=ppd --restart-after-upgrade
-	#dh_installlogrotate --name vncproxy
-	#dh_installcron
-	dh_compress -X.py -X.pdf
-	dh_fixperms
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
+	@echo ""
+	@echo "Cleaning $(INSTALL_DIR_LIB_P2) ..."
+	rm -rv $(INSTALL_DIR_LIB_P2)/usr/lib/nagios
+	rm -rv $(INSTALL_DIR_LIB_P2)/usr/lib/python*/dist-packages/nagios/plugins
+	rm -rv $(INSTALL_DIR_LIB_P2)/usr/share/pyshared/nagios/plugins
 
-# Build architecture-dependent files here.
-binary-arch: build install
-# We have nothing to do by default.
+	@echo ""
+	@echo "Cleaning $(INSTALL_DIR_LIB_P3) ..."
+	rm -rv $(INSTALL_DIR_LIB_P3)/usr/lib/nagios
+	rm -rv $(INSTALL_DIR_LIB_P3)/usr/lib/python3/dist-packages/nagios/plugins
 
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install configure
+	@echo ""
+	@echo "Cleaning $(INSTALL_DIR_BIN_P2) ..."
+	rm -v $(INSTALL_DIR_BIN_P2)/usr/share/pyshared/nagios-*.egg-info
+	rm -v $(INSTALL_DIR_BIN_P2)/usr/share/pyshared/nagios/*.py
+	rm -rv $(INSTALL_DIR_BIN_P2)/usr/share/pyshared/nagios/plugin
+	rm -v $(INSTALL_DIR_BIN_P2)/usr/lib/python*/dist-packages/nagios-*.egg-info
+	rm -v $(INSTALL_DIR_BIN_P2)/usr/lib/python*/dist-packages/nagios/*.py
+	rm -rv $(INSTALL_DIR_BIN_P2)/usr/lib/python*/dist-packages/nagios/plugin
+
+	@echo ""
+	@echo "Cleaning $(INSTALL_DIR_BIN_P3) ..."
+	rm -v $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios-*.egg-info
+	rm -v $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/*.py
+	rm -rv $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/plugin
+
+	dh_installinit -i
+	dh_installmenu -i
+	dh_installmime -i
+	dh_installmodules -i
+	dh_installlogcheck -i
+	dh_installlogrotate -i
+	dh_installpam -i
+	dh_installppp -i
+	dh_installudev -i
+	dh_installwm -i
+	dh_installxfonts -i
+	dh_installgsettings -i
+	dh_bugfiles -i
+	dh_ucf -i
+	dh_lintian -i
+	dh_gconf -i
+	dh_icons -i
+	dh_perl -i
+	dh_usrlocal -i
+	dh_link -i
+	dh_compress -i -X.py -X.pdf
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i
+
+.PHONY: install binary binary-arch binary-indep
+

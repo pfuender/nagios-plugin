@@ -8,6 +8,8 @@ Build-Depends: debhelper (>= 7.0.50~), python-epydoc, python-docutils,
 Standards-Version: 3.8.4
 Vcs-Git: git+ssh://git.profitbricks.localdomain/srv/git/python/nagios-plugin.git
 Vcs-Browser: http://git.profitbricks.localdomain/gitweb/?p=python/nagios-plugin.git;a=summary
+X-Python-Version: >=2.6
+X-Python3-Version: >=3.2
 
 Package: python-nagios-plugin
 Architecture: all
@@ -21,10 +23,28 @@ Description: Base module for Nagios check plugins written in Python
  These modules are rewritten modules originated by the
  Perl module family Nagios::Plugin.
 
+Package: python3-nagios-plugin
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}
+Description: Base module for Nagios check plugins written in Python
+ .
+ This package provides a family of Python modules
+ to streamline writing Nagios plugins.
+ .
+ These modules are rewritten modules originated by the
+ Perl module family Nagios::Plugin.
+
 Package: pb-nagios-plugins
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
  python-pkg-resources, python-nagios-plugin (= ${binary:Version})
+Recommends: smartmontools
+Description: Additional Nagios plugins for usage by ProfitBricks
+
+Package: pb-nagios-plugins-python3
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, python3-nagios-plugin (= ${binary:Version})
+Conflicts: pb-nagios-plugins
 Recommends: smartmontools
 Description: Additional Nagios plugins for usage by ProfitBricks
 
