@@ -3,6 +3,7 @@
 *.pyc
 *.egg
 *-stamp
+*.bak
 build
 /*.cfg.default
 /man
