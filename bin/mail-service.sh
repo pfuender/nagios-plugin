@@ -23,20 +23,37 @@ BODY=$(cat <<ENDE
 
 Notification Type: ${ICINGA_NOTIFICATIONTYPE}
 
-Service: ${ICINGA_SERVICEDESC}
-Host:    ${ICINGA_HOSTALIAS}
-Address: ${ICINGA_HOSTADDRESS}
-State:   ${ICINGA_SERVICESTATE}
+Service:   ${ICINGA_SERVICEDESC}
+Host:      ${ICINGA_HOSTALIAS}
+Address:   ${ICINGA_HOSTADDRESS}
+State:     ${ICINGA_SERVICESTATE}
+ENDE
+)
+
+if [ -n "${ICINGA_NOTIFICATIONAUTHOR}" ] ; then
+    LBL="Author"
+    if [ "${ICINGA_NOTIFICATIONTYPE}" = "ACKNOWLEDGEMENT" ] ; then
+        LBL="Ack by"
+    fi
+    BODY="${BODY}"$(cat <<ENDE
+
+${LBL}:    ${ICINGA_NOTIFICATIONAUTHOR}
+ENDE
+)
+fi
+
+BODY="${BODY}"$(cat <<ENDE
+
 
 Notification-Number: ${ICINGA_SERVICENOTIFICATIONNUMBER}
 ENDE
 )
 
-if [ "${ICINGA_NOTIFICATIONTYPE}" = "ACKNOWLEDGEMENT" ] ; then
+if [ -n "${ICINGA_NOTIFICATIONCOMMENT}" ] ; then
     BODY="${BODY}"$(cat <<ENDE
 
-Ack by:     ${ICINGA_NOTIFICATIONAUTHOR}
-Ack text:   ${ICINGA_NOTIFICATIONCOMMENT}
+
+Comment:   ${ICINGA_NOTIFICATIONCOMMENT}
 ENDE
 )
 

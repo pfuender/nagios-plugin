@@ -17,15 +17,48 @@ BODY=$(cat <<ENDE
 
 Notification Type: ${ICINGA_NOTIFICATIONTYPE}
 
-Host:    ${ICINGA_HOSTALIAS}
-Address: ${ICINGA_HOSTADDRESS}
-State:   ${ICINGA_HOSTSTATE}
+Host:      ${ICINGA_HOSTALIAS}
+Address:   ${ICINGA_HOSTADDRESS}
+State:     ${ICINGA_HOSTSTATE}
+ENDE
+)
+
+if [ -n "${ICINGA_NOTIFICATIONAUTHOR}" ] ; then
+    LBL="Author"
+    if [ "${ICINGA_NOTIFICATIONTYPE}" = "ACKNOWLEDGEMENT" ] ; then
+        LBL="Ack by"
+    fi
+    BODY="${BODY}"$(cat <<ENDE
+
+${LBL}:    ${ICINGA_NOTIFICATIONAUTHOR}
+ENDE
+)
+fi
+
+BODY="${BODY}"$(cat <<ENDE
+
 
 Notification-Number: ${ICINGA_HOSTNOTIFICATIONNUMBER}
 
+ENDE
+)
+
+if [ -n "${ICINGA_NOTIFICATIONCOMMENT}" ] ; then
+    BODY="${BODY}"$(cat <<ENDE
+
+
+Comment:   ${ICINGA_NOTIFICATIONCOMMENT}
+ENDE
+)
+
+fi
+
+BODY="${BODY}"$(cat <<ENDE
+
+
 Date/Time: ${ICINGA_LONGDATETIME}
 
-Info: ${ICINGA_HOSTOUTPUT}
+Info:      ${ICINGA_HOSTOUTPUT}
 ENDE
 )
 printf "${BODY}" | mailx -r "${FROM}" -s "${SUBJECT}" "${TO}"
