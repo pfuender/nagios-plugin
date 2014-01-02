@@ -44,9 +44,12 @@ def get_arg_verbose():
 def init_root_logger(verbose = 0):
 
     root_log = logging.getLogger()
-    root_log.setLevel(logging.INFO)
+    root_log.setLevel(logging.WARNING)
     if verbose:
-         root_log.setLevel(logging.DEBUG)
+        if verbose > 1:
+            root_log.setLevel(logging.DEBUG)
+        else:
+            root_log.setLevel(logging.INFO)
 
     appname = os.path.basename(sys.argv[0])
     format_str = appname + ': '
@@ -70,14 +73,31 @@ def init_root_logger(verbose = 0):
     root_log.addHandler(lh_console)
 
 #==============================================================================
-class NeedConfig(unittest.TestCase):
+class NagiosPluginTestcase(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def __init__(self, methodName = 'runTest', verbose = 0):
 
         self._verbose = int(verbose)
 
-        super(NeedConfig, self).__init__(methodName)
+        super(NagiosPluginTestcase, self).__init__(methodName)
+
+    #--------------------------------------------------------------------------
+    @property
+    def verbose(self):
+        """The verbosity level."""
+        return getattr(self, '_verbose', 0)
+
+    #--------------------------------------------------------------------------
+    def setUp(self):
+        pass
+
+    #--------------------------------------------------------------------------
+    def tearDown(self):
+        pass
+
+#==============================================================================
+class NeedConfig(NagiosPluginTestcase):
 
     #--------------------------------------------------------------------------
     @property
@@ -103,7 +123,6 @@ class NeedConfig(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def tearDown(self):
-
         pass
 
 #==============================================================================
