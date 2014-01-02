@@ -39,7 +39,7 @@ from nagios.plugins import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 log = logging.getLogger(__name__)
 
@@ -650,6 +650,15 @@ class CheckProcsPlugin(ExtNagiosPlugin):
                 help = 'Only scan for processes with args that contain STRING.',
         )
 
+        #--ereg-argument-array=
+        self.add_arg(
+                '--preg-argument-array', '--ereg-argument-array', '--regex',
+                metavar = 'STRING',
+                dest = 'regex',
+                help = ('Only scan for processes with args that contain ' +
+                        'the Perl regeular expression STRING.'),
+        )
+
         self.add_arg(
                 '-C', '--command',
                 metavar = 'STRING',
@@ -753,7 +762,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
     #--------------------------------------------------------------------------
     def get_filter_description(self):
-        """Retrieves a desccription for the current filter of processes."""
+        """Retrieves a description for the current filter of processes."""
 
         decriptions = []
 
@@ -769,6 +778,8 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             decriptions.append("command %r" % (self.argparser.args.command))
         if self.argparser.args.args:
             decriptions.append("args %r" % (self.argparser.args.args))
+        if self.argparser.args.regex:
+            decriptions.append("regex %r" % (self.argparser.args.regex))
         if self.argparser.args.vsz:
             decriptions.append("vsz >%dKiByte" % (self.argparser.args.vsz))
         if self.argparser.args.rss:
@@ -824,15 +835,28 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         args_pattern = None
         re_args = None
         if self.argparser.args.args:
-            args_pattern = self.argparser.args.args
+            args_pattern = re.escape(self.argparser.args.args)
             try:
                 re_args = re.compile(args_pattern)
             except Exception, e:
                 msg = "Invalid search pattern %r for arguments: %s" % (
-                        args_pattern, str(e))
+                        self.argparser.args.args, str(e))
                 self.die(msg)
-            log.debug("Searching for processes whith pattern %r ...",
+            log.debug("Searching for processes with pattern %r ...",
                     args_pattern)
+
+        re_pattern = None
+        re_regex = None
+        if self.argparser.args.regex:
+            re_pattern = self.argparser.args.regex
+            try:
+                re_regex = re.compile(re_pattern)
+            except Exception, e:
+                msg = "Invalid regular expression %r for arguments: %s" % (
+                        re_pattern, str(e))
+                self.die(msg)
+            log.debug("Searching for processes with regular expression %r ...",
+                    re_pattern)
 
         fields = ('user', 'pid', 'ppid', 'stat', 'pcpu', 'vsz', 'rss', 'time',
                 'comm', 'args')
@@ -914,6 +938,10 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
             if self.argparser.args.command:
                 if pinfo.comm != self.argparser.args.command:
+                    continue
+
+            if re_regex:
+                if not re_regex.search(pinfo.args):
                     continue
 
             if re_args:
