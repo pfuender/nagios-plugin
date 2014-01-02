@@ -1,3 +1,11 @@
+python-nagios-plugin (1.0.3-1) unstable; urgency=low
+
+  * Declared for unstable
+  * Splitted into three differnet Debian packages: pb-nagios-plugins
+    python-nagios-plugin and python-nagios-plugin-doc
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 02 Jan 2014 14:13:02 +0100
+
 python-nagios-plugin (1.0.2-1) stable; urgency=low
 
   * Changed UOM of temperature in nagios/plugins/check_smart_state.py
