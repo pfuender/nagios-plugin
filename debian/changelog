@@ -1,3 +1,9 @@
+python-nagios-plugin (1.1.0-2) stable; urgency=low
+
+  * Declared for stable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 02 Jan 2014 16:54:57 +0100
+
 python-nagios-plugin (1.1.0-1) unstable; urgency=low
 
   * Added commandline parameter --regex to bin/check_procs
