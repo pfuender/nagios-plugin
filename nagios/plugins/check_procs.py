@@ -93,7 +93,7 @@ re_ps_line = re.compile(match_ps_line)
 pattern_time = r'\s*(?:(?:(?P<days>\d+)-)?(?P<hours>\d+):)?'
 pattern_time += r'(?P<mins>\d+):(?P<secs>\d+)'
 if __name__ == '__main__':
-    print "Search pattern for a time description: %r" % (pattern_time)
+    print("Search pattern for a time description: %r" % (pattern_time))
 re_time = re.compile(pattern_time)
 
 re_percent = re.compile(r'^\s*(\d+(?:\.\d*)?)\s*%\s*$')
@@ -178,7 +178,7 @@ class ProcessInfo(object):
             uid = -1
             try:
                 uid = pwd.getpwnam(usr).pw_uid
-            except KeyError, e:
+            except KeyError as e:
                 log.debug("Invalid user name %r in process list.", usr)
                 uid = -1
             self._user = usr
@@ -512,13 +512,13 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if uid is not None:
             try:
                 user = pwd.getpwuid(uid).pw_name
-            except KeyError, e:
+            except KeyError as e:
                 log.warn("Invalid UID %d.", uid)
                 return
         else:
             try:
                 uid = pwd.getpwnam(user).pw_uid
-            except KeyError, e:
+            except KeyError as e:
                 log.warn("Invalid user name %r.", user)
                 return
 
@@ -838,7 +838,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             args_pattern = re.escape(self.argparser.args.args)
             try:
                 re_args = re.compile(args_pattern)
-            except Exception, e:
+            except Exception as e:
                 msg = "Invalid search pattern %r for arguments: %s" % (
                         self.argparser.args.args, str(e))
                 self.die(msg)
@@ -851,7 +851,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             re_pattern = self.argparser.args.regex
             try:
                 re_regex = re.compile(re_pattern)
-            except Exception, e:
+            except Exception as e:
                 msg = "Invalid regular expression %r for arguments: %s" % (
                         re_pattern, str(e))
                 self.die(msg)

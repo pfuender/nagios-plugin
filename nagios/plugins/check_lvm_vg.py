@@ -294,7 +294,7 @@ class LvmVgState(object):
         if self.ext_size is None or self.ext_count is None:
             return None
 
-        return long(self.ext_size) * long(self.ext_count) * 1024l * 1024l
+        return int(self.ext_size) * int(self.ext_count) * 1024 * 1024
 
     #------------------------------------------------------------
     @property
@@ -319,7 +319,7 @@ class LvmVgState(object):
         if self.ext_size is None or self.ext_free is None:
             return None
 
-        return long(self.ext_size) * long(self.ext_free) * 1024l * 1024l
+        return int(self.ext_size) * int(self.ext_free) * 1024 * 1024
 
     #------------------------------------------------------------
     @property
@@ -360,7 +360,7 @@ class LvmVgState(object):
         if self.ext_size is None or self.ext_used is None:
             return None
 
-        return long(self.ext_size) * long(self.ext_used) * 1024l * 1024l
+        return int(self.ext_size) * int(self.ext_used) * 1024 * 1024
 
     #------------------------------------------------------------
     @property
@@ -493,6 +493,9 @@ class LvmVgState(object):
                 os.environ['LC_NUMERIC'] = current_locale
             else:
                 del os.environ['LC_NUMERIC']
+
+        if self.verbose > 3:
+            log.debug("Got from STDOUT: %r", stdoutdata)
 
         fields = stdoutdata.strip().split(';')
         if self.verbose > 2:
@@ -716,9 +719,9 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         try:
             vg_state.get_data()
-        except (ExecutionTimeoutError, VgNotExistsError),  e:
+        except (ExecutionTimeoutError, VgNotExistsError) as  e:
             self.die(str(e))
-        except CalledProcessError, e:
+        except CalledProcessError as e:
             msg = "The %r command returned %d with the message: %s" % (
                     self.vgs_cmd, e.returncode, e.output)
             self.die(msg)

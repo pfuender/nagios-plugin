@@ -120,7 +120,7 @@ class TestNagiosPlugin(NeedConfig):
         expected_results[26] = nagios.state.critical
         expected_results[30] = nagios.state.critical
 
-        for value in expected_results.keys():
+        for value in list(expected_results.keys()):
             ecpected_result = expected_results[value]
             got_result = t.get_status(value)
             log.debug("Checking value %d, expect result %d, got result %d.",

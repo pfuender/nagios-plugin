@@ -506,13 +506,13 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             result = result.strip()
             do_parse = True
             result_rcvd = True
-        except NoListeningError, e:
+        except NoListeningError as e:
             result = "Error: " + str(e).strip()
             state = nagios.state.critical
-        except SocketTransportError, e:
+        except SocketTransportError as e:
             result = "Error: " + str(e).strip()
             state = nagios.state.critical
-        except Exception, e:
+        except Exception as e:
             result = "Error %s on checking VCB on %r port %d: %s" % (
                     e.__class__.__name__, self.host_address,
                     self.vcb_port, e)
@@ -535,7 +535,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                     state = self.max_state(state, nagios.state.critical)
                 result = rstatus.message
                 result_rcvd = True
-            except RequestStatusError, e:
+            except RequestStatusError as e:
                 result = "Could not understand message: %s" % (result)
                 state = self.max_state(state, nagios.state.critical)
 
@@ -647,7 +647,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                 signal.signal(signal.SIGALRM, connect_alarm_caller)
                 signal.alarm(self.timeout)
                 s = socket.socket(af, socktype, proto)
-            except socket.error, msg:
+            except socket.error as msg:
                 s = None
                 continue
             finally:
@@ -661,7 +661,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                 signal.signal(signal.SIGALRM, connect_alarm_caller)
                 signal.alarm(self.timeout)
                 s.connect(sa)
-            except socket.error, msg:
+            except socket.error as msg:
                 s.close()
                 s = None
                 continue
@@ -681,6 +681,9 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         # Fileno of client socket
         s_fn = s.fileno()
 
+        if sys.version_info[0] > 2:
+            if isinstance(message, str):
+                message = message.encode('utf-8')
         # Sending the message
         s.send(message)
 
@@ -708,11 +711,16 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
                 if s_fn in rlist:
                     data = s.recv(self.buffer_size)
+                    if sys.version_info[0] > 2:
+                        if isinstance(data, bytes):
+                            data = data.decode('utf-8')
                     if data == '':
                         if self.verbose > 3:
                             log.debug("Socket closed from remote.")
                         if chunk != '':
                             break
+                    if self.verbose > 3:
+                        log.debug("Got data %r.", data)
                     result_line += data
                     chunk += data
                     match = re_end_of_data.search(result_line)
@@ -727,7 +735,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                     if chunk != '':
                         chunk = ''
 
-        except select.error, e:
+        except select.error as e:
             if e[0] == 4:
                 pass
             else:
@@ -739,6 +747,9 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             secs = time.time() - begin
             msg = 'Timeout after %0.2f seconds.' % (secs)
             raise SocketTransportError(msg)
+
+        if self.verbose > 3:
+            log.debug("Got result line: %r", result_line)
 
         return result_line
 

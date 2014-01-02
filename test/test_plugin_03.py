@@ -155,12 +155,9 @@ class TestNagiosPlugin3(NeedConfig):
 
         #join_all messages
         join_all = ' :: '
-        msg_all_cwo = join_all.join(map(lambda x: messages[x],
-                ('critical', 'warning', 'ok')))
-        msg_all_cw = join_all.join(map(lambda x: messages[x],
-                ('critical', 'warning')))
-        msg_all_wo = join_all.join(map(lambda x: messages[x],
-                ('warning', 'ok')))
+        msg_all_cwo = join_all.join([messages[x] for x in ('critical', 'warning', 'ok')])
+        msg_all_cw = join_all.join([messages[x] for x in ('critical', 'warning')])
+        msg_all_wo = join_all.join([messages[x] for x in ('warning', 'ok')])
 
         log.debug("Checking join_all critical, warning, ok.")
         (code, message) = self.plugin.check_messages(

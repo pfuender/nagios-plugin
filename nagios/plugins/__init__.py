@@ -77,7 +77,7 @@ class CommandNotFoundError(ExtNagiosPluginError):
         Typecasting into a string for error output.
         """
 
-        cmds = ', '.join(map(lambda x: ("'" + str(x) + "'"), self.cmd_list))
+        cmds = ', '.join([("'" + str(x) + "'") for x in self.cmd_list])
         msg = "Could not found OS command"
         if len(self.cmd_list) != 1:
             msg += 's'
@@ -106,7 +106,7 @@ class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
         t_o = None
         try:
             t_o = int(timeout)
-        except ValueError, e:
+        except ValueError as e:
             log.error("Timeout %r was not an int value.", timeout)
         self.timeout = t_o
 
@@ -217,14 +217,14 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         pre = None
         if prepend_searchpath:
-            if isinstance(prepend_searchpath, basestring):
+            if isinstance(prepend_searchpath, str):
                 pre = (prepend_searchpath, )
             else:
                 pre = tuple(prepend_searchpath[:])
 
         post = None
         if append_searchpath:
-            if isinstance(append_searchpath, basestring):
+            if isinstance(append_searchpath, str):
                 post = (append_searchpath, )
             else:
                 post = tuple(append_searchpath[:])
@@ -376,7 +376,7 @@ class ExtNagiosPlugin(NagiosPlugin):
         """
 
         cmd_list = cmd
-        if isinstance(cmd, basestring):
+        if isinstance(cmd, str):
             cmd_list = [cmd]
 
         use_shell = bool(shell)
@@ -433,7 +433,7 @@ class ExtNagiosPlugin(NagiosPlugin):
             (stdoutdata, stderrdata) = cmd_obj.communicate()
             ret = cmd_obj.wait()
 
-        except ExecutionTimeoutError, e:
+        except ExecutionTimeoutError as e:
             self.die(str(e))
 
         finally:
@@ -441,6 +441,13 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         if self.verbose > 1:
             log.debug("Returncode: %s" % (ret))
+
+        if sys.version_info[0] > 2:
+            if isinstance(stdoutdata, bytes):
+                stdoutdata = stdoutdata.decode('utf-8')
+            if isinstance(stderrdata, bytes):
+                stderrdata = stderrdata.decode('utf-8')
+
         if stderrdata:
             msg = "Output on StdErr: %r." % (stderrdata.strip())
             log.debug(msg)

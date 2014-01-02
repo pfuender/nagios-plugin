@@ -514,12 +514,12 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             except NPReadTimeoutError:
                 msg = "%s - timeout on getting information" % (dev)
                 self.ugly_ones.append(msg)
-            except IOError, e:
+            except IOError as e:
                 msg = "MD device %r disappeared during this script: %s" % (
                         dev, e)
                 log.debug(msg)
                 continue
-            except Exception, e:
+            except Exception as e:
                 self.die("Unknown %r error on getting information about %r: %s" %
                         (e.__class__.__name__, dev, e))
             if result is None:

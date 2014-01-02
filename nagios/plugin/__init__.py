@@ -340,7 +340,7 @@ class NagiosPlugin(object):
     def all_perfoutput(self):
         """Generates a string with all formatted performance data."""
 
-        return ' '.join(map(lambda x: x.perfoutput(), self.perfdata))
+        return ' '.join([x.perfoutput() for x in self.perfdata])
 
     #--------------------------------------------------------------------------
     def set_thresholds(self, warning = None, critical = None):
@@ -517,7 +517,7 @@ class NagiosPlugin(object):
 
         if critical is None:
             critical = []
-        elif isinstance(critical, basestring):
+        elif isinstance(critical, str):
             critical = [critical]
         for msg in self.messages['critical']:
             critical.append(msg)
@@ -525,7 +525,7 @@ class NagiosPlugin(object):
 
         if warning is None:
             warning = []
-        elif isinstance(warning, basestring):
+        elif isinstance(warning, str):
             warning = [warning]
         for msg in self.messages['warning']:
             warning.append(msg)
@@ -533,7 +533,7 @@ class NagiosPlugin(object):
 
         if ok is None:
             ok = []
-        elif isinstance(ok, basestring):
+        elif isinstance(ok, str):
             ok = [ok]
         for msg in self.messages['ok']:
             ok.append(msg)
