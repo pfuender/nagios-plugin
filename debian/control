@@ -11,8 +11,8 @@ Vcs-Browser: http://git.profitbricks.localdomain/gitweb/?p=python/nagios-plugin.
 
 Package: python-nagios-plugin
 Architecture: all
-Depends: ${misc:Depends}, python, python-support, python-argparse, python-pkg-resources
-Recommends: smartmontools
+Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
+ python-pkg-resources
 Description: Base module for Nagios check plugins written in Python
  .
  This package provides a family of Python modules
@@ -20,6 +20,13 @@ Description: Base module for Nagios check plugins written in Python
  .
  These modules are rewritten modules originated by the
  Perl module family Nagios::Plugin.
+
+Package: pb-nagios-plugins
+Architecture: all
+Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
+ python-pkg-resources, python-nagios-plugin (= ${binary:Version})
+Recommends: smartmontools
+Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc
 Architecture: all
