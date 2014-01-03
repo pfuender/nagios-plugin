@@ -368,8 +368,8 @@ class NagiosPerformance(object):
                     if re_dot.search(field):
                         val = float(field)
                     else:
-                        val = long(field)
-                except ValueError, e:
+                        val = int(field)
+                except ValueError as e:
                     log.warn("Invalid performance value %r found: %s",
                             field, str(e))
                     return None

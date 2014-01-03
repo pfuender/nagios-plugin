@@ -19,30 +19,49 @@ sys.path.insert(0, libdir)
 
 import general
 from general import ColoredFormatter, get_arg_verbose, init_root_logger
-
-import nagios
-from nagios.plugin.range import NagiosRangeError
-from nagios.plugin.range import InvalidRangeError
-from nagios.plugin.range import InvalidRangeValueError
-from nagios.plugin.range import NagiosRange
+from general import NagiosPluginTestcase
 
 log = logging.getLogger(__name__)
 
 #==============================================================================
-class TestNagiosRange(unittest.TestCase):
+class TestNagiosRange(NagiosPluginTestcase):
 
     #--------------------------------------------------------------------------
     def setUp(self):
         pass
 
     #--------------------------------------------------------------------------
+    def test_import_modules(self):
+
+        log.info("Test importing all appropriate modules ...")
+
+        log.debug("Importing module %r ...", "nagios")
+        import nagios
+
+        log.debug("Importing %r from %r ...", 'NagiosRangeError', 'nagios.plugin.range')
+        from nagios.plugin.range import NagiosRangeError
+
+        log.debug("Importing %r from %r ...", 'InvalidRangeError', 'nagios.plugin.range')
+        from nagios.plugin.range import InvalidRangeError
+
+        log.debug("Importing %r from %r ...", 'InvalidRangeValueError', 'nagios.plugin.range')
+        from nagios.plugin.range import InvalidRangeValueError
+
+        log.debug("Importing %r from %r ...", 'NagiosRange', 'nagios.plugin.range')
+        from nagios.plugin.range import NagiosRange
+
+    #--------------------------------------------------------------------------
     def test_empty_object(self):
 
         log.info("Testing uninitialized range object.")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange()
             log.debug("NagiosRange object: %r", nrange)
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -50,10 +69,14 @@ class TestNagiosRange(unittest.TestCase):
     def test_parse_normal(self):
 
         log.info("Testing initialized range object.")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('1:10')
             log.debug("NagiosRange object: %r", nrange)
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -61,10 +84,14 @@ class TestNagiosRange(unittest.TestCase):
     def test_parse_float(self):
 
         log.info("Testing initialized range object with float limits.")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('1.1:10.999')
             log.debug("NagiosRange object: %r", nrange)
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -74,10 +101,15 @@ class TestNagiosRange(unittest.TestCase):
         values = (':', '1:~', 'foo', '1-10', '10:~', '1-10:2.4', '1,10', '5:3',
                     '~:')
         log.info("Checking for invalid ranges ...")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+        from nagios.plugin.range import InvalidRangeError
+
         for value in values:
             try:
                 nrange = NagiosRange(value)
-            except InvalidRangeError, e:
+            except InvalidRangeError as e:
                 log.debug("Found incorrect range %r.", value)
             else:
                 self.fail("Range %r should be incorrect, but lead to %r.",
@@ -87,6 +119,10 @@ class TestNagiosRange(unittest.TestCase):
     def test_limits(self):
 
         log.info("Checking range limits ...")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('6')
             log.debug("NagiosRange object: %r", nrange)
@@ -98,7 +134,7 @@ class TestNagiosRange(unittest.TestCase):
             log.debug("Stringified NagiosRange object: %r", nrange_str)
             if nrange_str != '6':
                 self.fail("Stringified NagiosRange should be '6'.")
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -106,6 +142,10 @@ class TestNagiosRange(unittest.TestCase):
     def test_limits_infinity(self):
 
         log.info("Checking neative infinity range limits ...")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('~:6')
             log.debug("NagiosRange object: %r", nrange)
@@ -117,7 +157,7 @@ class TestNagiosRange(unittest.TestCase):
             log.debug("Stringified NagiosRange object: %r", nrange_str)
             if nrange_str != '~:6':
                 self.fail("Stringified NagiosRange should be '~:6'.")
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -134,6 +174,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range 0 .. 6")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('6')
             log.debug("NagiosRange object: %r", nrange)
@@ -152,7 +196,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -171,6 +215,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range -7 .. 23")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('-7:23')
             log.debug("NagiosRange object: %r", nrange)
@@ -189,7 +237,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -208,6 +256,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range 0 .. 5.75")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange(':5.75')
             log.debug("NagiosRange object: %r", nrange)
@@ -226,7 +278,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -246,6 +298,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range negative infinity .. -95.99")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('~:-95.99')
             log.debug("NagiosRange object: %r", nrange)
@@ -264,7 +320,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -282,6 +338,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range 10 .. infinity")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('10:')
             log.debug("NagiosRange object: %r", nrange)
@@ -300,7 +360,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -314,6 +374,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range <= zero")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('~:0')
             log.debug("NagiosRange object: %r", nrange)
@@ -332,7 +396,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -340,6 +404,10 @@ class TestNagiosRange(unittest.TestCase):
     def test_method_check_range(self):
 
         log.info("Testing method check_range() ...")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange(':6')
             log.debug("NagiosRange object: %r", nrange)
@@ -352,7 +420,7 @@ class TestNagiosRange(unittest.TestCase):
             if not nrange.check_range(7):
                 self.fail("check_range(7) should return True.")
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -372,6 +440,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range inverse 0 .. 657.8210567")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('@0:657.8210567')
             log.debug("NagiosRange object: %r", nrange)
@@ -390,7 +462,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -407,6 +479,10 @@ class TestNagiosRange(unittest.TestCase):
         }
 
         log.info("Testing range 1 .. 1")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('1:1')
             log.debug("NagiosRange object: %r", nrange)
@@ -425,7 +501,7 @@ class TestNagiosRange(unittest.TestCase):
                             "against '0:6', got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -433,6 +509,10 @@ class TestNagiosRange(unittest.TestCase):
     def test_operator_in(self):
 
         log.info("Testing overloaded operator 'in' ...")
+
+        import nagios
+        from nagios.plugin.range import NagiosRange
+
         try:
             nrange = NagiosRange('6')
             log.debug("NagiosRange object: %r", nrange)
@@ -445,7 +525,7 @@ class TestNagiosRange(unittest.TestCase):
             if not 5 in nrange:
                 self.fail("Value 5 should be inside range '%s'." % (nrange))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosRange by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -454,45 +534,31 @@ class TestNagiosRange(unittest.TestCase):
 if __name__ == '__main__':
 
     verbose = get_arg_verbose()
+    if verbose is None:
+        verbose = 0
     init_root_logger(verbose)
 
     log.info("Starting tests ...")
 
-    loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_empty_object'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_parse_normal'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_parse_float'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_invalid'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_limits'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_limits_infinity'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_simple'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_normal1'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_normal2'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_infinity1'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_infinity2'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_zero'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_method_check_range'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_inverse'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_check_singelton'))
-    suite.addTests(loader.loadTestsFromName(
-            'test_range.TestNagiosRange.test_operator_in'))
+    suite.addTest(TestNagiosRange('test_import_modules', verbose))
+    suite.addTest(TestNagiosRange('test_empty_object', verbose))
+    suite.addTest(TestNagiosRange('test_parse_normal', verbose))
+    suite.addTest(TestNagiosRange('test_parse_float', verbose))
+    suite.addTest(TestNagiosRange('test_invalid', verbose))
+    suite.addTest(TestNagiosRange('test_limits', verbose))
+    suite.addTest(TestNagiosRange('test_limits_infinity', verbose))
+    suite.addTest(TestNagiosRange('test_check_simple', verbose))
+    suite.addTest(TestNagiosRange('test_check_normal1', verbose))
+    suite.addTest(TestNagiosRange('test_check_normal2', verbose))
+    suite.addTest(TestNagiosRange('test_check_infinity1', verbose))
+    suite.addTest(TestNagiosRange('test_check_infinity2', verbose))
+    suite.addTest(TestNagiosRange('test_check_zero', verbose))
+    suite.addTest(TestNagiosRange('test_method_check_range', verbose))
+    suite.addTest(TestNagiosRange('test_check_inverse', verbose))
+    suite.addTest(TestNagiosRange('test_check_singelton', verbose))
+    suite.addTest(TestNagiosRange('test_operator_in', verbose))
 
     runner = unittest.TextTestRunner(verbosity = verbose)
 
@@ -500,4 +566,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

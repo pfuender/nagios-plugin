@@ -78,7 +78,7 @@ class NagiosThreshold(object):
 
     @warning.setter
     def warning(self, value):
-        if value is None or (isinstance(value, basestring) and
+        if value is None or (isinstance(value, str) and
                 value == ''):
             self._warning = NagiosRange()
             return
@@ -87,7 +87,7 @@ class NagiosThreshold(object):
             self._warning = value
             return
 
-        if isinstance(value, int) or isinstance(value, long):
+        if isinstance(value, int) or isinstance(value, int):
             value = "%d" % (value)
         elif isinstance(value, float):
             value = "%f" % (value)
@@ -102,7 +102,7 @@ class NagiosThreshold(object):
 
     @critical.setter
     def critical(self, value):
-        if value is None or (isinstance(value, basestring) and
+        if value is None or (isinstance(value, str) and
                 value == ''):
             self._critical = NagiosRange()
             return
@@ -111,7 +111,7 @@ class NagiosThreshold(object):
             self._critical = value
             return
 
-        if isinstance(value, int) or isinstance(value, long):
+        if isinstance(value, int) or isinstance(value, int):
             value = "%d" % (value)
         elif isinstance(value, float):
             value = "%f" % (value)

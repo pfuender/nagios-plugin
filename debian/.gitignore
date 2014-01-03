@@ -3,5 +3,7 @@
 *.substvars
 files
 pb-nagios-plugins
+pb-nagios-plugins-python3
 python-nagios-plugin
+python3-nagios-plugin
 python-nagios-plugin-doc

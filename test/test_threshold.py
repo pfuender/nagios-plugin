@@ -57,7 +57,7 @@ class TestNagiosThreshold(unittest.TestCase):
             if t.critical.is_set:
                 self.fail("Critical threshold may not be set.")
             log.debug("Critical threshold is not set.")
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -74,7 +74,7 @@ class TestNagiosThreshold(unittest.TestCase):
             if t.critical.is_set:
                 self.fail("Critical threshold may not be set.")
             log.debug("Critical threshold is not set.")
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -94,7 +94,7 @@ class TestNagiosThreshold(unittest.TestCase):
                 self.fail("Critical threshold range start must be zero.")
             if not t.critical.end == 80:
                 self.fail("Critical threshold range end must be 80.")
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -126,7 +126,7 @@ class TestNagiosThreshold(unittest.TestCase):
                             "got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -160,7 +160,7 @@ class TestNagiosThreshold(unittest.TestCase):
                             "got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -206,7 +206,7 @@ class TestNagiosThreshold(unittest.TestCase):
                             "got %r, expected %r." % (value,
                             result, exp_result))
 
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosThreshold by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
