@@ -1,3 +1,11 @@
+python-nagios-plugin (1.2.1-1) unstable; urgency=low
+
+  * Moved nagios/plugins/__init__.py to nagios/plugin/extended.py,
+    changed imports
+  * Changed copyright to 2014
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 13:52:02 +0100
+
 python-nagios-plugin (1.2.0-1) unstable; urgency=low
 
   * Adoption of all relevant python scripts and modules to run on both
