@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for a NagiosPerformance class
 """
 
@@ -368,8 +368,8 @@ class NagiosPerformance(object):
                     if re_dot.search(field):
                         val = float(field)
                     else:
-                        val = long(field)
-                except ValueError, e:
+                        val = int(field)
+                except ValueError as e:
                     log.warn("Invalid performance value %r found: %s",
                             field, str(e))
                     return None

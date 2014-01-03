@@ -4,7 +4,7 @@
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
 @organization: Profitbricks GmbH
-@copyright: © 2010-2013 by Profitbricks GmbH
+@copyright: © 2010 - 2014 by Profitbricks GmbH
 @license: GPL3
 @summary: test script (and module) for unit tests on NagiosPluginArgparse
           and NagiosPluginConfig objects
@@ -46,7 +46,7 @@ class TestNagiosPluginConfig(NeedConfig):
         try:
             cfg = NagiosPluginConfig()
             log.debug("NagiosPluginConfig object: %r", cfg)
-        except Exception, e:
+        except Exception as e:
             self.fail("Could not instatiate NagiosPluginConfig by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -66,7 +66,7 @@ class TestNagiosPluginConfig(NeedConfig):
                     val = cfg.get(section, option)
                     c[section][option] = val
             log.debug("Found options in config:\n%s", pp(c))
-        except NoConfigfileFound, e:
+        except NoConfigfileFound as e:
             self.fail("Could not read NagiosPluginConfig by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -89,7 +89,7 @@ class TestNagiosPluginConfigFile(NeedTmpConfig):
                     val = cfg.get(section, option)
                     c[section][option] = val
             log.debug("Found options in config:\n%s", pp(c))
-        except NoConfigfileFound, e:
+        except NoConfigfileFound as e:
             self.fail("Could not read NagiosPluginConfig by a %s: %s" % (
                     e.__class__.__name__, str(e)))
 
@@ -171,4 +171,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

@@ -4,7 +4,7 @@
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
 @organization: Profitbricks GmbH
-@copyright: © 2010-2013 by Profitbricks GmbH
+@copyright: © 2010 - 2014 by Profitbricks GmbH
 @license: GPL3
 @summary: test script (and module) for unit tests on NagiosPlugin objects
 '''
@@ -120,7 +120,7 @@ class TestNagiosPlugin(NeedConfig):
         expected_results[26] = nagios.state.critical
         expected_results[30] = nagios.state.critical
 
-        for value in expected_results.keys():
+        for value in list(expected_results.keys()):
             ecpected_result = expected_results[value]
             got_result = t.get_status(value)
             log.debug("Checking value %d, expect result %d, got result %d.",
@@ -152,4 +152,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

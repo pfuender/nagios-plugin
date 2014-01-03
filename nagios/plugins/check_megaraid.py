@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckMegaRaidPlugin class for a nagios/icinga plugin
           to check a LSI MegaRaid adapter and volumes
 """
@@ -34,10 +34,10 @@ from nagios.plugin.threshold import NagiosThreshold
 
 from nagios.plugin.argparser import default_timeout
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables

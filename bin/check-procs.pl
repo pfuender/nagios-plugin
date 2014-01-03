@@ -49,7 +49,7 @@ $ENV{'LC_MESSAGES'} = 'POSIX';
 
 our ( $VERSION, $PROGNAME );
 
-$VERSION = '1.1.0';
+$VERSION = '1.2.1';
 
 # get the base name of this script for use in the examples
 $PROGNAME = basename($0);
@@ -75,7 +75,7 @@ $usage =~ s/(\[-p\|--ppid=)/[-Z|--zone=<zone>] $1/ if $^O eq 'solaris';
 $usage =~ s/\s*$//;
 
 my $blurb = <<ENDE;
-Copyright (c) 2012 ProfitBricks GmbH, Berlin, Frank Brehm
+Copyright (c) 2010 - 2014 ProfitBricks GmbH, Berlin, Frank Brehm
 
 Checks all processes and generates WARNING or CRITICAL states if the specified
 metric is outside the required threshold ranges. The metric defaults to number

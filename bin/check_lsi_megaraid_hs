@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Nagios plugin ≡ check script to check the number of hotspare
           drives on a LSI MegaRaid adapter.
 """
@@ -29,9 +29,9 @@ del base_module
 try:
     import nagios.plugins
     from nagios.plugins.check_megaraid_hs import CheckMegaRaidHotsparePlugin
-except ImportError, e:
+except ImportError as e:
     sys.stderr.write("Import error.\n")
-    print str(e)
+    print(str(e))
     sys.exit(3)
 
 plugin = CheckMegaRaidHotsparePlugin()

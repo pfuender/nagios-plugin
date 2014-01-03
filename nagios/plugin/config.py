@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for a NagiosPluginConfig class
 """
 
@@ -12,9 +12,10 @@ import os
 import sys
 import logging
 
-import ConfigParser
-
-from ConfigParser import ConfigParser
+try:
+	import configparser as cfgparser
+except ImportError:
+	import ConfigParser as cfgparser
 
 # Third party modules
 
@@ -26,7 +27,7 @@ from nagios import BaseNagiosError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.2'
+__version__ = '0.3.0'
 
 cfgfile_basenames = ('plugins.ini', 'nagios-plugins.ini')
 nagios_cfgdirs = (
@@ -57,10 +58,40 @@ class NoConfigfileFound(BaseNagiosError):
                 "found on standard locations.")
 
 #==============================================================================
-class NagiosPluginConfig(ConfigParser, object):
+class NagiosPluginConfig(cfgparser.ConfigParser, object):
     """
     Subclass of ConfigParser with a changed read() method.
     """
+
+    #--------------------------------------------------------------------------
+    def __init__(self, defaults = None, dict_type = None, allow_no_value = False):
+        """
+        Constructor
+        """
+
+        kwords = {}
+        if defaults:
+            kwords['defaults'] = defaults
+
+        if sys.version_info[0] > 2:
+            # Python 3
+            if dict_type is not None:
+                kwords['dict_type'] = dict_type
+            if sys.version_info[1] >= 2:
+                kwords['allow_no_value'] = allow_no_value
+                kwords['strict'] = False
+        else:
+            # Python 2
+            if sys.version_info[1] >= 6:
+                if dict_type is not None:
+                    kwords['dict_type'] = dict_type
+            if sys.version_info[1] >= 7:
+                kwords['allow_no_value'] = allow_no_value
+
+        log.debug("Keyword arguments for __init__(): %r", kwords)
+
+        # Note: ConfigParser is an old-style class!! super() doesn't work.
+        return cfgparser.ConfigParser.__init__(self, **kwords)
 
     #--------------------------------------------------------------------------
     def read(self, filenames = None):
@@ -70,7 +101,7 @@ class NagiosPluginConfig(ConfigParser, object):
         """
 
         # transform filenames into a list, if a single string was given
-        if isinstance(filenames, basestring):
+        if isinstance(filenames, str):
             filenames = [filenames]
         elif filenames is None:
             filenames = []
@@ -120,7 +151,7 @@ class NagiosPluginConfig(ConfigParser, object):
 
         log.debug("Using config files: %r", filenames)
         # Note: ConfigParser is an old-style class!! super() doesn't work.
-        return ConfigParser.read(self, filenames)
+        return cfgparser.ConfigParser.read(self, filenames)
 
     #--------------------------------------------------------------------------
     def write(self, fileobject):
@@ -136,4 +167,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et

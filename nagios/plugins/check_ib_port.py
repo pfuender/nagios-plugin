@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckIbStatusPlugin class
 """
 
@@ -31,10 +31,10 @@ from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables
@@ -87,7 +87,7 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         usage += '\n       %(prog)s --usage'
         usage += '\n       %(prog)s --help'
 
-        blurb = "Copyright (c) 2013 Frank Brehm, Berlin.\n\n"
+        blurb = "Copyright (c) 2014 Frank Brehm, Berlin.\n\n"
         blurb += "Checks the state of the given Infiniband HCA port."
 
         super(CheckIbStatusPlugin, self).__init__(

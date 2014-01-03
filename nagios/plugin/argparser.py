@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for a NagiosPluginArgparse class, a class providing a
           standardised argument processing for Nagios plugins
 """
@@ -72,7 +72,7 @@ class NagiosPluginArgparseAction(argparse.Action):
         """
 
         msgs = messages
-        if isinstance(messages, basestring):
+        if isinstance(messages, str):
             msgs = [msgs]
         msg = "\n".join(msgs)
         log.debug("Exiting with return value %d and a message %r.",
@@ -358,7 +358,7 @@ class NagiosPluginArgparse(object):
     def _exit(self, status, messages):
 
         msgs = messages
-        if isinstance(messages, basestring):
+        if isinstance(messages, str):
             msgs = [msgs]
         msg = "\n".join(msgs)
         nagios_exit(status, msg, no_status_line = True)
@@ -564,7 +564,7 @@ class NagiosPluginArgparse(object):
         nargs = args
         if args is None:
             nargs = []
-        elif isinstance(args, basestring):
+        elif isinstance(args, str):
             nargs = [args]
         else:
             nargs = args[:]
@@ -626,13 +626,13 @@ class NagiosPluginArgparse(object):
         configs = []
         try:
             configs = cfg.read(cfg_file)
-        except NoConfigfileFound, e:
+        except NoConfigfileFound as e:
             log.warn(str(e))
             return {}
 
         configs_str = str(configs)
         if len(configs):
-            configs_str = ', '.join(map(lambda x: "'" + x + "'", configs))
+            configs_str = ', '.join(["'" + x + "'" for x in configs])
         else:
             configs_str = '<None>'
 
@@ -833,7 +833,7 @@ if __name__ == "__main__":
 
     na.parse_args()
     if na.args.hello:
-        print "Hello world!"
+        print("Hello world!")
     sys.exit(0)
 
 #==============================================================================

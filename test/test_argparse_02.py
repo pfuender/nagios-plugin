@@ -4,7 +4,7 @@
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
 @organization: Profitbricks GmbH
-@copyright: © 2010-2013 by Profitbricks GmbH
+@copyright: © 2010 - 2014 by Profitbricks GmbH
 @license: GPL3
 @summary: test script (and module) for unit tests on NagiosPluginArgparse
           and NagiosPluginConfig objects
@@ -58,7 +58,7 @@ class TestNagiosPluginArgparse2(NeedConfig):
 
         try:
             na.parse_args(['-h'])
-        except FakeExitError, e:
+        except FakeExitError as e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
             log.debug("Message on exit: >>>%s<<<", e.msg)
 
@@ -123,7 +123,7 @@ class TestNagiosPluginArgparse2(NeedConfig):
         try:
             na.add_arg(metavar = 'DEVICE', default = def_val, dest = 'device',
                     help = "The device to check (default: %(default)r)")
-        except NagiosPluginArgparseError, e:
+        except NagiosPluginArgparseError as e:
             log.debug("Correct raised exeption: %s", str(e))
         else:
             self.fail("This should raise a NagiosPluginArgparseError exception.")
@@ -142,7 +142,7 @@ class TestNagiosPluginArgparse2(NeedConfig):
         try:
             na.add_arg('-D', '--device', metavar = 'DEVICE', default = def_val,
                     help = "The device to check (default: %(default)r)")
-        except NagiosPluginArgparseError, e:
+        except NagiosPluginArgparseError as e:
             log.debug("Correct raised exeption: %s", str(e))
         else:
             self.fail("This should raise a NagiosPluginArgparseError exception.")
@@ -161,7 +161,7 @@ class TestNagiosPluginArgparse2(NeedConfig):
         try:
             na.add_arg('-D', '--device', metavar = 'DEVICE', default = def_val, dest = 'timeout',
                     help = "The device to check (default: %(default)r)")
-        except NagiosPluginArgparseError, e:
+        except NagiosPluginArgparseError as e:
             log.debug("Correct raised exeption: %s", str(e))
         else:
             self.fail("This should raise a NagiosPluginArgparseError exception.")
@@ -189,7 +189,7 @@ class TestNagiosPluginArgparse2(NeedConfig):
 
         try:
             na.parse_args(['-w', '10', '-c', '50'])
-        except FakeExitError, e:
+        except FakeExitError as e:
             log.debug("NagiosPluginArgparse exited with exit value %d.", e.exit_value)
             log.debug("Message on exit: >>>%s<<<", e.msg)
             if e.exit_value != nagios.state.unknown:

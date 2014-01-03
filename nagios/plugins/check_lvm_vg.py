@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckLvmVgPlugin class
 """
 
@@ -35,10 +35,10 @@ from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables
@@ -294,7 +294,7 @@ class LvmVgState(object):
         if self.ext_size is None or self.ext_count is None:
             return None
 
-        return long(self.ext_size) * long(self.ext_count) * 1024l * 1024l
+        return int(self.ext_size) * int(self.ext_count) * 1024 * 1024
 
     #------------------------------------------------------------
     @property
@@ -319,7 +319,7 @@ class LvmVgState(object):
         if self.ext_size is None or self.ext_free is None:
             return None
 
-        return long(self.ext_size) * long(self.ext_free) * 1024l * 1024l
+        return int(self.ext_size) * int(self.ext_free) * 1024 * 1024
 
     #------------------------------------------------------------
     @property
@@ -360,7 +360,7 @@ class LvmVgState(object):
         if self.ext_size is None or self.ext_used is None:
             return None
 
-        return long(self.ext_size) * long(self.ext_used) * 1024l * 1024l
+        return int(self.ext_size) * int(self.ext_used) * 1024 * 1024
 
     #------------------------------------------------------------
     @property
@@ -494,6 +494,9 @@ class LvmVgState(object):
             else:
                 del os.environ['LC_NUMERIC']
 
+        if self.verbose > 3:
+            log.debug("Got from STDOUT: %r", stdoutdata)
+
         fields = stdoutdata.strip().split(';')
         if self.verbose > 2:
             log.debug("Got fields:\n%s", pp(fields))
@@ -546,7 +549,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
         usage += '\n       %(prog)s --usage'
         usage += '\n       %(prog)s --help'
 
-        blurb = "Copyright (c) 2013 Frank Brehm, Berlin.\n\n"
+        blurb = "Copyright (c) 2014 Frank Brehm, Berlin.\n\n"
         if check_state:
             blurb += "Checks the state of the given volume group."
         else:
@@ -716,9 +719,9 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         try:
             vg_state.get_data()
-        except (ExecutionTimeoutError, VgNotExistsError),  e:
+        except (ExecutionTimeoutError, VgNotExistsError) as  e:
             self.die(str(e))
-        except CalledProcessError, e:
+        except CalledProcessError as e:
             msg = "The %r command returned %d with the message: %s" % (
                     self.vgs_cmd, e.returncode, e.output)
             self.die(msg)

@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckSoftwareRaidPlugin class
 """
 
@@ -41,10 +41,10 @@ from nagios.plugin.threshold import NagiosThreshold
 
 from nagios.plugin.argparser import default_timeout
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables
@@ -147,7 +147,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         usage += '\n       %(prog)s --usage'
         usage += '\n       %(prog)s --help'
 
-        blurb = "Copyright (c) 2013 Frank Brehm, Berlin.\n\n"
+        blurb = "Copyright (c) 2014 Frank Brehm, Berlin.\n\n"
         blurb += "Checks the state of one or all  Linux software RAID devices."
 
         super(CheckSoftwareRaidPlugin, self).__init__(
@@ -514,12 +514,12 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             except NPReadTimeoutError:
                 msg = "%s - timeout on getting information" % (dev)
                 self.ugly_ones.append(msg)
-            except IOError, e:
+            except IOError as e:
                 msg = "MD device %r disappeared during this script: %s" % (
                         dev, e)
                 log.debug(msg)
                 continue
-            except Exception, e:
+            except Exception as e:
                 self.die("Unknown %r error on getting information about %r: %s" %
                         (e.__class__.__name__, dev, e))
             if result is None:

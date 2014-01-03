@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckUnamePlugin class
 """
 
@@ -30,10 +30,10 @@ from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables
@@ -64,7 +64,7 @@ class CheckUnamePlugin(ExtNagiosPlugin):
         usage = textwrap.dedent(usage).strip()
 
         blurb = """\
-        Copyright (c) 2013 Frank Brehm, Berlin.
+        Copyright (c) 2014 Frank Brehm, Berlin.
 
         Checks differnt uname parameters, e.g. the kernel version, the
         architecture and the operating system  against the given parameters.

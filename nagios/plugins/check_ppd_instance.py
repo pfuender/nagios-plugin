@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckPpdInstancePlugin class
 """
 
@@ -37,10 +37,10 @@ from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables
@@ -228,7 +228,7 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
         usage += '\n       %(prog)s --usage'
         usage += '\n       %(prog)s --help'
 
-        blurb = "Copyright (c) 2013 Frank Brehm, Berlin.\n\n"
+        blurb = "Copyright (c) 2014 Frank Brehm, Berlin.\n\n"
         blurb += "Checks the state and version of a running PPD instance."
 
         super(CheckPpdInstancePlugin, self).__init__(
@@ -500,13 +500,13 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
             result = result.strip()
             do_parse = True
             result_rcvd = True
-        except NoListeningError, e:
+        except NoListeningError as e:
             result = "Error: " + str(e).strip()
             state = nagios.state.critical
-        except SocketTransportError, e:
+        except SocketTransportError as e:
             result = "Error: " + str(e).strip()
             state = nagios.state.critical
-        except Exception, e:
+        except Exception as e:
             result = "Error %s on checking PPD on %r port %d: %s" % (
                     e.__class__.__name__, self.host_address,
                     self.ppd_port, e)
@@ -522,7 +522,7 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
                     state = self.max_state(state, nagios.state.critical)
                 result = rstatus.message
                 result_rcvd = True
-            except RequestStatusError, e:
+            except RequestStatusError as e:
                 result = "Could not understand message: %s" % (result)
                 state = self.max_state(state, nagios.state.critical)
 
@@ -633,7 +633,7 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
                 signal.signal(signal.SIGALRM, connect_alarm_caller)
                 signal.alarm(self.timeout)
                 s = socket.socket(af, socktype, proto)
-            except socket.error, msg:
+            except socket.error as msg:
                 s = None
                 continue
             finally:
@@ -647,7 +647,7 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
                 signal.signal(signal.SIGALRM, connect_alarm_caller)
                 signal.alarm(self.timeout)
                 s.connect(sa)
-            except socket.error, msg:
+            except socket.error as msg:
                 s.close()
                 s = None
                 continue
@@ -667,6 +667,9 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
         # Fileno of client socket
         s_fn = s.fileno()
 
+        if sys.version_info[0] > 2:
+            if isinstance(message, str):
+                message = message.encode('utf-8')
         # Sending the message
         s.send(message)
 
@@ -694,18 +697,23 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
 
                 if s_fn in rlist:
                     data = s.recv(self.buffer_size)
+                    if sys.version_info[0] > 2:
+                        if isinstance(data, bytes):
+                            data = data.decode('utf-8')
                     if data == '':
                         if self.verbose > 3:
                             log.debug("Socket closed from remote.")
                         if chunk != '':
                             break
+                    if self.verbose > 3:
+                        log.debug("Got data %r.", data)
                     result_line += data
                     chunk += data
                 else:
                     if chunk != '':
                         chunk = ''
 
-        except select.error, e:
+        except select.error as e:
             if e[0] == 4:
                 pass
             else:
@@ -717,6 +725,9 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
             secs = time.time() - begin
             msg = 'Timeout after %0.2f seconds.' % (secs)
             raise SocketTransportError(msg)
+
+        if self.verbose > 3:
+            log.debug("Got result line: %r", result_line)
 
         return result_line
 

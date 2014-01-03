@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for a NagiosRange class
 """
 
@@ -159,16 +159,16 @@ class NagiosRange(object):
             self.parse_range_string(range_str)
             return
 
-        if isinstance(start, int) or isinstance(start, long):
-            self._start = long(start)
+        if isinstance(start, int) or isinstance(start, int):
+            self._start = int(start)
         elif isinstance(start, float):
             self._start = start
         elif start is not None:
             raise ValueError("Start value %r for NagiosRange is unusable." %
                     (start))
 
-        if isinstance(end, int) or isinstance(end, long):
-            self._end = long(end)
+        if isinstance(end, int) or isinstance(end, int):
+            self._end = int(end)
         elif isinstance(end, float):
             self._end = end
         elif end is not None:
@@ -344,7 +344,7 @@ class NagiosRange(object):
                 if re_dot.search(start):
                     start = float(start)
                 else:
-                    start = long(start)
+                    start = int(start)
                 valid = True
 
         if start is None:
@@ -357,9 +357,9 @@ class NagiosRange(object):
             if re_dot.search(end):
                 end = float(end)
             else:
-                end = long(end)
+                end = int(end)
             if start is None and not start_should_infinity:
-                start = 0L
+                start = 0
             valid = True
 
         if not valid:

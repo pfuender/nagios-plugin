@@ -4,7 +4,7 @@
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
 @organization: Profitbricks GmbH
-@copyright: © 2010-2013 by Profitbricks GmbH
+@copyright: © 2010 - 2014 by Profitbricks GmbH
 @license: GPL3
 @summary: test script (and module) for unit tests on ExtNagiosPlugin objects
 '''
@@ -29,10 +29,10 @@ from nagios import FakeExitError
 
 from nagios.plugin import NagiosPluginError
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 from nagios.plugin.threshold import NagiosThreshold
 
@@ -179,4 +179,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

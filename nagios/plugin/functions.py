@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for using in NagiosPlugin class
 """
 
@@ -19,6 +19,7 @@ import re
 import nagios
 
 from nagios import FakeExitError
+import collections
 
 __version__ = '0.2.2'
 
@@ -34,7 +35,7 @@ ERRORS = {
 }
 
 STATUS_TEXT = {}
-for key in ERRORS.keys():
+for key in list(ERRORS.keys()):
     val = ERRORS[key]
     STATUS_TEXT[val] = key
 
@@ -141,7 +142,7 @@ def nagios_exit(code, message, plugin_object = None, no_status_line = False):
             perfdata = getattr(plugin_object, 'perfdata', None)
             if perfdata and hasattr(plugin_object, 'all_perfoutput'):
                 all_perfoutput = getattr(plugin_object, 'all_perfoutput')
-                if callable(all_perfoutput):
+                if isinstance(all_perfoutput, collections.Callable):
                     output += ' | ' + all_perfoutput()
 
     if _fake_exit:
@@ -153,7 +154,7 @@ def nagios_exit(code, message, plugin_object = None, no_status_line = False):
 def _nagios_exit(code, output):
 
     if output:
-        print output
+        print(output)
     sys.exit(code)
 
 #------------------------------------------------------------------------------
@@ -221,7 +222,7 @@ def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
 
     message = ''
     if join_all:
-        if not isinstance(join_all, basestring):
+        if not isinstance(join_all, str):
             join_all = ' :: '
         all_msgs = []
         if critical_msg:
