@@ -36,10 +36,10 @@ from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 import nagios.plugins.check_megaraid
 from nagios.plugins.check_megaraid import CheckMegaRaidPlugin

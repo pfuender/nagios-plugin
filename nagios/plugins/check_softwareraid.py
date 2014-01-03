@@ -41,10 +41,10 @@ from nagios.plugin.threshold import NagiosThreshold
 
 from nagios.plugin.argparser import default_timeout
 
-from nagios.plugins import ExtNagiosPluginError
-from nagios.plugins import ExecutionTimeoutError
-from nagios.plugins import CommandNotFoundError
-from nagios.plugins import ExtNagiosPlugin
+from nagios.plugin.extended import ExtNagiosPluginError
+from nagios.plugin.extended import ExecutionTimeoutError
+from nagios.plugin.extended import CommandNotFoundError
+from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
 # Some module variables
