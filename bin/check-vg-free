@@ -69,7 +69,7 @@ ENDE
 $usage =~ s/\s*$//;
 
 my $blurb = <<ENDE;
-Copyright (c) 2012 ProfitBricks GmbH, Berlin, Frank Brehm
+Copyright (c) 2010 - 2014 ProfitBricks GmbH, Berlin, Frank Brehm
 
 Checks the free space of the given volume group.
 

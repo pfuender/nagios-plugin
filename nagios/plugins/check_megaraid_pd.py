@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for a class for a nagios/icinga plugin to check the state
           of physical drives on a MegaRaid adapter
 """
@@ -71,7 +71,7 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
         usage += '\n       %(prog)s --usage'
         usage += '\n       %(prog)s --help'
 
-        blurb = "Copyright (c) 2013 Frank Brehm, Berlin.\n\n"
+        blurb = "Copyright (c) 2014 Frank Brehm, Berlin.\n\n"
         blurb += "Checks the number of the state of physical drives on a LSI MegaRaid adapter."
 
         super(CheckMegaRaidPdPlugin, self).__init__(

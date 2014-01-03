@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2013 by Frank Brehm, Berlin
+@copyright: © 2010 - 2014 by Frank Brehm, Berlin
 @summary: Module for CheckUnamePlugin class
 """
 
@@ -64,7 +64,7 @@ class CheckUnamePlugin(ExtNagiosPlugin):
         usage = textwrap.dedent(usage).strip()
 
         blurb = """\
-        Copyright (c) 2013 Frank Brehm, Berlin.
+        Copyright (c) 2014 Frank Brehm, Berlin.
 
         Checks differnt uname parameters, e.g. the kernel version, the
         architecture and the operating system  against the given parameters.

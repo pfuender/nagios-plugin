@@ -4,7 +4,7 @@
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
 @organization: Profitbricks GmbH
-@copyright: (c) 2010-2012 by Profitbricks GmbH
+@copyright: © 2010 - 2014 by Profitbricks GmbH
 @license: GPL3
 @summary: module for some common used objects and routines
           for the nagion plugin module
@@ -17,7 +17,7 @@ import logging
 import pprint
 
 __author__ = 'Frank Brehm <frank.brehm@profitbricks.com>'
-__copyright__ = '(C) 2010-2013 by profitbricks.com'
+__copyright__ = '© 2010 - 2014 by profitbricks.com'
 __contact__ = 'frank.brehm@profitbricks.com'
 __version__ = '0.1.2'
 __license__ = 'GPL3'
@@ -86,7 +86,7 @@ def caller_search_path(prepend = None, append = None):
     ]
 
     # A tribute to my current company 'ProfitBricks GmbH, Berlin, Germany'
-    # Frank Brehm, August 2013
+    # Frank Brehm, August 2014
     default_path.append('/opt/profitbricks/bin')
 
     for d in default_path:
