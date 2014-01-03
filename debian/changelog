@@ -1,3 +1,9 @@
+python-nagios-plugin (1.2.1-3) stable; urgency=low
+
+  * Bugfixing in debian/control
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 14:43:34 +0100
+
 python-nagios-plugin (1.2.1-2) stable; urgency=low
 
   * Declared for stable

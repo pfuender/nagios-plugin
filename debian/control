@@ -2,9 +2,9 @@ Source: python-nagios-plugin
 Section: python
 Priority: extra
 Maintainer: Frank Brehm <frank.brehm@profitbricks.com>
-Build-Depends: debhelper (>= 7.0.50~), python-epydoc, python-docutils,
- python-support, texlive-latex-base, texlive-latex-extra, ghostscript, python-argparse,
- help2man, python-pkg-resources
+Build-Depends: debhelper (>= 7.0.50~), python-all (>= 2.6.5-2~), python3-all, python3,
+ python-epydoc, python-docutils, python-support, texlive-latex-base,
+ texlive-latex-extra, ghostscript, python-argparse, help2man, python-pkg-resources
 Standards-Version: 3.8.4
 Vcs-Git: git+ssh://git.profitbricks.localdomain/srv/git/python/nagios-plugin.git
 Vcs-Browser: http://git.profitbricks.localdomain/gitweb/?p=python/nagios-plugin.git;a=summary
@@ -16,7 +16,6 @@ Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
  python-pkg-resources
 Description: Base module for Nagios check plugins written in Python
- .
  This package provides a family of Python modules
  to streamline writing Nagios plugins.
  .
@@ -27,7 +26,6 @@ Package: python3-nagios-plugin
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}
 Description: Base module for Nagios check plugins written in Python
- .
  This package provides a family of Python modules
  to streamline writing Nagios plugins.
  .
