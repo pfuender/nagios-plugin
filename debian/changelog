@@ -1,3 +1,9 @@
+python-nagios-plugin (1.2.1-4) stable; urgency=low
+
+  * Bugfix in debian/rules for Debian Squeeze
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 14:51:22 +0100
+
 python-nagios-plugin (1.2.1-3) stable; urgency=low
 
   * Bugfixing in debian/control
