@@ -49,7 +49,7 @@ $ENV{'LC_MESSAGES'} = 'POSIX';
 
 our ( $VERSION, $PROGNAME );
 
-$VERSION = '1.1.1';
+$VERSION = '1.2.0';
 
 # get the base name of this script for use in the examples
 $PROGNAME = basename($0);

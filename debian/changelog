@@ -1,3 +1,12 @@
+python-nagios-plugin (1.2.0-1) unstable; urgency=low
+
+  * Adoption of all relevant python scripts and modules to run on both
+    Python2 (>=2.6) and Python3 (>=3.2)
+  * Created separate Debian packages python3-nagios-plugin and pb-
+    nagios-plugins-python3 for running the scripts with Python 3
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 10:52:43 +0100
+
 python-nagios-plugin (1.1.1-1) unstable; urgency=low
 
   * Declared for unstable
