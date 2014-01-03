@@ -151,8 +151,8 @@ binary-indep: build install
 
 	@echo ""
 	@echo "Cleaning $(INSTALL_DIR_LIB_P3) ..."
-	rm -rv $(INSTALL_DIR_LIB_P3)/usr/lib/nagios
-	rm -rv $(INSTALL_DIR_LIB_P3)/usr/lib/python3/dist-packages/nagios/plugins
+	rm -rvf $(INSTALL_DIR_LIB_P3)/usr/lib/nagios
+	rm -rvf $(INSTALL_DIR_LIB_P3)/usr/lib/python3/dist-packages/nagios/plugins
 
 	@echo ""
 	@echo "Cleaning $(INSTALL_DIR_BIN_P2) ..."
@@ -165,9 +165,9 @@ binary-indep: build install
 
 	@echo ""
 	@echo "Cleaning $(INSTALL_DIR_BIN_P3) ..."
-	rm -v $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios-*.egg-info
-	rm -v $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/*.py
-	rm -rv $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/plugin
+	rm -vf $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios-*.egg-info
+	rm -vf $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/*.py
+	rm -rvf $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/plugin
 
 	dh_installinit -i
 	dh_installmenu -i

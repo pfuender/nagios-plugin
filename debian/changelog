@@ -1,3 +1,22 @@
+python-nagios-plugin (1.2.1-4) stable; urgency=low
+
+  * Bugfix in debian/rules for Debian Squeeze
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 14:51:22 +0100
+
+python-nagios-plugin (1.2.1-3) stable; urgency=low
+
+  * Bugfixing in debian/control
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 14:43:34 +0100
+
+python-nagios-plugin (1.2.1-2) stable; urgency=low
+
+  * Declared for stable
+  * Merge from develop
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 03 Jan 2014 14:08:45 +0100
+
 python-nagios-plugin (1.2.1-1) unstable; urgency=low
 
   * Moved nagios/plugins/__init__.py to nagios/plugin/extended.py,
