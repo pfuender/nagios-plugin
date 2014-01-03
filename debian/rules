@@ -54,9 +54,33 @@ override_dh_auto_install:
 	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_BIN_P2) --install-layout=deb; done
 
 	@echo ""
+	@echo "Mangling plugin scripts in $(INSTALL_DIR_BIN_P2)/usr/lib/nagios/plugins/pb ..."
+	for f in $(INSTALL_DIR_BIN_P2)/usr/lib/nagios/plugins/pb/* ; do \
+		if head -n 1 $${f} | grep -i python >/dev/null ; then \
+			if [ ! -f "$${f}" ] ; then \
+				continue ; \
+			fi ; \
+			echo "  Mangeling $${f} ..."; \
+			sed -i -e '1d' -e '2i#!/usr/bin/python2' "$${f}" ; \
+		fi; \
+	done
+
+	@echo ""
 	@echo "Installing Python 3 stuff ..."
 	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_LIB_P3) --install-layout=deb; done
 	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_BIN_P3) --install-layout=deb; done
+
+	@echo ""
+	@echo "Mangling plugin scripts in $(INSTALL_DIR_BIN_P3)/usr/lib/nagios/plugins/pb ..."
+	for f in $(INSTALL_DIR_BIN_P3)/usr/lib/nagios/plugins/pb/* ; do \
+		if head -n 1 $${f} | grep -i python >/dev/null ; then \
+			if [ ! -f "$${f}" ] ; then \
+				continue ; \
+			fi ; \
+			echo "  Mangeling $${f} ..."; \
+			sed -i -e '1d' -e '2i#!/usr/bin/python3' "$${f}" ; \
+		fi; \
+	done
 
 	@echo ""
 	@echo "Documentation ..."
