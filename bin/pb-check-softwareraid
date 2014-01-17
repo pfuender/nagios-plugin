@@ -1,0 +1,145 @@
+#!/usr/bin/perl
+#
+#
+# Uwe Geier 2013 <uwe.geier@profitbricks.com>
+use strict;
+
+our $OVERSTATE=-1;
+our $STATE=0;
+
+our $okay_msg="";
+our $error_msg="";
+
+our %CTRL;
+our $header="";
+our @H;
+
+our $host;
+
+our $STATCMD;
+$STATCMD="cat /proc/mdstat";
+
+my @LINES;
+open(FH,"$STATCMD |");
+my $buffer="";
+while (<FH>) {
+	chomp($_);
+	next if (!$_);
+	next if ($_=~/^Personalities/);
+	next if ($_=~/^unused devices:/);
+	next if ($_=~/^\s*$/);
+
+	if ($_=~/^md\d+ :/) {
+		if ($buffer ne "") {
+			push @LINES,$buffer;
+			$buffer="";
+		}
+	}
+	$buffer.=$_;
+}
+if ($buffer ne "") {
+	push @LINES,$buffer;
+	$buffer="";
+}
+close(FH);
+
+
+my $last="";
+
+foreach my $l (@LINES) {
+	$l=~s/\t/ /g;
+	if ($l=~/^(md\d+) : (inactive) (.*)$/){
+
+        	 print "Storage OK - $1 $2 \n";
+	         exit 0;
+	         
+	}elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[(.*)\].*$/) {
+
+		$STATE=0;
+		my $dev=$1;
+		my $state=$2;
+		my $read=$3;
+		my $level=$4;
+		my $devices=$5;
+		my $blocks=$6;
+		my $normal=$7;
+		my $current=$8;
+		my $map=$9;
+		my @devs;
+		my @fdevs;
+		undef(@devs);
+		undef(@fdevs);
+		
+		foreach my $dev (split(/ /,$devices)) {
+
+			if ($dev=~/^(.*)\[(\d+)\](\(\w+\))?$/) {
+				my $t=[];
+				my $device=$1;
+				push @$t,$device;
+				push @$t,$2;
+				my $failed=$3;
+				$failed=~s/[()W]//g;
+				if ($failed ne "") {
+					push @$t,$failed;
+					push @fdevs,$device."($failed)";
+				}
+			} else {
+				print "Storage CRITICAL - Error Parsing mdstat device: $dev\n";
+				exit 2;
+			}
+		}
+
+		if ($state eq "inactive") {
+			$STATE=2;
+			$error_msg.=" - $dev is INACTIVE";
+		} elsif ($state eq "active") {
+			if ($level eq 5) {
+				if ($current < ($normal - 1)) {
+					$STATE=2;
+					$error_msg.=" - $dev is FAILED";
+				} elsif ($current < $normal) { 
+					$STATE=1 if ($STATE < 2);
+					$error_msg.=" - $dev is DEGRADED";
+				}
+			} else {
+				if ($current < $normal) {
+					$STATE=2;
+					$error_msg.=" - $dev is FAILED";
+				}
+			}
+		} else {
+			$STATE=2;
+			$error_msg.=" - $dev is in UNKNOWN state: $state";
+		}
+		if (@fdevs > 0) {
+			if (!$STATE) {
+				$STATE=2;
+				$error_msg.=" - $dev has failed devices:";
+			} else {
+				$error_msg.=" failed devices:";
+			}
+			foreach my $dev (@fdevs) {
+				$error_msg.=" $dev";
+			}
+		}
+		$okay_msg.=" - $dev okay";
+		$OVERSTATE=$STATE if ($STATE > $OVERSTATE);
+	} else {
+		print "Storage CRITICAL - Error Parsing mdstat: $l\n";
+		exit 2;
+	}
+
+}
+
+
+if ($OVERSTATE == 0)
+{
+    print "Storage OK -".(($error_msg ne "")?"$error_msg -":"")."$okay_msg\n";
+    exit 0;
+} elsif ($OVERSTATE > 0) {
+    print "Storage ".(($OVERSTATE == 1)?"WARNING":"CRITICAL")." -$error_msg\n";
+    exit $OVERSTATE;
+} else {
+	print "Storage OK - /proc/mdstat does not exists\n";
+        exit 0;
+}
