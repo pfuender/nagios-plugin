@@ -1,0 +1,20 @@
+#!/bin/sh
+# Holger Levsen <holger@layer-acht.org> 2013 based on dsa-uptime-check...
+
+PATH="/bin:/usr/bin:/usr/local/bin";
+export PATH;
+
+keyfile=/var/lib/nagios/ceph.key
+output=$(ceph --id monitor --keyfile $keyfile health 2>&1)
+
+# check output
+if [ "$output" = "HEALTH_OK" ]
+then
+	# everything's okay!
+	echo "ceph OK: HEALTH_OK";
+	exit 0;
+else
+	# exit with a warning
+	echo "ceph WARNING: Output was $output";
+	exit 1;
+fi
