@@ -16,8 +16,9 @@ INSTALL_DIR_BIN_P2 := $(CURDIR)/debian/$(BIN_PKGNAME_P2)
 INSTALL_DIR_BIN_P3 := $(CURDIR)/debian/$(BIN_PKGNAME_P3)
 DOC_DIR            := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
 
-PYTHON2S     := $(shell pyversions -vr || true)
-PYTHON3S     := $(shell py3versions -vr || true)
+PYTHON2S    := $(shell pyversions -vr || true)
+PYTHON3S    := $(shell py3versions -vr || true)
+PYTHON2_BIN := /usr/bin/$(shell pyversions -i | awk '{print $$NF}')
 
 %:
 	dh $@ --with python2,python3
@@ -61,7 +62,7 @@ override_dh_auto_install:
 				continue ; \
 			fi ; \
 			echo "  Mangeling $${f} ..."; \
-			sed -i -e '1d' -e '2i#!/usr/bin/python2' "$${f}" ; \
+			sed -i -e '1d' -e '2i#!$(PYTHON2_BIN)' "$${f}" ; \
 		fi; \
 	done
 
