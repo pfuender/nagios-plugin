@@ -1,0 +1,117 @@
+#!/bin/bash
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+#UTILS="${PROGPATH}/../utils.sh"
+UTILS=/usr/lib/nagios/plugins/utils.sh
+if ! [[ -e ${UTILS} ]]; then
+    echo "File '${UTILS}' does not exist, aborting!"
+    exit 1
+fi
+. /usr/lib/nagios/plugins/utils.sh
+
+# lock files to check
+declare -a LOCK_FILES
+LOCK_FILES[0]='/tmp/mdadm-vcb.lock'
+LOCK_FILES[1]='/tmp/multipathd-vcb.lock'
+LOCK_FILES[2]='/tmp/netfilter-vcb.lock'
+
+VERBOSE=0
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} [-v|--verbose]"
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks the following lock files and"
+    echo "their corresponding processes."
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    if [[ ${VERBOSE} -eq 1 ]]; then
+        echo $1
+    fi
+}
+
+# get arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        *)
+            echo "Unknown argument '$1', aborting!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+
+# do the work
+EXIT=${STATE_OK}
+MESSAGE="Lock files OK: "
+
+index=0
+while [[ ${index} -lt ${#LOCK_FILES[@]} ]]; do
+    LOCK_FILE=${LOCK_FILES[${index}]}
+    # next loop if lock file does not exist
+    if ! [[ -e ${LOCK_FILE} ]]; then
+        print_verbose "Lock file '${LOCK_FILE}' does not exists."
+        ((index += 1))
+        continue
+    fi
+    # get the pid out of the file
+    # there is something like 'VCB PID 1234'
+    PID=$(egrep -o '[0-9]+' ${LOCK_FILE})
+    print_verbose "Checking for pid '${PID}'."
+    # check for running process
+    if ! [[ -d /proc/${PID}/ ]]; then
+        # check how we have to change the return message
+        if [[ ${EXIT} -eq ${STATE_OK} ]]; then
+            MESSAGE="Lock files CRITICAL: Process(es) '${PID}' (${LOCK_FILE})"
+        else
+            MESSAGE="${MESSAGE}, '${PID}' (${LOCK_FILE})"
+        fi
+        EXIT=${STATE_CRITICAL}
+    else
+        PROCESS=$(cat /proc/${PID}/cmdline | cut -d ' ' -f 1)
+        print_verbose "Process '${PROCESS}' found."
+        # add information to return message
+        MESSAGE="${MESSAGE} found process '${PROCESS}' (PID ${PID}) for lock file '${LOCK_FILE}'"
+        if [[ ${index} -lt $((${#LOCK_FILES[@]} - 1)) ]]; then
+            MESSAGE="${MESSAGE},"
+        fi
+    fi
+    ((index += 1))
+done
+
+# complete message if error found
+if [[ ${EXIT} -ne ${STATE_OK} ]]; then
+    MESSAGE="${MESSAGE} not found!"
+fi
+
+# display message and exit
+echo ${MESSAGE}
+exit ${EXIT}
+
+# vim: ts=4 sw=4 et filetype=sh
