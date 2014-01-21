@@ -1,3 +1,9 @@
+python-nagios-plugin (1.4.0-6) wheezy; urgency=low
+
+  * make a build for wheezy
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Tue, 21 Jan 2014 12:05:13 +0100
+
 python-nagios-plugin (1.4.0-5) stable; urgency=low
 
   * added ipmitool to recommendations in control file
