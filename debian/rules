@@ -9,12 +9,14 @@ LIB_PKGNAME_P3 := python3-nagios-plugin
 BIN_PKGNAME_P2 := pb-nagios-plugins
 BIN_PKGNAME_P3 := pb-nagios-plugins-python3
 DOC_PKGNAME    := python-nagios-plugin-doc
+CFG_PKGNAME    := pb-config-nagios-nrpe-server
 
 INSTALL_DIR_LIB_P2 := $(CURDIR)/debian/$(LIB_PKGNAME_P2)
 INSTALL_DIR_LIB_P3 := $(CURDIR)/debian/$(LIB_PKGNAME_P3)
 INSTALL_DIR_BIN_P2 := $(CURDIR)/debian/$(BIN_PKGNAME_P2)
 INSTALL_DIR_BIN_P3 := $(CURDIR)/debian/$(BIN_PKGNAME_P3)
 DOC_DIR            := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
+CFG_DIR            := $(CURDIR)/debian/$(CFG_PKGNAME)/usr/share/$(CFG_PKGNAME)/
 
 PYTHON2S    := $(shell pyversions -vr || true)
 PYTHON3S    := $(shell py3versions -vr || true)
@@ -90,6 +92,15 @@ override_dh_auto_install:
 
 	epydoc --html -v -o $(DOC_DIR)/html $(CURDIR)/nagios
 	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/nagios
+
+
+	@echo ""
+	@echo "Configuration ..."
+	mkdir -p $(CFG_DIR)/nrpe.d
+
+	cp $(CURDIR)/etc/nrpe.cfg $(CFG_DIR)/
+	cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
+
 
 	dh_link
 

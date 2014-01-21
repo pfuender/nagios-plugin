@@ -1,0 +1,123 @@
+#!/bin/bash
+
+# exit script if we try to use an uninitialised variable
+set -u
+# exit the script if any statement returns a non-true return value
+#set -e   
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+#UTILS="${PROGPATH}/../utils.sh"
+UTILS=/usr/lib/nagios/plugins/utils.sh
+if ! [[ -e ${UTILS} ]]; then
+    echo "UNKNOWN: File '${UTILS}' does not exist, aborting!"
+    exit 3
+fi
+. /usr/lib/nagios/plugins/utils.sh
+
+# config
+HOST=''
+USERNAME='ADMIN'
+PASSWORD='ADMIN'
+
+VERBOSE=0
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} -H|--host HOSTNAME[-v|--verbose]"
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks via ipmitool if a login ADMIN/ADMIN exists."
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    if [[ ${VERBOSE} -eq 1 ]]; then
+        echo $1
+    fi
+}
+
+cleanup() {
+    trap - INT TERM EXIT
+    if [[ -e ${TMPFILE} ]]; then
+        rm ${TMPFILE}
+    fi
+}
+
+# get arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -H|--host)
+            HOST=${2}
+            shift 2
+            ;;
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        *)
+            echo "UNKNOWN: Unknown argument '$1', aborting!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+# check for given hostname
+if [[ -z ${HOST} ]]; then
+    echo "UNKNOWN: No hostname given!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# check for ipmitool
+if ! which ipmitool >/dev/null 2>&1; then
+    echo "UNKNOWN: Could not find 'ipmitool'!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# do the work
+EXIT=${STATE_UNKNOWN}
+
+# set a trap                                                                    
+trap "cleanup; echo 'UNKNOWN: Exception while running ${PROGNAME}'; exit ${STATE_UNKNOWN}" INT TERM EXIT
+
+# create tmpfile to storage command output
+TMPFILE=$(mktemp)
+
+# define command to run
+CMD="ipmitool -H ${HOST} -U ${USERNAME} -P ${PASSWORD} session info active"
+print_verbose "Running: ${CMD}"
+
+# run the command
+eval ${CMD} >${TMPFILE} 2>&1
+RETVAL=$?
+print_verbose "Output: $(cat ${TMPFILE})"
+cleanup
+
+# process return value
+if [[ ${RETVAL} -eq 0 ]]; then
+    echo "CRITICAL: Default password set."
+    exit ${STATE_CRITICAL}
+else
+    echo "OK: No default password set."
+    exit ${STATE_OK}
+fi
+
+# vim: ts=4 sw=4 et filetype=sh

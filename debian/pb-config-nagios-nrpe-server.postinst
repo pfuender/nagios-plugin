@@ -1,0 +1,23 @@
+#!/bin/bash
+
+nrpefile=/etc/nagios/nrpe.cfg
+target=/usr/share/pb-config-nagios-nrpe-server/nrpe.cfg
+
+if [[ -L ${nrpefile} ]];then
+    dest=$(readlink ${nrpefile})
+    if [[ "${target}" != "${dest}" ]];then
+        echo "wrong link target found removing ${nrpefile}"
+        /bin/rm -f ${nrpefile}
+    fi
+elif [[ -f ${nrpefile} ]];then
+    echo "moving ${nrpefile} to ${target}.orig_from_etc"
+    /bin/mv ${nrpefile} ${target}.orig_from_etc
+elif [[ -e ${nrpefile} ]];then
+    echo "${nrpefile} exists but is not a symlink or flat file. Removing it."
+    /bin/rm -rf ${nrpefile}
+fi
+
+ln -s ${target} ${nrpefile}
+
+test -x /etc/init.d/nagios-nrpe-server && /etc/init.d/nagios-nrpe-server stop || /bin/true
+test -x /etc/init.d/nagios-nrpe-server && /etc/init.d/nagios-nrpe-server start || /bin/true

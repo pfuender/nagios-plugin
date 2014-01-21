@@ -54,3 +54,12 @@ Description: Base module for Nagios check plugins written in Python - documentat
  .
  This package contains the documentation in HTML and PDF format.
 
+Package: pb-config-nagios-nrpe-server
+Architecture: all
+Suggests: python-nagios-plugin (= ${binary:Version})
+Depends: nagios-nrpe-server
+Description: Config file replacements for nagios-nrpe-server
+ .
+ This package contains the profitbricks configuration for nrpe. Replaces
+ /etc/nagios/nrpe.cfg from nagios-nrpe-server.
+
