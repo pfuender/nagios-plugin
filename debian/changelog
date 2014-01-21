@@ -1,4 +1,4 @@
-python-nagios-plugin (1.4.0-6) wheezy; urgency=low
+python-nagios-plugin (1.4.0-5) wheezy; urgency=low
 
   * make a build for wheezy
 
