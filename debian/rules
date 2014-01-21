@@ -98,8 +98,8 @@ override_dh_auto_install:
 	@echo "Configuration ..."
 	mkdir -p $(CFG_DIR)/nrpe.d
 
-        cp $(CURDIR)/etc/nrpe.cfg $(CFG_DIR)/
-        cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
+	cp $(CURDIR)/etc/nrpe.cfg $(CFG_DIR)/
+	cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
 
 
 	dh_link
