@@ -1,3 +1,9 @@
+python-nagios-plugin (1.4.0-3) unstable; urgency=low
+
+  * Bugfix in maintainer scripts for pb-config-nagios-nrpe-server
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Tue, 21 Jan 2014 10:59:14 +0100
+
 python-nagios-plugin (1.4.0-2) unstable; urgency=low
 
   * check_ipmi_default_passwd: initial release
