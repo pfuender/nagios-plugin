@@ -37,14 +37,14 @@ Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
  python-pkg-resources, python-nagios-plugin (= ${binary:Version})
 Conflicts: pb-nagios-plugins-python3
-Recommends: smartmontools
+Recommends: smartmontools, ipmitool
 Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: pb-nagios-plugins-python3
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends}, python3-nagios-plugin (= ${binary:Version})
 Conflicts: pb-nagios-plugins
-Recommends: smartmontools
+Recommends: smartmontools, ipmitool
 Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc
