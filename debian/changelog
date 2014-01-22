@@ -1,3 +1,9 @@
+python-nagios-plugin (1.4.0-8) stable; urgency=low
+
+  * build the package for stable (squeeze) too
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Tue, 22 Jan 2014 11:00:58 +0100
+
 python-nagios-plugin (1.4.0-7) wheezy; urgency=low
 
   * wheezy: added two new scripts
