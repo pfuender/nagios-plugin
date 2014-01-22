@@ -1,3 +1,9 @@
+python-nagios-plugin (1.4.0-7) wheezy; urgency=low
+
+  * wheezy: added two new scripts
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Tue, 22 Jan 2014 10:59:44 +0100
+
 python-nagios-plugin (1.4.0-6) wheezy; urgency=low
 
   * make a new build for wheezy
