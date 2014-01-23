@@ -53,7 +53,7 @@ foreach my $l (@LINES) {
         	 print "Storage OK - $1 $2 \n";
 	         exit 0;
 	         
-	}elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[(.*)\].*$/) {
+	}elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s+(\[[=>.]+\].+\/sec)?.+$/) {
 
 		$STATE=0;
 		my $dev=$1;
@@ -65,6 +65,7 @@ foreach my $l (@LINES) {
 		my $normal=$7;
 		my $current=$8;
 		my $map=$9;
+                my $syncstate = $10;
 		my @devs;
 		my @fdevs;
 		undef(@devs);
@@ -103,8 +104,15 @@ foreach my $l (@LINES) {
 				}
 			} else {
 				if ($current < $normal) {
-					$STATE=2;
-					$error_msg.=" - $dev is FAILED";
+                                        if (length $syncstate) {
+                                            $STATE=1;
+                                            #$syncstate =~ s/^\[.+\]\s+//;
+                                            $syncstate =~ / = (\d+\.\d+\%)/;
+					    $error_msg.=" - $dev is recovering ($1)";
+                                        } else {
+					    $STATE=2;
+					    $error_msg.=" - $dev is FAILED";
+                                        }
 				}
 			}
 		} else {
