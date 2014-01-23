@@ -1,3 +1,10 @@
+python-nagios-plugin (1.4.1-0) wheezy; urgency=low
+
+  * show recovery state of raid device in pb-check-softwareraid
+  * added nrpe checks from storages, modified some checks
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Tue, 23 Jan 2014 10:53:54 +0100
+
 python-nagios-plugin (1.4.1-0) stable; urgency=low
 
   * show recovery state of raid device in pb-check-softwareraid
