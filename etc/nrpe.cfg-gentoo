@@ -1,7 +1,6 @@
 #############################################################################
 # Sample NRPE Config File 
 # Written by: Ethan Galstad (nagios@nagios.org)
-# 
 #
 # NOTES:
 # This is a sample configuration file for the NRPE daemon.  It needs to be
@@ -215,9 +214,8 @@ connection_timeout=300
 #	if you'd prefer, you can instead place directives here
 #include=/etc/nagios/nrpe_local.cfg
 
-# 
+#
 # you can place your config snipplets into nrpe.d/
 include_dir=/usr/share/pb-config-nagios-nrpe-server/nrpe.d/
 
-
-
+# vim: ts=4 sw=4 filetype=cfg
