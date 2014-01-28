@@ -51,7 +51,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -118,6 +118,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         self.api_volumes = []
         self.api_images = []
         self.api_snapshots = []
+        self.all_api_volumes = []
 
         self._add_args()
 
@@ -301,6 +302,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         self.get_api_image_volumes()
         self.get_api_snapshot_volumes()
 
+        self.all_api_volumes = {}
+        for vol in self.api_volumes:
+            guid = str(vol['guid'])
+            size = vol['size']
+            self.all_api_volumes[guid] = size
+        if self.verbose > 2:
+            log.debug("All Volumes from API:\n%s", pp(self.all_api_volumes))
+
         self.exit(state, out)
 
     #--------------------------------------------------------------------------
@@ -346,7 +355,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             if self.verbose > 4:
                 log.debug("Got Storage volume from API:\n%s", pp(vol))
 
-        if self.verbose > 2:
+        if self.verbose > 1:
             log.debug("Got %d Storage volumes from API.", len(self.api_volumes))
         if self.verbose > 3:
             log.debug("Got Storage volumes from API:\n%s", pp(self.api_volumes))
@@ -408,7 +417,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             if self.verbose > 4:
                 log.debug("Got Image volume from API:\n%s", pp(vol))
 
-        if self.verbose > 2:
+        if self.verbose > 1:
             log.debug("Got %d Image volumes from API.", len(self.api_images))
         if self.verbose > 3:
             log.debug("Got Image volumes from API:\n%s", pp(self.api_images))
@@ -449,7 +458,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             if self.verbose > 4:
                 log.debug("Got Snapshot volume from API:\n%s", pp(vol))
 
-        if self.verbose > 2:
+        if self.verbose > 1:
             log.debug("Got %d Snapshot volumes from API.", len(self.api_snapshots))
         if self.verbose > 3:
             log.debug("Got Snapshot volumes from API:\n%s", pp(self.api_snapshots))
