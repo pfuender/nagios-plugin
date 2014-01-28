@@ -1,3 +1,10 @@
+python-nagios-plugin (1.4.2-2) stable; urgency=low
+
+  * Updated pb-nagios-plugins.ebuild with some dependencies to nrpe and
+    dev-perl/Nagios-Plugin and added installation of NRPE config files
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 28 Jan 2014 14:05:04 +0100
+
 python-nagios-plugin (1.4.2-1) stable; urgency=low
 
   * Updated allowed_hosts in etc/nrpe.d/00_allowed_hosts.cfg, included
