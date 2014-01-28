@@ -1,3 +1,11 @@
+python-nagios-plugin (1.4.2-1) stable; urgency=low
+
+  * Updated allowed_hosts in etc/nrpe.d/00_allowed_hosts.cfg, included
+    storage monitoring host and Franks workstation
+  * Added some checks in etc/nrpe.d/10_pb-check.cfg
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 28 Jan 2014 12:14:01 +0100
+
 python-nagios-plugin (1.4.1-0) wheezy; urgency=low
 
   * show recovery state of raid device in pb-check-softwareraid
