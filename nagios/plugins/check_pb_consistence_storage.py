@@ -307,6 +307,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             guid = str(vol['guid'])
             size = vol['size']
             self.all_api_volumes[guid] = size
+        for vol in self.api_images:
+            guid = str(vol['guid'])
+            size = vol['size']
+            self.all_api_volumes[guid] = size
+        for vol in self.api_snapshots:
+            guid = str(vol['guid'])
+            size = vol['size']
+            self.all_api_volumes[guid] = size
         if self.verbose > 2:
             log.debug("All Volumes from API:\n%s", pp(self.all_api_volumes))
 
