@@ -1,0 +1,190 @@
+#!/bin/bash
+
+dir=/var/lib/icinga/spool/checkresult-queue
+
+log_target=$(basename $0)
+verbose=0
+
+function float_eval()
+{
+    local float_scale=2
+    local stat=0
+    local result=0.0
+    if [[ $# -gt 0 ]]; then
+        result=$(echo "scale=$float_scale; $*" | bc -q 2>/dev/null)
+        stat=$?
+        if [[ $stat -eq 0  &&  -z "$result" ]]; then stat=1; fi
+    fi
+    echo $result
+    return $stat
+}
+
+function info {
+    if [ $verbose -gt 0 ];then
+        echo -n -e "\033[1mINFO:\033[0m" 1>&2
+        tput sgr0                               # Reset colors to "normal."
+        echo " $@"
+        logger -p local7.info -t $log_target $@
+    fi
+}
+
+function error {
+    echo -n -e '\E[47;31m'"\033[1mERROR:\033[0m" 1>&2
+    tput sgr0                               # Reset colors to "normal."
+    echo " $@" 1>&2
+    logger -p local7.err -t $log_target $@
+    exit 2
+}
+
+
+function usage {
+    echo "$@" 1>&2
+    echo "
+    Usage: $0 [-v] --submit-results
+           $0 [-v] --queue-host-result <hostname> <state> <plugin_output>
+           $0 [-v] --queue-service-result <hostname> <svc_description> <state> <plugin_output>
+
+           -v, --verbose           enable verbose output
+           --submit-results	   send content of each result file via send_nsca
+           --queue-host-result     queue a host check result
+           --queue-service-result  queue a service check result
+
+           Arguments have to be passed in this specific order
+           <hostname>              the hostname for this check result
+           <svc_description>       the service description (only with --queue-service-result)
+           <state>                 state_string (A string representing the status of
+                                   the given service 'OK', 'WARNING', 'CRITICAL' or 'UNKNOWN'
+                                   or give host 'UP', 'DOWN' or 'UNAVAILABLE'
+           <plugin_output>         A text string that should be used as the plugin
+                                   output for the service or host checks
+           
+" 1>&2
+    logger -p local7.crit -t $log_target "Usage error"
+    exit 1
+}
+
+function submit_results {
+    
+    # pipe the check results info into the send_nsca program, which
+    # in turn transmits the data to the nsca daemon on the central
+    # monitoring server
+    
+    time=$(date +%s)
+    for file in $(find $dir -type f );do
+        let "age=$time-$(stat -c "%Y" $file)"
+        if [ $age -lt 15 ];then
+            #echo "SKIP: $file $age"
+            continue
+        fi
+        
+        date >> /tmp/send_nsca.log
+        cat $file >> /tmp/send_nsca.log
+        a=$(date +%s.%N)
+        state=$(cat $file | /usr/sbin/send_nsca -H  icinga01-webui.pb.local -c /etc/icinga/send_nsca.cfg)
+        b=$(date +%s.%N)
+        c=$(float_eval "$b - $a"|sed 's/^\./0./')
+        info "Sent results of file $file via send_nsca in $c seconds. Response: $state"
+        rm -f $file
+    done
+
+}
+
+
+function queue_result {
+    # Convert the state string to the corresponding return code
+    return_code=-1
+    
+    case "$state" in
+        OK|UP)
+            return_code=0
+            ;;
+        WARNING)
+            return_code=1
+            ;;
+        CRITICAL|DOWN)
+            return_code=2
+            ;;
+        UNKNOWN|UNREACHABLE)
+            return_code=3
+            ;;
+    esac
+
+    time=$(date +%Y%m%d_%H%M%S | sed 's/[0-9]$/x/')
+    file="$dir/$time"
+
+    if [ -n "$svc_description" ];then
+        info "queueing service check results to $file: $hostname $svc_description $return_code $plugin_output"
+        /usr/bin/printf "%s\t%s\t%s\t%s\027" "$hostname" "$svc_description" "$return_code" "$plugin_output" >> $file || error "cannot write results to $file: $!"
+    else
+        info "queueing host check results to $file: $hostname $return_code $plugin_output"
+        /usr/bin/printf "%s\t%s\t%s\027" "$hostname" "$return_code" "$plugin_output" >> $file || error "cannot write results to $file: $!"
+    fi
+}
+
+
+while true ; do
+  test -z "$1" && break
+  case "$1" in
+    --submit-results)
+        submit=1
+        shift
+#        if [ -n "$1" ];then
+#            usage "option --submit-results takes no argument"
+#        fi
+        ;;
+    --queue-host-result)
+        queue=1
+        shift
+        hostname=$1
+        state=$2
+        plugin_output=$3
+        shift 3
+        if [ -z "$plugin_output" ];then
+            usage "option --queue-host-result takes 3 arguments"
+        fi
+#        if [ -n "$1" ];then
+#            usage "option --queue-host-result takes 3 arguments"
+#        fi
+        ;;
+    --queue-service-result)
+        queue=1
+        shift
+        hostname=$1
+        svc_description=$2
+        state=$3
+        plugin_output=$4
+        shift 4
+        if [ -z "$plugin_output" ];then
+            usage "option --queue-service-result takes 4 arguments"
+        fi
+#        if [ -n "$1" ];then
+#            usage "option --queue-service-result takes 4 arguments"
+#        fi
+        ;;
+    -v|--verbose)
+        verbose=1
+        shift
+        ;;
+    --) shift; break ;;
+    *) error "unknown option $1" ;;
+  esac
+done
+
+#########################
+## check the user id
+user=nagios
+if [ $(id -nu) != "$user" ];then
+    error "must run as user $user"
+fi
+
+if [ ! -d $dir ];then
+    mkdir -p $dir || error "cannot create directory $dir: $!"
+fi
+
+if [ "$submit" == "1" ];then
+   submit_results
+elif [ "$queue" == "1" ];then
+   queue_result
+else
+   usage
+fi
