@@ -18,6 +18,7 @@ import socket
 import textwrap
 import time
 import socket
+import uuid
 
 from numbers import Number
 
@@ -49,7 +50,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -107,6 +108,12 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         @type: str
         """
 
+        self.api = None
+        """
+        @ivar: an initialized REST API clinet object
+        @type: RestApi
+        """
+
         self._add_args()
 
     #------------------------------------------------------------
@@ -142,6 +149,9 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         d['hostname'] = self.hostname
         d['api_url'] = self.api_url
         d['api_authtoken'] = self.api_authtoken
+        d['api'] = None
+        if self.api:
+            d['api'] = self.api.__dict__
 
         return d
 
@@ -250,6 +260,16 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                             cfg_api_authtoken)
                 self._api_authtoken = cfg_api_authtoken
 
+        if not self.api_url:
+            self._api_url = os.environ.get('RESTAPI_URL')
+        if not self.api_url:
+            self._api_url = DEFAULT_API_URL
+
+        if not self.api_authtoken:
+            self._api_authtoken = os.environ.get('RESTAPI_AUTHTOKEN')
+        if not self.api_authtoken:
+            self._api_authtoken = DEFAULT_API_AUTHTOKEN
+
     #--------------------------------------------------------------------------
     def __call__(self):
         """
@@ -267,10 +287,57 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         out = "Storage volumes on %r seems to be okay." % (
                 self.hostname)
 
+        self.api = RestApi(url = self.api_url, authtoken = self.api_authtoken)
+
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
+        self.get_api_storage_volumes()
+
         self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def get_api_storage_volumes(self):
+
+        self.api_volumes = []
+
+        key_replicated = 'replicated'
+        key_size = 'size'
+        key_replicas = 'replicas'
+        key_storage_server = 'storage_server'
+        key_guid = 'guid'
+        if sys.version_info[0] <= 2:
+            key_replicated = key_replicated.decode('utf-8')
+            key_size = key_size.decode('utf-8')
+            key_replicas = key_replicas.decode('utf-8')
+            key_storage_server = key_storage_server.decode('utf-8')
+            key_guid = key_guid.decode('utf-8')
+
+        for stor in self.api.vstorages(pstorage = self.hostname):
+
+            replicated = stor[key_replicated]
+            size = stor[key_size]
+            if replicated:
+                size += 4
+
+            guid = None
+            for replica in  stor[key_replicas]:
+                hn = replica[key_storage_server]
+                if sys.version_info[0] <= 2:
+                    hn = hn.encode('utf-8')
+                if hn == self.hostname:
+                    guid = uuid.UUID(replica[key_guid])
+                    break
+
+            vol = {
+                'guid': guid,
+                'replicated': replicated,
+                'size': size,
+            }
+            self.api_volumes.append(vol)
+
+            if self.verbose > 3:
+                log.debug("Got Storage volume from API:\n%s", pp(vol))
 
 #==============================================================================
 
