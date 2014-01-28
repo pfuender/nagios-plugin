@@ -51,7 +51,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -220,6 +220,16 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         if self.argparser.args.api_authtoken:
             self._api_authtoken = self.argparser.args.api_authtoken
 
+        if not self.api_url:
+            self._api_url = os.environ.get('RESTAPI_URL')
+        if not self.api_url:
+            self._api_url = DEFAULT_API_URL
+
+        if not self.api_authtoken:
+            self._api_authtoken = os.environ.get('RESTAPI_AUTHTOKEN')
+        if not self.api_authtoken:
+            self._api_authtoken = DEFAULT_API_AUTHTOKEN
+
     #--------------------------------------------------------------------------
     def read_config(self):
         """
@@ -265,16 +275,6 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                             cfg_api_authtoken)
                 self._api_authtoken = cfg_api_authtoken
 
-        if not self.api_url:
-            self._api_url = os.environ.get('RESTAPI_URL')
-        if not self.api_url:
-            self._api_url = DEFAULT_API_URL
-
-        if not self.api_authtoken:
-            self._api_authtoken = os.environ.get('RESTAPI_AUTHTOKEN')
-        if not self.api_authtoken:
-            self._api_authtoken = DEFAULT_API_AUTHTOKEN
-
     #--------------------------------------------------------------------------
     def __call__(self):
         """
@@ -299,6 +299,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         self.get_api_storage_volumes()
         self.get_api_image_volumes()
+        self.get_api_snapshot_volumes()
 
         self.exit(state, out)
 
@@ -345,6 +346,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             if self.verbose > 4:
                 log.debug("Got Storage volume from API:\n%s", pp(vol))
 
+        if self.verbose > 2:
+            log.debug("Got %d Storage volumes from API.", len(self.api_volumes))
         if self.verbose > 3:
             log.debug("Got Storage volumes from API:\n%s", pp(self.api_volumes))
 
@@ -369,7 +372,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         for stor in self.api.vimages(pstorage = self.hostname):
 
-            if self.verbose > 3:
+            if self.verbose > 4:
                 log.debug("Got Image volume from API:\n%s", pp(stor))
 
             replicated = False
@@ -405,8 +408,51 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             if self.verbose > 4:
                 log.debug("Got Image volume from API:\n%s", pp(vol))
 
+        if self.verbose > 2:
+            log.debug("Got %d Image volumes from API.", len(self.api_images))
         if self.verbose > 3:
             log.debug("Got Image volumes from API:\n%s", pp(self.api_images))
+
+    #--------------------------------------------------------------------------
+    def get_api_snapshot_volumes(self):
+
+        self.api_snapshots = []
+
+        key_replicated = 'replicate'
+        key_size = 'size'
+        key_replicas = 'replicas'
+        key_storage_server = 'storage_server'
+        key_guid = 'guid'
+        key_image_type = 'image_type'
+        if sys.version_info[0] <= 2:
+            key_replicated = key_replicated.decode('utf-8')
+            key_size = key_size.decode('utf-8')
+            key_replicas = key_replicas.decode('utf-8')
+            key_storage_server = key_storage_server.decode('utf-8')
+            key_guid = key_guid.decode('utf-8')
+            key_image_type = key_image_type.decode('utf-8')
+
+        for stor in self.api.vsnapshots(pstorage = self.hostname):
+
+            if self.verbose > 4:
+                log.debug("Got Snapshot volume from API:\n%s", pp(stor))
+
+            size = stor[key_size]
+            guid = stor[key_guid]
+
+            vol = {
+                'guid': guid,
+                'size': size,
+            }
+            self.api_snapshots.append(vol)
+
+            if self.verbose > 4:
+                log.debug("Got Snapshot volume from API:\n%s", pp(vol))
+
+        if self.verbose > 2:
+            log.debug("Got %d Snapshot volumes from API.", len(self.api_snapshots))
+        if self.verbose > 3:
+            log.debug("Got Snapshot volumes from API:\n%s", pp(self.api_snapshots))
 
 #==============================================================================
 
