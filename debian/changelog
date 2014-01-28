@@ -1,3 +1,9 @@
+python-nagios-plugin (1.4.2-3) stable; urgency=low
+
+  * Changed EGIT_BRANCH to master in nagios-plugin.ebuild
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 28 Jan 2014 14:28:14 +0100
+
 python-nagios-plugin (1.4.2-2) stable; urgency=low
 
   * Updated pb-nagios-plugins.ebuild with some dependencies to nrpe and
