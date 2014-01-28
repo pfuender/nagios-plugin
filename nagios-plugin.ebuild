@@ -19,7 +19,7 @@ SLOT="0"
 KEYWORDS="amd64"
 IUSE="doc"
 
-EGIT_BRANCH="develop"
+EGIT_BRANCH="master"
 EGIT_COMMIT=$(replace_version_separator 3 '-')
 
 RDEPEND="
