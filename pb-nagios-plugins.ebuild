@@ -17,9 +17,9 @@ PB_CATEGORY="net-analyzer"
 LICENSE="LGPL-3"
 SLOT="0"
 KEYWORDS="amd64"
-IUSE="megaraid smart"
+IUSE="megaraid nrpe perl smart"
 
-EGIT_BRANCH="develop"
+EGIT_BRANCH="master"
 EGIT_COMMIT=$(replace_version_separator 3 '-')
 
 RDEPEND="
@@ -28,6 +28,11 @@ RDEPEND="
 		dev-python/argparse
 	)
 	~dev-python/nagios-plugin-${PV}
+	nrpe? ( || (
+		net-analyzer/nrpe
+		virtual/nrpe
+	) )
+	perl? ( dev-perl/Nagios-Plugin )
 	smart? ( sys-apps/smartmontools )
 	megaraid? ( sys-block/megacli )
 "
@@ -60,6 +65,16 @@ src_install() {
 	einfo "Installing debian/changelog and README.txt"
 	dodoc debian/changelog
 	dodoc README.txt
+
+	if use nrpe; then
+		einfo "Performing /usr/share/pb-config-nagios-nrpe-server/nrpe.d/"
+		dodir /usr/share/pb-config-nagios-nrpe-server/nrpe.d/
+		insinto /usr/share/pb-config-nagios-nrpe-server/
+		newins etc/nrpe.cfg-gentoo nrpe.cfg
+		insinto /usr/share/pb-config-nagios-nrpe-server/nrpe.d/
+		doins etc/nrpe.d/00_allowed_hosts.cfg
+		doins etc/nrpe.d/10_pb-check.cfg
+	fi
 
 	for script in check_procs check_smart_state check_uname check_vg_free check_vg_state ; do
 		src="${ED}/usr/lib/nagios/plugins/pb/${script}"
