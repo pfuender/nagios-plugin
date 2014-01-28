@@ -19,6 +19,7 @@ import textwrap
 import time
 import socket
 import uuid
+import math
 
 from numbers import Number
 
@@ -50,7 +51,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -113,6 +114,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         @ivar: an initialized REST API clinet object
         @type: RestApi
         """
+
+        self.api_volumes = []
+        self.api_images = []
+        self.api_snapshots = []
 
         self._add_args()
 
@@ -293,6 +298,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
         self.get_api_storage_volumes()
+        self.get_api_image_volumes()
 
         self.exit(state, out)
 
@@ -336,8 +342,71 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             }
             self.api_volumes.append(vol)
 
-            if self.verbose > 3:
+            if self.verbose > 4:
                 log.debug("Got Storage volume from API:\n%s", pp(vol))
+
+        if self.verbose > 3:
+            log.debug("Got Storage volumes from API:\n%s", pp(self.api_volumes))
+
+    #--------------------------------------------------------------------------
+    def get_api_image_volumes(self):
+
+        self.api_images = []
+
+        key_replicated = 'replicate'
+        key_size = 'size'
+        key_replicas = 'replicas'
+        key_storage_server = 'storage_server'
+        key_guid = 'guid'
+        key_image_type = 'image_type'
+        if sys.version_info[0] <= 2:
+            key_replicated = key_replicated.decode('utf-8')
+            key_size = key_size.decode('utf-8')
+            key_replicas = key_replicas.decode('utf-8')
+            key_storage_server = key_storage_server.decode('utf-8')
+            key_guid = key_guid.decode('utf-8')
+            key_image_type = key_image_type.decode('utf-8')
+
+        for stor in self.api.vimages(pstorage = self.hostname):
+
+            if self.verbose > 3:
+                log.debug("Got Image volume from API:\n%s", pp(stor))
+
+            replicated = False
+            if stor[key_replicated]:
+                replicated = True
+
+            size = stor[key_size]
+            size = int(math.ceil(float(size) / 4.0)) * 4
+            if replicated:
+                size += 4
+
+            img_type = stor[key_image_type]
+            if sys.version_info[0] <= 2:
+                img_type = img_type.encode('utf-8')
+
+            guid = None
+            for replica in  stor[key_replicas]:
+                hn = replica[key_storage_server]
+                if sys.version_info[0] <= 2:
+                    hn = hn.encode('utf-8')
+                if hn == self.hostname:
+                    guid = uuid.UUID(replica[key_guid])
+                    break
+
+            vol = {
+                'guid': guid,
+                'replicated': replicated,
+                'size': size,
+                'img_type': img_type,
+            }
+            self.api_images.append(vol)
+
+            if self.verbose > 4:
+                log.debug("Got Image volume from API:\n%s", pp(vol))
+
+        if self.verbose > 3:
+            log.debug("Got Image volumes from API:\n%s", pp(self.api_images))
 
 #==============================================================================
 
