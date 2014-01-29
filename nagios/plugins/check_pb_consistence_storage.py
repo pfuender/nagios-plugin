@@ -536,6 +536,17 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
             self.count['ok'] += 1
 
+        if len(self.all_api_volumes.keys()):
+            for guid in self.all_api_volumes:
+                voltype = 'Volume'
+                if self.all_api_volumes[guid]['type'] == 'img':
+                    voltype = 'Image'
+                elif self.all_api_volumes[guid]['type'] == 'snap':
+                    voltype = 'Snapshot'
+                log.info("%s %s with a size of %d MiB doesn't exists.", voltype,
+                    guid, self.all_api_volumes[guid]['size'])
+                self.count['missing'] += 1
+
     #--------------------------------------------------------------------------
     def get_api_storage_volumes(self):
 
