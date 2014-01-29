@@ -51,7 +51,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -298,23 +298,38 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
-        self.get_api_storage_volumes()
-        self.get_api_image_volumes()
-        self.get_api_snapshot_volumes()
-
         self.all_api_volumes = {}
+
+        self.get_api_storage_volumes()
         for vol in self.api_volumes:
             guid = str(vol['guid'])
             size = vol['size']
-            self.all_api_volumes[guid] = size
+            self.all_api_volumes[guid] = {
+                'size': size,
+                'type': 'vol',
+            }
+        self.api_volumes = None
+
+        self.get_api_image_volumes()
         for vol in self.api_images:
             guid = str(vol['guid'])
             size = vol['size']
-            self.all_api_volumes[guid] = size
+            self.all_api_volumes[guid] = {
+                'size': size,
+                'type': 'img',
+            }
+        self.api_images = None
+
+        self.get_api_snapshot_volumes()
         for vol in self.api_snapshots:
             guid = str(vol['guid'])
             size = vol['size']
-            self.all_api_volumes[guid] = size
+            self.all_api_volumes[guid] = {
+                'size': size,
+                'type': 'snap',
+            }
+        self.api_snapshots = None
+
         if self.verbose > 2:
             log.debug("All Volumes from API:\n%s", pp(self.all_api_volumes))
 
