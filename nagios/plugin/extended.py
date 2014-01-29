@@ -492,14 +492,11 @@ class ExtNagiosPlugin(NagiosPlugin):
             root_log.setLevel(logging.DEBUG)
 
         format_str = self.shortname + ': '
-        if self.verbose:
-            if self.verbose > 1:
-                format_str += '%(name)s(%(lineno)d) %(funcName)s() '
-            else:
-                format_str += '%(name)s '
+        if self.verbose > 1:
+            format_str += '%(name)s(%(lineno)d) %(funcName)s() '
         format_str += '%(levelname)s - %(message)s'
         formatter = None
-        if self.verbose:
+        if self.verbose > 1:
             formatter = ColoredFormatter(format_str)
         else:
             formatter = logging.Formatter(format_str)
@@ -508,8 +505,10 @@ class ExtNagiosPlugin(NagiosPlugin):
         lh_console = logging.StreamHandler(sys.stderr)
         if self.verbose > 1:
             lh_console.setLevel(logging.DEBUG)
-        else:
+        elif self.verbose == 1:
             lh_console.setLevel(logging.INFO)
+        else:
+            lh_console.setLevel(logging.WARN)
         lh_console.setFormatter(formatter)
 
         root_log.addHandler(lh_console)

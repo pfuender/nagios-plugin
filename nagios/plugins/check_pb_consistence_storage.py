@@ -20,6 +20,7 @@ import time
 import socket
 import uuid
 import math
+import datetime
 
 from numbers import Number
 
@@ -57,7 +58,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -65,6 +66,7 @@ DEFAULT_API_URL = 'https://dcmanager.pb.local/dc/api'
 DEFAULT_API_AUTHTOKEN = '604a3b5f6db67e5a3a48650313ddfb2e8bcf211b'
 DEFAULT_PB_VG = 'storage'
 STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
+DUMMY_LV = 'ed00-0b07-71ed-000c0ffee000'
 
 #LVM_PATH = "/usr/sbin"
 LVM_PATH = os.sep + os.path.join('usr', 'sbin')
@@ -173,6 +175,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         self.api_snapshots = []
         self.all_api_volumes = []
         self.lvm_lvs = []
+        self.count = {}
 
         # Some commands are missing
         if failed_commands:
@@ -433,10 +436,105 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             log.debug("All Volumes from API:\n%s", pp(self.all_api_volumes))
 
         self.get_lvm_lvs()
-        if self.verbose > 2:
+        if self.verbose > 3:
             log.debug("All Logical Volumes from LVM:\n%s", pp(self.lvm_lvs))
 
+        self.count = {
+                'total': 0,
+                'missing': 0,
+                'alien': 0,
+                'orphans': 0,
+                'zombies': 0,
+                'snapshots': 0,
+                'ok': 0,
+                'dummy': 0,
+                'error': 0,
+        }
+
+        self.compare()
+
+        if self.verbose > 1:
+            log.debug("Got following counts:\n%s", pp(self.count))
+
         self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def compare(self):
+
+        for lv in self.lvm_lvs:
+
+            self.count['total'] += 1
+
+            if not lv['is_pb_vol']:
+                self.count['alien'] += 1
+                log.debug("LV %s/%s is not a valid Profitbricks volume.",
+                        lv['vgname'], lv['lvname'])
+                continue
+
+            if lv['is_snapshot']:
+                self.count['snapshots'] += 1
+                log.debug("LV %s/%s is a valid Profitbricks LVM snapshot.",
+                        lv['vgname'], lv['lvname'])
+                continue
+
+            if lv['lvname'] == DUMMY_LV:
+                self.count['dummy'] += 1
+                log.debug("LV %s/%s is the notorious dummy device.",
+                        lv['vgname'], lv['lvname'])
+                continue
+
+            guid = '600144f0-' + lv['lvname']
+            if self.verbose > 3:
+                log.debug("Searching for GUID %r ...", guid)
+            if not guid in self.all_api_volumes:
+                if lv['cfg_file_exists'] and lv['cfg_file_valid'] and lv['remove_timestamp']:
+                    self.count['zombies'] += 1
+                    if self.verbose > 2:
+                        ts = lv['remove_timestamp']
+                        dd = datetime.datetime.fromtimestamp(ts)
+                        log.debug(("LV %s/%s has a remove timestamp " +
+                                "of %d (%s)") % (lv['lvname'], lv['cfg_file'], ts, dd))
+                else:
+                    self.count['orphans'] += 1
+                    msg = "LV %s/%s is orphaned: " % (lv['vgname'], lv['lvname'])
+                    if not lv['cfg_file_exists']:
+                        msg += "config file %r doesn't exists." % (lv['cfg_file'])
+                    elif not lv['cfg_file_valid']:
+                        msg += "config file %r is invalid." % (lv['cfg_file'])
+                    else:
+                        msg += "No remove timestamp defined in %r." % (lv['cfg_file'])
+                    log.info(msg)
+                continue
+
+            try:
+
+                if not lv['cfg_file_exists']:
+                    self.count['error'] += 1
+                    log.info("LV %s/%s has no config file %r.", lv['vgname'],
+                            lv['lvname'], lv['cfg_file'])
+                    continue
+
+                if lv['remove_timestamp']:
+                    self.count['error'] += 1
+                    ts = lv['remove_timestamp']
+                    dd = datetime.datetime.fromtimestamp(ts)
+                    log.info(("LV %s/%s is valid, but has a remove timestamp " +
+                            "of %d (%s)"), lv['vgname'], lv['lvname'], ts, dd)
+                    continue
+
+                cur_size = lv['total']
+                target_size = self.all_api_volumes[guid]['size']
+                if cur_size != target_size:
+                    self.count['error'] += 1
+                    log.info(("LV %s/%s has a wrong size, current %d MiB, " +
+                            "provisioned %d MiB."), lv['vgname'], lv['lvname'],
+                            cur_size, target_size)
+                    continue
+
+            finally:
+                del self.all_api_volumes[guid]
+
+            self.count['ok'] += 1
 
     #--------------------------------------------------------------------------
     def get_api_storage_volumes(self):
@@ -634,7 +732,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             lv['devices'] = words[6].strip()
             lv['path'] = words[7].strip()
             lv['extent_size'] = int(words[8])
-            lv['total'] = int(words[9])
+            lv['total'] = int(words[9]) / 1024 / 1024
             lv['origin'] = words[10].strip()
             if lv['origin'] == '':
                 lv['origin'] = None
