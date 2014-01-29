@@ -58,7 +58,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -452,6 +452,20 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         }
 
         self.compare()
+
+        total_errors = self.count['missing'] + self.count['orphans'] + self.count['error']
+        self.set_thresholds(
+                warning = 1,
+                critical = 3,
+        )
+        state = self.threshold.get_status(total_errors)
+        if total_errors == 1:
+            out = "One error on provisioned storage volumes."
+        elif total_errors > 1:
+            out = "Currently %d errors on provisioned storage volumes." % (total_errors)
+
+        for key in self.count:
+            self.add_perfdata(label = key, value = self.count[key])
 
         if self.verbose > 1:
             log.debug("Got following counts:\n%s", pp(self.count))
