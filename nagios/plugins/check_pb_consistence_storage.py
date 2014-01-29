@@ -493,7 +493,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                         ts = lv['remove_timestamp']
                         dd = datetime.datetime.fromtimestamp(ts)
                         log.debug(("LV %s/%s has a remove timestamp " +
-                                "of %d (%s)") % (lv['lvname'], lv['cfg_file'], ts, dd))
+                                "of %d (%s)") % (lv['vgname'], lv['lvname'], ts, dd))
                 else:
                     self.count['orphans'] += 1
                     msg = "LV %s/%s is orphaned: " % (lv['vgname'], lv['lvname'])
