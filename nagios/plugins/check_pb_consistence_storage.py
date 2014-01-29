@@ -23,6 +23,12 @@ import math
 
 from numbers import Number
 
+try:
+    import configparser as cfgparser
+except ImportError:
+    import ConfigParser as cfgparser
+
+
 # Third party modules
 
 # Own modules
@@ -51,14 +57,43 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.2'
+__version__ = '0.4.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
 DEFAULT_API_URL = 'https://dcmanager.pb.local/dc/api'
 DEFAULT_API_AUTHTOKEN = '604a3b5f6db67e5a3a48650313ddfb2e8bcf211b'
+DEFAULT_PB_VG = 'storage'
+STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
+
+#LVM_PATH = "/usr/sbin"
+LVM_PATH = os.sep + os.path.join('usr', 'sbin')
+# LVM_BIN_PATH = '/usr/sbin/lvm'
+LVM_BIN_PATH = os.path.join(LVM_PATH, 'lvm')
 
 log = logging.getLogger(__name__)
+
+#==============================================================================
+class CfgFileNotValidError(ExtNagiosPluginError):
+
+    #--------------------------------------------------------------------------
+    def __init__(self, cfg_file, msg):
+
+        self.cfg_file = cfg_file
+        self.msg = None
+        if msg:
+            m = str(msg).strip()
+            if m:
+                self.msg = m
+
+    #--------------------------------------------------------------------------
+    def __str__(self):
+
+        msg = "Invalid configuration file %r" % (self.cfg_file)
+        if self.msg:
+            msg += ": %s" % (self.msg)
+        msg += "."
+        return msg
 
 #==============================================================================
 class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
@@ -73,6 +108,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         """
         Constructor of the CheckPbConsistenceStoragePlugin class.
         """
+
+        failed_commands = []
 
         usage = """\
                 %(prog)s [options] [-H <server_name>] [-c <critical_volume_errors>] [-w <warning_volume_errors>]
@@ -115,10 +152,31 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         @type: RestApi
         """
 
+        self._pb_vg = None
+        """
+        @ivar: the name of the ProfitBricks storage volume group
+        """
+
+        # /sbin/lvm
+        self._lvm_command = LVM_BIN_PATH
+        """
+        @ivar: the 'lvm' command in operating system
+        @type: str
+        """
+        if not os.path.exists(self.lvm_command):
+            self._lvm_command = self.get_command('lvm')
+        if not os.path.exists(self.lvm_command):
+            failed_commands.append('lvm')
+
         self.api_volumes = []
         self.api_images = []
         self.api_snapshots = []
         self.all_api_volumes = []
+        self.lvm_lvs = []
+
+        # Some commands are missing
+        if failed_commands:
+            raise CommandNotFoundError(failed_commands)
 
         self._add_args()
 
@@ -140,6 +198,18 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         """The authentication token for the DC-Manager REST API."""
         return self._api_authtoken
 
+    #------------------------------------------------------------
+    @property
+    def pb_vg(self):
+        """The name of the ProfitBricks storage volume group."""
+        return self._pb_vg
+
+    #------------------------------------------------------------
+    @property
+    def lvm_command(self):
+        """The 'lvm' command in operating system."""
+        return self._lvm_command
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -153,8 +223,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         d = super(CheckPbConsistenceStoragePlugin, self).as_dict()
 
         d['hostname'] = self.hostname
+        d['lvm_command'] = self.lvm_command
         d['api_url'] = self.api_url
         d['api_authtoken'] = self.api_authtoken
+        d['pb_vg'] = self.pb_vg
         d['api'] = None
         if self.api:
             d['api'] = self.api.__dict__
@@ -188,6 +260,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 metavar = 'TOKEN',
                 dest = 'api_authtoken',
                 help = ("The authentication token of the Dc-Manager REST API."),
+        )
+
+        self.add_arg(
+                '--vg', '--volume-group',
+                metavar = 'VG',
+                dest = 'pb_vg',
+                help = ("The name of the ProfitBricks storage volume group (Default: %r)." % (
+                        DEFAULT_PB_VG)),
         )
 
     #--------------------------------------------------------------------------
@@ -231,6 +311,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         if not self.api_authtoken:
             self._api_authtoken = DEFAULT_API_AUTHTOKEN
 
+        if self.argparser.args.pb_vg:
+            self._pb_vg = self.argparser.args.pb_vg
+
+        if not self.pb_vg:
+            self._pb_vg = os.environ.get('LVM_VG_NAME')
+        if not self.pb_vg:
+            self._pb_vg = DEFAULT_PB_VG
+
     #--------------------------------------------------------------------------
     def read_config(self):
         """
@@ -245,15 +333,26 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             log.debug("Could not read NagiosPluginConfig: %s", e)
             return
 
-        hostname = None
-        if cfg.has_section('general') and cfg.has_option('general', 'hostname'):
-            hostname = cfg.get('general', 'hostname')
-        if hostname:
-            hostname = hostname.strip()
-        if hostname:
-            if self.verbose > 1:
-                log.debug("Got a hostname from config: %r", hostname)
-            self._hostname = hostname
+        if cfg.has_section('general'):
+            hostname = None
+            if cfg.has_option('general', 'hostname'):
+                hostname = cfg.get('general', 'hostname')
+            if hostname:
+                hostname = hostname.strip()
+            if hostname:
+                if self.verbose > 1:
+                    log.debug("Got a hostname from config: %r", hostname)
+                self._hostname = hostname
+
+            vg = None
+            if cfg.has_option('general', 'volumegroup'):
+                vg = cfg.get('general', 'volumegroup')
+            if vg:
+                vg = vg.strip()
+            if vg:
+                if self.verbose > 1:
+                    log.debug("Got a volume group from config: %r", vg)
+                self._pb_vg = vg
 
         if cfg.has_section('dcmanager_rest_api'):
 
@@ -332,6 +431,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         if self.verbose > 2:
             log.debug("All Volumes from API:\n%s", pp(self.all_api_volumes))
+
+        self.get_lvm_lvs()
+        if self.verbose > 2:
+            log.debug("All Logical Volumes from LVM:\n%s", pp(self.lvm_lvs))
 
         self.exit(state, out)
 
@@ -485,6 +588,114 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             log.debug("Got %d Snapshot volumes from API.", len(self.api_snapshots))
         if self.verbose > 3:
             log.debug("Got Snapshot volumes from API:\n%s", pp(self.api_snapshots))
+
+    #--------------------------------------------------------------------------
+    def get_lvm_lvs(self):
+
+        self.lvm_lvs = []
+
+        re_pb_vol = re.compile(r'^(?:[\da-f]{4}-){3}[\da-f]{12}(-snap)?$',
+                re.IGNORECASE)
+
+        cmd = [
+                self.lvm_command,
+                "lvs",
+                "--nosuffix",
+                "--noheadings",
+                "--units",
+                "b",
+                "--separator",
+                ";",
+                "-o",
+                "lv_name,vg_name,stripes,stripesize,lv_attr,lv_uuid,devices,lv_path,vg_extent_size,lv_size,origin"
+            ]
+
+        (ret_code, std_out, std_err) = self.exec_cmd(cmd)
+        if ret_code:
+            msg = (("Error %d listing LVM logical volumes: %s")
+                    % (ret_code, std_err))
+            self.die(msg)
+
+        lines = std_out.split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if line == '':
+                continue
+            words = line.split(";")
+
+            lv = {}
+            lv['lvname'] = words[0].strip()
+            lv['vgname'] = words[1].strip()
+            lv['stripes'] = int(words[2])
+            lv['stripesize'] = int(words[3])
+            lv['attr'] = words[4].strip()
+            lv['uuid'] = words[5].strip()
+            lv['devices'] = words[6].strip()
+            lv['path'] = words[7].strip()
+            lv['extent_size'] = int(words[8])
+            lv['total'] = int(words[9])
+            lv['origin'] = words[10].strip()
+            if lv['origin'] == '':
+                lv['origin'] = None
+            lv['is_snapshot'] = False
+            if lv['origin'] is not None:
+                lv['is_snapshot'] = True
+            lv['is_pb_vol'] = False
+            lv['has_snap_ext'] = False
+            lv['has_ini_file'] = False
+            lv['delete_timestamp'] = None
+            lv['cfg_file'] = None
+            lv['cfg_file_exists'] = False
+            lv['cfg_file_valid'] = False
+            lv['remove_timestamp'] = None
+
+            if lv['vgname'] == self.pb_vg:
+                match = re_pb_vol.search(lv['lvname'])
+                if match:
+                    lv['is_pb_vol'] = True
+                    if match.group(1) is not None:
+                        lv['has_snap_ext'] = True
+            if lv['is_pb_vol'] and not lv['is_snapshot']:
+                lv['cfg_file'] = os.path.join(STORAGE_CONFIG_DIR,
+                        (lv['lvname'] + '.ini'))
+                if os.path.exists(lv['cfg_file']):
+                    lv['cfg_file_exists'] = True
+                    try:
+                        lv['remove_timestamp'] = self.get_remove_timestamp(
+                                lv['cfg_file'])
+                        lv['cfg_file_valid'] = True
+                    except CfgFileNotValidError as e:
+                        log.debug("Error reading %r: %s", lv['cfg_file'], e)
+
+            self.lvm_lvs.append(lv)
+
+    #--------------------------------------------------------------------------
+    def get_remove_timestamp(self, cfg_file):
+
+
+        cfg = cfgparser.ConfigParser()
+        try:
+            cfg.read(cfg_file)
+        except Exception as e:
+            msg = "%s: %s" % (e.__class__.__name__, e)
+            raise CfgFileNotValidError(cfg_file, msg)
+
+        if not cfg.has_section('Volume'):
+            return None
+
+        if not cfg.has_option('Volume', "remove_object"):
+            return None
+
+        timestamp = cfg.get('Volume', "remove_object")
+        try:
+            timestamp = int(timestamp)
+        except Exception as e:
+            msg = "%s: %s" % (e.__class__.__name__, e)
+            raise CfgFileNotValidError(cfg_file, msg)
+
+        return timestamp
+
 
 #==============================================================================
 
