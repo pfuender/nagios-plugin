@@ -58,7 +58,7 @@ from dcmanagerclient.client import RestApi
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 30
@@ -67,6 +67,9 @@ DEFAULT_API_AUTHTOKEN = '604a3b5f6db67e5a3a48650313ddfb2e8bcf211b'
 DEFAULT_PB_VG = 'storage'
 STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
 DUMMY_LV = 'ed00-0b07-71ed-000c0ffee000'
+
+DEFAULT_WARN_VOL_ERRORS = 0
+DEFAULT_CRIT_VOL_ERRORS = 2
 
 #LVM_PATH = "/usr/sbin"
 LVM_PATH = os.sep + os.path.join('usr', 'sbin')
@@ -159,6 +162,20 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         @ivar: the name of the ProfitBricks storage volume group
         """
 
+        self._warning = NagiosRange(DEFAULT_WARN_VOL_ERRORS)
+        """
+        @ivar: the warning threshold of the test, max number of volume errors,
+               before a warning result is given
+        @type: NagiosRange
+        """
+
+        self._critical = NagiosRange(DEFAULT_CRIT_VOL_ERRORS)
+        """
+        @ivar: the critical threshold of the test, max number of volume errors,
+               before a warning result is given
+        @type: NagiosRange
+        """
+
         # /sbin/lvm
         self._lvm_command = LVM_BIN_PATH
         """
@@ -209,6 +226,18 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
     #------------------------------------------------------------
     @property
+    def warning(self):
+        """The warning threshold of the test."""
+        return self._warning
+
+    #------------------------------------------------------------
+    @property
+    def critical(self):
+        """The critical threshold of the test."""
+        return self._critical
+
+    #------------------------------------------------------------
+    @property
     def lvm_command(self):
         """The 'lvm' command in operating system."""
         return self._lvm_command
@@ -230,6 +259,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         d['api_url'] = self.api_url
         d['api_authtoken'] = self.api_authtoken
         d['pb_vg'] = self.pb_vg
+        d['warning'] = self.warning
+        d['critical'] = self.critical
         d['api'] = None
         if self.api:
             d['api'] = self.api.__dict__
@@ -241,6 +272,31 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
+
+        msg_tpl = ("Generate %s state if the sum of missing, erroneous and " +
+                "orphaned volumes is higher (Default: %%(default)d).")
+
+        msg = msg_tpl % ('warning')
+        self.add_arg(
+                '-w', '--warning',
+                metavar = 'NUMBER',
+                dest = 'warning',
+                required = True,
+                type = int,
+                default = DEFAULT_WARN_VOL_ERRORS,
+                help = msg,
+        )
+
+        msg = msg_tpl % ('critical')
+        self.add_arg(
+                '-c', '--critical',
+                metavar = 'NUMBER',
+                dest = 'critical',
+                type = int,
+                required = True,
+                default = DEFAULT_CRIT_VOL_ERRORS,
+                help = msg,
+        )
 
         self.add_arg(
                 '-H', '--hostname', '--host',
@@ -292,12 +348,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         Evaluates comand line parameters after evaluating the configuration.
         """
 
+        # define Hostname
         hn = self.argparser.args.hostname
         if hn:
             hn = hn.strip()
         if hn:
             self._hostname = hn.lower()
 
+        # define API URL
         if self.argparser.args.api_url:
             self._api_url = self.argparser.args.api_url
 
@@ -309,11 +367,13 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         if not self.api_url:
             self._api_url = DEFAULT_API_URL
 
+        # define API authtoken
         if not self.api_authtoken:
             self._api_authtoken = os.environ.get('RESTAPI_AUTHTOKEN')
         if not self.api_authtoken:
             self._api_authtoken = DEFAULT_API_AUTHTOKEN
 
+        # define storage volume group
         if self.argparser.args.pb_vg:
             self._pb_vg = self.argparser.args.pb_vg
 
@@ -322,6 +382,19 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         if not self.pb_vg:
             self._pb_vg = DEFAULT_PB_VG
 
+        # define warning level
+        if self.argparser.args.warning is not None:
+            self._warning = NagiosRange(self.argparser.args.warning)
+
+        # define critical level
+        if self.argparser.args.critical is not None:
+            self._critical = NagiosRange(self.argparser.args.critical)
+
+        # set thresholds
+        self.set_thresholds(
+                warning = self.warning,
+                critical = self.critical,
+        )
     #--------------------------------------------------------------------------
     def read_config(self):
         """
@@ -453,18 +526,18 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         self.compare()
 
+        # Get current state and redefine output, if necessary
         total_errors = self.count['missing'] + self.count['orphans'] + self.count['error']
-        self.set_thresholds(
-                warning = 1,
-                critical = 3,
-        )
         state = self.threshold.get_status(total_errors)
         if total_errors == 1:
             out = "One error on provisioned storage volumes."
         elif total_errors > 1:
             out = "Currently %d errors on provisioned storage volumes." % (total_errors)
 
+        # generate performance data (except number of dummy volumes)
         for key in self.count:
+            if key == 'dummy':
+                continue
             self.add_perfdata(label = key, value = self.count[key])
 
         if self.verbose > 1:
@@ -479,18 +552,21 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
             self.count['total'] += 1
 
+            # volume group not 'storage' or volume name not a shortened GUID
             if not lv['is_pb_vol']:
                 self.count['alien'] += 1
                 log.debug("LV %s/%s is not a valid Profitbricks volume.",
                         lv['vgname'], lv['lvname'])
                 continue
 
+            # LVM snapshots don't count
             if lv['is_snapshot']:
                 self.count['snapshots'] += 1
                 log.debug("LV %s/%s is a valid Profitbricks LVM snapshot.",
                         lv['vgname'], lv['lvname'])
                 continue
 
+            # our sealed bottled coffee volume
             if lv['lvname'] == DUMMY_LV:
                 self.count['dummy'] += 1
                 log.debug("LV %s/%s is the notorious dummy device.",
@@ -500,15 +576,20 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             guid = '600144f0-' + lv['lvname']
             if self.verbose > 3:
                 log.debug("Searching for GUID %r ...", guid)
+
             if not guid in self.all_api_volumes:
+
                 if lv['cfg_file_exists'] and lv['cfg_file_valid'] and lv['remove_timestamp']:
+                    # Zombie == should be removed sometimes
                     self.count['zombies'] += 1
-                    if self.verbose > 2:
+                    if self.verbose > 1:
                         ts = lv['remove_timestamp']
                         dd = datetime.datetime.fromtimestamp(ts)
                         log.debug(("LV %s/%s has a remove timestamp " +
                                 "of %d (%s)") % (lv['vgname'], lv['lvname'], ts, dd))
                 else:
+
+                    # Orphaned == existing, should not be removed, but not in DB
                     self.count['orphans'] += 1
                     msg = "LV %s/%s is orphaned: " % (lv['vgname'], lv['lvname'])
                     if not lv['cfg_file_exists']:
@@ -523,12 +604,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             try:
 
                 if not lv['cfg_file_exists']:
+                    # No config file found == Error
                     self.count['error'] += 1
                     log.info("LV %s/%s has no config file %r.", lv['vgname'],
                             lv['lvname'], lv['cfg_file'])
                     continue
 
                 if lv['remove_timestamp']:
+                    # Volume should be there, but remove date was set
                     self.count['error'] += 1
                     ts = lv['remove_timestamp']
                     dd = datetime.datetime.fromtimestamp(ts)
@@ -539,6 +622,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 cur_size = lv['total']
                 target_size = self.all_api_volumes[guid]['size']
                 if cur_size != target_size:
+                    # different sizes between database and current state
                     self.count['error'] += 1
                     log.info(("LV %s/%s has a wrong size, current %d MiB, " +
                             "provisioned %d MiB."), lv['vgname'], lv['lvname'],
