@@ -1,0 +1,105 @@
+#!/bin/bash
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+#UTILS="${PROGPATH}/../utils.sh"
+UTILS=/usr/lib/nagios/plugins/utils.sh
+if ! [[ -e ${UTILS} ]]; then
+    echo "File '${UTILS}' does not exist, aborting!"
+    exit 1
+fi
+. /usr/lib/nagios/plugins/utils.sh
+
+CONF_FILE=/etc/profitbricks/vncproxy/vncproxy.conf
+# warn if 95% of the connection limit is reached
+declare -i WARN=95
+# critical if 100% of the connection limit is reached
+declare -i CRIT=100
+VERBOSE=0
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} [-w|--warning WARNING_LIMIT] [-c|--critical CRITICAL_LIMIT] [-v|--verbose]"
+    echo ""
+    echo "       LIMITS are in %"
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks for reaching the running vncproxy connections/processes limit."
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    if [[ ${VERBOSE} -eq 1 ]]; then
+        echo $1
+    fi
+}
+
+# get arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -w|--warning)
+            WARN=$2
+            shift 2
+            ;;
+        -c|--critical)
+            CRIT=$2
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        *)
+            echo "Unknown argument '$1', aborting!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+# do the work
+if ! which vncproxy >/dev/null; then
+    echo "'vncproxy' is not installed!"
+    exit ${STATE_CRITICAL}
+fi
+
+max_connections=
+if [[ -r ${CONF_FILE} ]]; then
+    max_connections=$(($(sed -n -e "s|^[^#]*maxchildren=[[:space:]]*\([0-9]*\)|\1|p" ${CONF_FILE}) * ${CRIT} / 100))
+fi                                                                              
+max_connections=${max_connections:=100}
+
+connections=$(ps ax | grep vncp | grep -v grep | wc -l)
+((connections--)) # one of them is master
+
+warn_connections=$((${WARN} * ${max_connections} / 100))
+
+if [[ $connections -ge $max_connections ]]; then
+    echo "CRITICAL: Connections reached limit: $connections/$max_connections | connections=$connections;${warn_connections};${max_connections};0;" >&2
+    exit ${STATE_CRITICAL}
+elif [[ ${connections} -ge ${warn_connections} ]]; then
+    echo "WARNING: Connection limit: $connections/$max_connections | connections=$connections;${warn_connections};${max_connections};0;" >&2
+    exit ${STATE_WARNING}
+else
+    echo "OK: Connections within limit: $connections/$max_connections | connections=$connections;${warn_connections};${max_connections};0;">&2
+    exit ${STATE_OK}
+fi
+
+# vim: ts=4 sw=4 et filetype=sh
