@@ -550,6 +550,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         for lv in self.lvm_lvs:
 
+            if self.verbose > 3:
+                log.debug("Checking LV %s/%s ...", lv['vgname'], lv['lvname'])
             self.count['total'] += 1
 
             # volume group not 'storage' or volume name not a shortened GUID
@@ -601,39 +603,41 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     log.info(msg)
                 continue
 
-            try:
-
-                if not lv['cfg_file_exists']:
-                    # No config file found == Error
-                    self.count['error'] += 1
-                    log.info("LV %s/%s has no config file %r.", lv['vgname'],
-                            lv['lvname'], lv['cfg_file'])
-                    continue
-
-                if lv['remove_timestamp']:
-                    # Volume should be there, but remove date was set
-                    self.count['error'] += 1
-                    ts = lv['remove_timestamp']
-                    dd = datetime.datetime.fromtimestamp(ts)
-                    log.info(("LV %s/%s is valid, but has a remove timestamp " +
-                            "of %d (%s)"), lv['vgname'], lv['lvname'], ts, dd)
-                    continue
-
-                cur_size = lv['total']
-                target_size = self.all_api_volumes[guid]['size']
-                if cur_size != target_size:
-                    # different sizes between database and current state
-                    self.count['error'] += 1
-                    log.info(("LV %s/%s has a wrong size, current %d MiB, " +
-                            "provisioned %d MiB."), lv['vgname'], lv['lvname'],
-                            cur_size, target_size)
-                    continue
-
-            finally:
+            if not lv['cfg_file_exists']:
+                # No config file found == Error
+                self.count['error'] += 1
+                log.info("LV %s/%s has no config file %r.", lv['vgname'],
+                        lv['lvname'], lv['cfg_file'])
                 del self.all_api_volumes[guid]
+                continue
 
+            if lv['remove_timestamp']:
+                # Volume should be there, but remove date was set
+                self.count['error'] += 1
+                ts = lv['remove_timestamp']
+                dd = datetime.datetime.fromtimestamp(ts)
+                log.info(("LV %s/%s is valid, but has a remove timestamp " +
+                        "of %d (%s)"), lv['vgname'], lv['lvname'], ts, dd)
+                del self.all_api_volumes[guid]
+                continue
+
+            cur_size = lv['total']
+            target_size = self.all_api_volumes[guid]['size']
+            if cur_size != target_size:
+                # different sizes between database and current state
+                self.count['error'] += 1
+                log.info(("LV %s/%s has a wrong size, current %d MiB, " +
+                        "provisioned %d MiB."), lv['vgname'], lv['lvname'],
+                        cur_size, target_size)
+                del self.all_api_volumes[guid]
+                continue
+
+            if self.verbose > 2:
+                log.debug("LV %s/%s seems to be ok.", lv['vgname'], lv['lvname'])
             self.count['ok'] += 1
+            del self.all_api_volumes[guid]
 
+        # Checking for volumes, they are not in self.all_api_volumes
         if len(self.all_api_volumes.keys()):
             for guid in self.all_api_volumes:
                 voltype = 'Volume'
@@ -825,15 +829,26 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         lines = std_out.split('\n')
 
+        got_lvs = []
+
         for line in lines:
             line = line.strip()
             if line == '':
                 continue
+            if self.verbose > 4:
+                log.debug("Checking line %r", line)
+
             words = line.split(";")
 
             lv = {}
             lv['lvname'] = words[0].strip()
             lv['vgname'] = words[1].strip()
+
+            lv_name = "%s/%s" % (lv['vgname'], lv['lvname'])
+            if lv_name in got_lvs:
+                continue
+            got_lvs.append(lv_name)
+
             lv['stripes'] = int(words[2])
             lv['stripesize'] = int(words[3])
             lv['attr'] = words[4].strip()
@@ -842,6 +857,11 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             lv['path'] = words[7].strip()
             lv['extent_size'] = int(words[8])
             lv['total'] = int(words[9]) / 1024 / 1024
+
+            if self.verbose > 3:
+                log.debug("Got LV %s/%s, size %d MiB ...", lv['vgname'],
+                         lv['lvname'], lv['total'])
+
             lv['origin'] = words[10].strip()
             if lv['origin'] == '':
                 lv['origin'] = None
