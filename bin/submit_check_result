@@ -41,8 +41,8 @@ function usage {
     echo "$@" 1>&2
     echo "
     Usage: $0 [-v] --submit-results
-           $0 [-v] --queue-host-result <hostname> <state> <plugin_output>
-           $0 [-v] --queue-service-result <hostname> <svc_description> <state> <plugin_output>
+           $0 [-v] --queue-host-result <hostname> <state> <plugin_output> <performance_data>
+           $0 [-v] --queue-service-result <hostname> <svc_description> <state> <plugin_output> <performance_data>
 
            -v, --verbose           enable verbose output
            --submit-results	   send content of each result file via send_nsca
@@ -113,11 +113,11 @@ function queue_result {
     file="$dir/$time"
 
     if [ -n "$svc_description" ];then
-        info "queueing service check results to $file: $hostname $svc_description $return_code $plugin_output"
-        /usr/bin/printf "%s\t%s\t%s\t%s\027" "$hostname" "$svc_description" "$return_code" "$plugin_output" >> $file || error "cannot write results to $file: $!"
+        info "queueing service check results to $file: $hostname $svc_description $return_code $plugin_output $performance_data"
+        /usr/bin/printf "%s\t%s\t%s\t%s|%s\027" "$hostname" "$svc_description" "$return_code" "$plugin_output" "$performance_data" >> $file || error "cannot write results to $file: $!"
     else
-        info "queueing host check results to $file: $hostname $return_code $plugin_output"
-        /usr/bin/printf "%s\t%s\t%s\027" "$hostname" "$return_code" "$plugin_output" >> $file || error "cannot write results to $file: $!"
+        info "queueing host check results to $file: $hostname $return_code $plugin_output $performance_data"
+        /usr/bin/printf "%s\t%s\t%s|%s\027" "$hostname" "$return_code" "$plugin_output" "$performance_data" >> $file || error "cannot write results to $file: $!"
     fi
 }
 
@@ -138,7 +138,9 @@ while true ; do
         hostname=$1
         state=$2
         plugin_output=$3
-        shift 3
+        performance_data=$4
+        [ -z "${performance_data}" ] && shift 3 || shift 4
+        # some plugins do not have performance data
         if [ -z "$plugin_output" ];then
             usage "option --queue-host-result takes 3 arguments"
         fi
@@ -153,9 +155,11 @@ while true ; do
         svc_description=$2
         state=$3
         plugin_output=$4
-        shift 4
+        performance_data=$5
+        [ -z "${performance_data}" ] && shift 4 || shift 5
+        # some plugins do not have performance data
         if [ -z "$plugin_output" ];then
-            usage "option --queue-service-result takes 4 arguments"
+            usage "option --queue-service-result takes 4 arguments at minimum"
         fi
 #        if [ -n "$1" ];then
 #            usage "option --queue-service-result takes 4 arguments"
