@@ -1,3 +1,18 @@
+python-nagios-plugin (1.5.0-2) stable; urgency=low
+
+  * Updated nagios-plugin.ebuild and pb-nagios-plugins.ebuild for an
+    older version of distutils eclass
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 31 Jan 2014 12:24:51 +0100
+
+python-nagios-plugin (1.5.0-1) stable; urgency=low
+
+  * check_vncproxy: added for redmine #1837
+  * Added bin/check_pb_consistence_storage for consistency checks of
+    storage volumes against the target state inthe database
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 30 Jan 2014 16:23:25 +0100
+
 python-nagios-plugin (1.4.3-1) wheezy; urgency=low
 
   * submit_check_result: process host and service performance data
@@ -9,6 +24,27 @@ python-nagios-plugin (1.4.2-1) unstable; urgency=low
   * Version bump
 
  -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 31 Jan 2014 11:14:06 +0100
+
+python-nagios-plugin (1.4.2-3) stable; urgency=low
+
+  * Changed EGIT_BRANCH to master in nagios-plugin.ebuild
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 28 Jan 2014 14:28:14 +0100
+
+python-nagios-plugin (1.4.2-2) stable; urgency=low
+
+  * Updated pb-nagios-plugins.ebuild with some dependencies to nrpe and
+    dev-perl/Nagios-Plugin and added installation of NRPE config files
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 28 Jan 2014 14:05:04 +0100
+
+python-nagios-plugin (1.4.2-1) stable; urgency=low
+
+  * Updated allowed_hosts in etc/nrpe.d/00_allowed_hosts.cfg, included
+    storage monitoring host and Franks workstation
+  * Added some checks in etc/nrpe.d/10_pb-check.cfg
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 28 Jan 2014 12:14:01 +0100
 
 python-nagios-plugin (1.4.1-0) wheezy; urgency=low
 
