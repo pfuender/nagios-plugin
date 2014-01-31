@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.0-2) stable; urgency=low
+
+  * Updated nagios-plugin.ebuild and pb-nagios-plugins.ebuild for an
+    older version of distutils eclass
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 31 Jan 2014 12:24:51 +0100
+
 python-nagios-plugin (1.5.0-1) stable; urgency=low
 
   * check_vncproxy: added for redmine #1837
