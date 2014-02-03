@@ -22,6 +22,7 @@ import uuid
 import math
 import datetime
 
+
 from numbers import Number
 
 try:
@@ -53,15 +54,15 @@ from nagios.plugin.extended import ExtNagiosPlugin
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
-from dcmanagerclient.client import RestApi
+from dcmanagerclient.client import RestApi, RestApiError
 
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 60
 DEFAULT_API_URL = 'https://dcmanager.pb.local/dc/api'
 DEFAULT_API_AUTHTOKEN = '604a3b5f6db67e5a3a48650313ddfb2e8bcf211b'
 DEFAULT_PB_VG = 'storage'
@@ -666,7 +667,15 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
 
-        for stor in self.api.vstorages(pstorage = self.hostname):
+        storages = None
+        try:
+            storages = self.api.vstorages(pstorage = self.hostname)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        for stor in storages:
 
             replicated = stor[key_replicated]
             size = stor[key_size]
@@ -716,7 +725,15 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_guid = key_guid.decode('utf-8')
             key_image_type = key_image_type.decode('utf-8')
 
-        for stor in self.api.vimages(pstorage = self.hostname):
+        images = None
+        try:
+            images = self.api.vimages(pstorage = self.hostname)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        for stor in images:
 
             if self.verbose > 4:
                 log.debug("Got Image volume from API:\n%s", pp(stor))
@@ -778,7 +795,15 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_guid = key_guid.decode('utf-8')
             key_image_type = key_image_type.decode('utf-8')
 
-        for stor in self.api.vsnapshots(pstorage = self.hostname):
+        snapshots = None
+        try:
+            snapshots = self.api.vsnapshots(pstorage = self.hostname)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        for stor in snapshots:
 
             if self.verbose > 4:
                 log.debug("Got Snapshot volume from API:\n%s", pp(stor))
