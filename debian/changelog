@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.0-3) wheezy; urgency=low
+
+  * version bump (rebuild for wheezy)
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 06 Feb 2014 18:11:11 +0100
+
 python-nagios-plugin (1.5.0-2) stable; urgency=low
 
   * Updated nagios-plugin.ebuild and pb-nagios-plugins.ebuild for an
