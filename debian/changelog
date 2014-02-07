@@ -1,3 +1,21 @@
+python-nagios-plugin (1.5.1-1) stable; urgency=low
+
+  * Declared for stable
+  * Added dependency to python-dcmanager-client and nagios-plugins-basic
+    for Debian
+  * Bugfixing in nagios/plugins/check_pb_consistence_storage.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 07 Feb 2014 09:52:39 +0100
+
+python-nagios-plugin (1.5.1-1) wheezy; urgency=low
+
+  * Declared for stable
+  * Added dependency to python-dcmanager-client and nagios-plugins-basic
+    for Debian
+  * Bugfixing in nagios/plugins/check_pb_consistence_storage.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 07 Feb 2014 09:52:39 +0100
+
 python-nagios-plugin (1.5.0-4) wheezy; urgency=low
 
   * added dependency for nagios-plugins-basic to pb-config-nagios-nrpe-server
