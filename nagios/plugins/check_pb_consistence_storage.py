@@ -59,7 +59,7 @@ from dcmanagerclient.client import RestApi, RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.7.1'
+__version__ = '0.7.2'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -691,6 +691,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     guid = uuid.UUID(replica[key_guid])
                     break
 
+            if not guid:
+                log.debug("No valid GUID found for storage volume:\n%s", pp(stor))
+                continue
+
             vol = {
                 'guid': guid,
                 'replicated': replicated,
@@ -759,6 +763,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 if hn == self.hostname:
                     guid = uuid.UUID(replica[key_guid])
                     break
+
+            if not guid:
+                log.debug("No valid GUID found for image:\n%s", pp(stor))
+                continue
 
             vol = {
                 'guid': guid,
