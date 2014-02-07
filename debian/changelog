@@ -25,6 +25,18 @@ python-nagios-plugin (1.5.0-1) stable; urgency=low
 
  -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 30 Jan 2014 16:23:25 +0100
 
+python-nagios-plugin (1.4.3-1) wheezy; urgency=low
+
+  * submit_check_result: process host and service performance data
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 31 Jan 2014 11:14:06 +0100
+
+python-nagios-plugin (1.4.2-1) unstable; urgency=low
+
+  * Version bump
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 31 Jan 2014 11:14:06 +0100
+
 python-nagios-plugin (1.4.2-3) stable; urgency=low
 
   * Changed EGIT_BRANCH to master in nagios-plugin.ebuild
