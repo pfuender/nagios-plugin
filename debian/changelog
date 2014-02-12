@@ -1,3 +1,15 @@
+python-nagios-plugin (1.5.2-1) stable; urgency=low
+
+  * Minimal changes because of MD array state 'write-pending'
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 12 Feb 2014 15:39:36 +0100
+
+python-nagios-plugin (1.5.2-1) wheezy; urgency=low
+
+  * Minimal changes because of MD array state 'write-pending'
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 12 Feb 2014 15:39:36 +0100
+
 python-nagios-plugin (1.5.1-1) stable; urgency=low
 
   * Declared for stable
