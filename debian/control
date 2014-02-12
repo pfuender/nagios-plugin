@@ -36,7 +36,7 @@ Package: pb-nagios-plugins
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
  python-pkg-resources, python-nagios-plugin (= ${binary:Version}),
- python-dcmanager-client (>=0.4-1)
+ python-dcmanager-client (>=0.4-1), nagios-plugins-basic
 Conflicts: pb-nagios-plugins-python3
 Recommends: smartmontools, ipmitool
 Description: Additional Nagios plugins for usage by ProfitBricks
@@ -59,7 +59,7 @@ Description: Base module for Nagios check plugins written in Python - documentat
 Package: pb-config-nagios-nrpe-server
 Architecture: all
 Suggests: python-nagios-plugin (= ${binary:Version})
-Depends: nagios-nrpe-server, nagios-plugins-basic
+Depends: nagios-nrpe-server
 Description: Config file replacements for nagios-nrpe-server
  .
  This package contains the profitbricks configuration for nrpe. Replaces
