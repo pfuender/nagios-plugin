@@ -182,14 +182,14 @@ raid_state() {
 
     # set the exitcode in nagios style like 0=ok, 1=warning, 2=critical
     case ${DATA} in
-        'read-auto'|'clean'|'active'|'active-idle')
+        'read-auto'|'clean'|'active'|'active-idle'|'write-pending')
             RETVAL="${STATE_OK}"
             MESSAGE="/dev/${RAIDDEV} OK: state '${DATA}'"
         ;;
-        'write-pending')
-            RETVAL="${STATE_WARNING}"
-            MESSAGE="/dev/${RAIDDEV} WARNING: state '${DATA}'"
-        ;;
+#        'write-pending')
+#            RETVAL="${STATE_WARNING}"
+#            MESSAGE="/dev/${RAIDDEV} WARNING: state '${DATA}'"
+#        ;;
         'clear'|'inactive'|'readonly')
             RETVAL="${STATE_CRITICAL}"
             MESSAGE="/dev/${RAIDDEV} CRITICAL: state '${DATA}'"
