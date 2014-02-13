@@ -92,13 +92,13 @@ connections=$(ps ax | grep vncp | grep -v grep | wc -l)
 warn_connections=$((${WARN} * ${max_connections} / 100))
 
 if [[ $connections -ge $max_connections ]]; then
-    echo "CRITICAL: Connections reached limit: $connections/$max_connections | connections=$connections;${warn_connections};${max_connections};0;" >&2
+    echo "CONNECTIONS CRITICAL - $connections of $max_connections used | connections=$connections;${warn_connections};${max_connections};0;"
     exit ${STATE_CRITICAL}
 elif [[ ${connections} -ge ${warn_connections} ]]; then
-    echo "WARNING: Connection limit: $connections/$max_connections | connections=$connections;${warn_connections};${max_connections};0;" >&2
+    echo "CONNECTIONS WARNING - $connections of $max_connections used | connections=$connections;${warn_connections};${max_connections};0;"
     exit ${STATE_WARNING}
 else
-    echo "OK: Connections within limit: $connections/$max_connections | connections=$connections;${warn_connections};${max_connections};0;">&2
+    echo "CONNECTIONS OK - $connections of $max_connections used | connections=$connections;${warn_connections};${max_connections};0;"
     exit ${STATE_OK}
 fi
 
