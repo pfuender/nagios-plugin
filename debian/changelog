@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.4-1.1) stable; urgency=low
+
+  * added first version of check_IPoIB.py that does ping6 over infiniband between all pservers
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Fri, 14 Feb 2014 10:13:28 +0100
+
 python-nagios-plugin (1.5.4-1) wheezy; urgency=low
 
   * 10_pb-check.cfg: remove sudo from check_vncproxy
