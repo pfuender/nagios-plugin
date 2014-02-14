@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.5-1) stable; urgency=low
+
+  * 10_pb-check.cfg: added check_IPoIB
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Fri, 14 Feb 2014 10:17:46 +0100
+
 python-nagios-plugin (1.5.4-1.1) stable; urgency=low
 
   * added first version of check_IPoIB.py that does ping6 over infiniband between all pservers
