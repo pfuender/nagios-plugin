@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.8-3) wheezy; urgency=low
+
+  * Build for wheezy
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 17 Feb 2014 15:50:31 +0100
+
 python-nagios-plugin (1.5.8-2) squeeze; urgency=low
 
   * Build for squeeze
