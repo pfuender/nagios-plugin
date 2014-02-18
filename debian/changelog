@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.9-1) squeeze; urgency=low
+
+  * add sudoers config for nagios user
+  * add check_bgp_established
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 18 Feb 2014 15:51:51 +0100
+
 python-nagios-plugin (1.5.8-5) stable; urgency=low
 
   * modified nrpe config, added new commandline for check_iberr_switches and
