@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.8-5) stable; urgency=low
+
+  * modified nrpe config, added new commandline for check_iberr_switches and
+    check_iberr
+
+ -- Torsten-Sven Urbas <torsten-sven.urbas@profitbricks.com>  Tue, 18 Feb 2014 15:13:00 +0100
+
 python-nagios-plugin (1.5.8-4) squeeze; urgency=low
 
   * remove nagios-plugins-common as dependency from pb-nagios-plugins because
