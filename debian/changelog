@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.8-4) squeeze; urgency=low
+
+  * remove nagios-plugins-common as dependency from pb-nagios-plugins because
+    it is not available in squeeze
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 18 Feb 2014 08:00:24 +0100
+
 python-nagios-plugin (1.5.8-3) wheezy; urgency=low
 
   * Build for wheezy
