@@ -101,7 +101,6 @@ override_dh_auto_install:
 	cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
 
 	mkdir -p $(CFG_DIR)/sudoers.d
-	cp $(CURDIR)/etc/sudoers.d $(CFG_DIR)/
 	cp $(CURDIR)/etc/sudoers.d/* $(CFG_DIR)/sudoers.d/
 	chmod 0440 $(CFG_DIR)/sudoers.d/*
 
