@@ -100,9 +100,9 @@ override_dh_auto_install:
 	cp $(CURDIR)/etc/nrpe.cfg $(CFG_DIR)/
 	cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
 
-	mkdir -p $(CFG_DIR)/sudoers.d
-	cp $(CURDIR)/etc/sudoers.d/* $(CFG_DIR)/sudoers.d/
-	chmod 0440 $(CFG_DIR)/sudoers.d/*
+	mkdir -p debian/$(CFG_PKGNAME)/etc/sudoers.d
+	cp $(CURDIR)/etc/sudoers.d/* debian/$(CFG_PKGNAME)/etc/sudoers.d/
+	chmod 0440 debian/$(CFG_PKGNAME)/etc/sudoers.d/*
 
 
 	dh_link
