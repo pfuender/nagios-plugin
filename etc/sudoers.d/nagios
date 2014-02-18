@@ -1,1 +1,1 @@
-nagios ALL=(ALL:ALL) NOPASSWD:/usr/bin/birdc6
+nagios ALL=(ALL:ALL) NOPASSWD:/usr/sbin/birdc6
