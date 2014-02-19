@@ -3,6 +3,7 @@
 from __future__ import print_function
 import signal,sys,os,re,time,threading,subprocess
 import json
+import pprint
 from socket import getfqdn, gethostname, getaddrinfo, AF_INET6, SOCK_RAW
 from string import split
 from urllib2 import Request, urlopen, URLError, HTTPError
@@ -84,92 +85,198 @@ class ping6(threading.Thread):
 ############# END class ping6 ###############
 #############################################
 
+### TODO:
+### - pinghost should be a dict
+###       {
+###        ping_address: 'hostname or ipv6 addr',
+###        hostalias: 'hostname to display',
+###        ipv4_address: 'ping this address if ping6 to ping_address fails and only get CRITICAL if ipv4_address is pingable'
+###       }
+def pinghost(i,pinghost):
+    ping6.lck.acquire()
+    if len(ping6.ping6list) >= ping6.maxthreads:
+        ping6.lck.release()
+        #print("%s: maxthreads %d reached, waiting ..." % (pinghost[hostalias], ping6.maxthreads))
 
-#def ping6_evnt_wait_timeout(signum, frame):
-#    print('UNKNOWN: timeout for ping6.evnt.wait() for host %s' % (fqdn))
-#    sys.exit(state['UNKNOWN'])
+        # Set the signal handler and a 5-second alarm
+        #signal.signal(signal.SIGALRM, ping6_evnt_wait_timeout)
+        #signal.alarm(1)
+
+        # This may hang indefinitely
+        #ping6.evnt.wait()
+
+        #signal.alarm(0)          # Disable the alarm
+
+        #print("  .. ping6.evnt.clear() for %s" % (pinghost[hostalias]))
+        ping6.evnt.clear()
+        #print("  .. go")
+    else:
+        ping6.lck.release()
+        #print("%s: go, current number of threads: %d" % (pinghost[hostalias],len(ping6.ping6list)))
+    ping6.newthread(i,pinghost["ping_address"])
+    #ping6.newthread(i,pinghost.rstrip())
+    i += 1
+    return i
+
+### TODO: get also hosts that are down and handle them correctly
+def get_serverlist(type):
+    ## TODO: storages are not included yet
+    url='https://dcmanager.pb.local:443/dc/api/' + type + '/?up=true'
+    token="604a3b5f6db67e5a3a48650313ddfb2e8bcf211b"
+    
+    req = Request(url, None, {'Authorization': "Token " + token})
+    try:
+        response = urlopen(req)
+    except HTTPError as e:
+        print('UNKNOWN: The server couldn\'t fulfill the request. Error code: ', e.code)
+        sys.exit(state['UNKNOWN'])
+    except URLError as e:
+        print('UNKNOWN: Failed to reach dcmanager api. Reason: ', e.reason)
+        sys.exit(state['UNKNOWN'])
+    return json.loads(response.read())
+
+def get_bgp_neighbors():
+    bgp_pattern = re.compile('^bgp\d+$')
+    bgp_host_pattern = re.compile('\([A-Za-z0-9-.]+\)$')
+    bgp_neighbors = {}
+    devnull = open('/dev/null', 'w')
+    ## EXPECTED OUTPUT
+    ## tmoericke@pserver1719:~$ sudo birdc6 show protocols  |grep BGP| awk '{print $1}'
+    ## bgp1
+    ## bgp2
+    ## bgp3
+    ## bgp4
+    cmd = subprocess.Popen("sudo birdc6 show protocols  |grep BGP| awk '{print $1}'", shell=True, stdout=subprocess.PIPE, stderr=devnull)
+    for bgp in cmd.stdout:
+        bgp = bgp.strip()
+        if not bgp_pattern.match(bgp):
+            #print("fail %s" % bgp)
+            continue
+
+        #print(bgp)
+
+        ## EXPECTED OUTPUT
+        ## tmoericke@pserver1719:~$ sudo birdc6 show protocols all bgp1 |egrep '(BGP state|Neighbor address|Neighbor ID|Description):'
+        ##   Description:    gateway-fc57:1:0:1:0:11:2:1 (gw1701)
+        ##   BGP state:          Established
+        ##     Neighbor address: fc57:1:0:1:0:11:2:1
+        ##     Neighbor ID:      10.1.171.249
+        birdc6_command = "sudo birdc6 show protocols all %s" % bgp
+        cmd2 = subprocess.Popen("%s |egrep '(BGP state|Neighbor address|Neighbor ID|Description):'" % birdc6_command, shell=True, stdout=subprocess.PIPE, stderr=devnull)
+        bgp_detail = {}
+        for line in cmd2.stdout:
+            #line = line.strip()
+            elements = line.split(":",1)
+            field = elements[0].strip()
+            value = elements[1].strip()
+            bgp_detail[field] = value
+        #pprint.pprint(bgp_detail)
+        #print(bgp_detail["Description"])
+        if "Description" in bgp_detail:
+            m = bgp_host_pattern.search(bgp_detail["Description"])
+            if m:
+                bgp_hostname = m.group().strip("()")
+            elif "Neighbor ID" in bgp_detail:
+                bgp_hostname = bgp_detail["Neighbor ID"]
+            elif "Neighbor address" in bgp_detail:
+                bgp_hostname = bgp_detail["Neighbor address"]
+            else:
+                print("UNKNOWN: Failed to extract hostname, ipv4 and ipv6 address from command: '%s'" % birdc6_command)
+                sys.exit(state['UNKNOWN'])
+
+        bgp_neighbors[bgp_hostname] = {}
+        for element in bgp_detail.keys():
+            if element != "Description":
+                bgp_neighbors[bgp_hostname][element] = bgp_detail[element]
+            
+    ###pprint.pprint(bgp_neighbors)
+    devnull.close()
+    return bgp_neighbors
+
 
 ## TODO: replace static progname with some basename methode on ARG[0]
 progname = "check_IPoIB.py"
 
 state = {"OK": 0, "WARNING": 1, "CRITICAL": 2, "UNKNOWN": 3}
 
-#verbose = 0
-#type = ""
-
-#def print_usage():
-#    print "Usage: ${PROGNAME} -t|--type <server type> [-v|--verbose]"
-#
-#def print_help():
-#    print "\n"
-#    print_usage()
-#    print "\n"
-#    print "    -v                         enable verbose output\n"
-#    print "\n"
-#    exit(state['OK'])
-#
-#def print_verbose(str):
-#    if verbose == 1:
-#        print str
-
-# do the work
-#exit = state['UNKNOWN']
-
-## TODO: pservers and storages need also to include gateways.
-##       Add a loop here or handle gateways in a special way.
-url='https://dcmanager.pb.local:443/dc/api/pservers/?up=true'
-token="604a3b5f6db67e5a3a48650313ddfb2e8bcf211b"
 fqdn = getfqdn(gethostname())
 (hostname,domain) = split(fqdn,'.',1)
+del fqdn
 
-req = Request(url, None, {'Authorization': "Token " + token})
-try:
-    response = urlopen(req)
-except HTTPError as e:
-    print('UNKNOWN: The server couldn\'t fulfill the request. Error code: ', e.code)
-    sys.exit(state['UNKNOWN'])
-except URLError as e:
-    print('UNKNOWN: Failed to reach dcmanager api. Reason: ', e.reason)
+pservers = get_serverlist("pservers")
+gateways = get_serverlist("pgateways")
+bgp_neighbors = get_bgp_neighbors()
+
+pattern = re.compile('\d+$')
+hosttype = pattern.sub('',hostname)
+#print("type: %s" % hosttype)
+if hosttype == "pserver":
+    serverlist = pservers
+elif hosttype == "gw":
+    serverlist = gateways
+else:
+    print("UNKNOWN: hosttype '%s' is not supported currently" % (hosttype))
     sys.exit(state['UNKNOWN'])
 
-j = json.loads(response.read())
+
 cluster = ""
-for ps in j:
+for ps in serverlist:
     if ps["name"] == hostname :
         cluster = ps["cluster"]
         break
+
+del serverlist
 
 if cluster == "":
     print("UNKNOWN: %s is not part of any cluster in dcmanager result set" % (hostname))
     sys.exit(state['UNKNOWN'])
 
 n = 0
-for ps in j:
+for ps in pservers:
     if ps["cluster"] == cluster :
         for i in range(2):
             fqdn = '%s-ib%i.%s' % (ps["name"], i, domain)
-            ping6.lck.acquire()
-            if len(ping6.ping6list) >= ping6.maxthreads:
-                ping6.lck.release()
-                #print("%s: maxthreads %d reached, waiting ..." % (fqdn, ping6.maxthreads))
+            ping_host = {}
+            ping_host["ping_address"] = fqdn
+            ping_host["hostalias"] = '%s-ib%i' % (ps["name"], i)
+            ping_host["ipv4_address"] = ps["ip"]
+            n = pinghost(n,ping_host)
 
-                # Set the signal handler and a 5-second alarm
-                #signal.signal(signal.SIGALRM, ping6_evnt_wait_timeout)
-                #signal.alarm(1)
 
-                # This may hang indefinitely
-                #ping6.evnt.wait()
+bgp_no_neighbor = []
+bgp_no_link = []
+bgp_ipv4_mismatch = []
+bgp_no_ipv6_address = []
+bgp_no_ipv4_address = []
 
-                #signal.alarm(0)          # Disable the alarm
-
-                #print("  .. ping6.evnt.clear() for %s" % (fqdn))
-                ping6.evnt.clear()
-                #print("  .. go")
+for ps in gateways:
+    if ps["cluster"] == cluster :
+        ping_hostname = ps["name"]
+        if ping_hostname not in bgp_neighbors:
+            if ps["ip_addr"] in bgp_neighbors:
+                ping_hostname = ps["ip_addr"]
             else:
-                ping6.lck.release()
-                #print("%s: go, current number of threads: %d" % (fqdn,len(ping6.ping6list)))
-            ping6.newthread(n,fqdn.rstrip())
-            n += 1
+                bgp_no_neighbor.append(ps["name"])
+                continue
+
+        if "Neighbor address" not in bgp_neighbors[ping_hostname]:
+            bgp_no_ipv6_address.append(ping_hostname)
+            continue
+
+        ## run ping
+        ping_host = {}
+        ping_host["ping_address"] = bgp_neighbors[ping_hostname]["Neighbor address"]
+        ping_host["hostalias"] = ping_hostname
+        ping_host["ipv4_address"] = ps["ip_addr"]
+        n = pinghost(n,ping_host)
+
+        if "BGP state" not in bgp_neighbors[ping_hostname] or bgp_neighbors[ping_hostname]["BGP state"] != "Established":
+            bgp_no_link.append(ping_hostname)
+
+        if "Neighbor ID" not in bgp_neighbors[ping_hostname]:
+            bgp_no_ipv4_address.append(ping_hostname)
+        elif bgp_neighbors[ping_hostname]["Neighbor ID"] != ps["ip_addr"]:
+            bgp_ipv4_mismatch.append(ping_hostname)
 
 
 while 1:
@@ -189,6 +296,16 @@ if len(ping6.notreached) > 0:
     msg.append("%d of %d hosts are not reachable (%s)" % (len(ping6.notreached),n,pattern.sub('',', '.join(sorted(ping6.notreached.keys())))))
 if len(ping6.failed) > 0:
     msg.append("failed check for %d of %d hosts (%s)" % (len(ping6.failed),n,pattern.sub('',', '.join(sorted(ping6.failed.keys())))))
+if len(bgp_no_neighbor) > 0:
+    msg.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor),pattern.sub('',', '.join(sorted(bgp_no_neighbor)))))
+if len(bgp_no_link) > 0:
+    msg.append("%d of %d hosts in bird setup have no established BGP state (%s)" % (len(bgp_no_link),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_link)))))
+if len(bgp_no_ipv4_address) > 0:
+    msg.append("%d of %d hosts have no IPv4 address in bird setup (%s)" % (len(bgp_no_ipv4_address),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_ipv4_address)))))
+if len(bgp_ipv4_mismatch) > 0:
+    msg.append("IPv4 address differs for %d of %d hosts between bird setup and dcmanager (%s)" % (len(bgp_ipv4_mismatch),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_ipv4_mismatch)))))
+if len(bgp_no_ipv6_address) > 0:
+    msg.append("%d of %d hosts in bird setup have no IPv6 address (%s)" % (len(bgp_no_ipv6_address),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_ipv6_address)))))
 if len(msg):
     print("CRITICAL: " + ', '.join(msg))
     sys.exit(state['CRITICAL'])
