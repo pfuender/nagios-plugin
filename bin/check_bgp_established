@@ -66,13 +66,15 @@ if ! [[ -x /usr/sbin/birdc6 ]]; then
     exit ${STATE_UNKNOWN}
 fi
 
-not_established=$(sudo /usr/sbin/birdc6 show protocols all | grep -E "^bgp" | grep -v "Established"); 
+not_established=$(sudo /usr/sbin/birdc6 show protocols all | grep -E "^bgp" | grep -v "Established" | egrep -o '^[a-zA-Z0-9]+' | tr '\n' ';')
+not_established="${not_established%?}"
 
 if [[ -z ${not_established} ]]; then
     echo "BGP OK: all connections established"
     exit ${STATE_OK}
 else
-    echo "BGP CRITICAL: ${not_establisehd}"
+    echo "BGP CRITICAL: ${not_established}"
+    sudo /usr/sbin/birdc6 show protocols all | grep -E "^bgp" | grep -v "Established"
     exit ${STATE_CRITICAL}
 fi
 
