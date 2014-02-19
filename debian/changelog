@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.10-1) squeeze; urgency=low
+
+  * pb-check-softwareraid: fixed regular expression for identifying recovery states
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 19 Feb 2014 16:41:13 +0100
+
 python-nagios-plugin (1.5.9-1) squeeze; urgency=low
 
   * add sudoers config for nagios user
