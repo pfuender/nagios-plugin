@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.13-1) squeeze; urgency=low
+
+  * changed output for check_IPoIB.py
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 20 Feb 2014 11:37:56 +0100
+
 python-nagios-plugin (1.5.12-1) squeeze; urgency=low
 
   * correct output of check_bgp_established
