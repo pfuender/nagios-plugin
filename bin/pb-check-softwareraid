@@ -53,7 +53,7 @@ foreach my $l (@LINES) {
         	 print "Storage OK - $1 $2 \n";
 	         exit 0;
 	         
-	}elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s+(\[[=>.]+\].+\/sec)?.+$/) {
+	}elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s+(\[[=>.]+\].+\/sec)?.*$/) {
 
 		$STATE=0;
 		my $dev=$1;
