@@ -69,6 +69,8 @@ fi
 return_state=${STATE_OK}
 message=''
 critical_message=''
+count=0
+count_ok=0
 established=false
 
 # do the work
@@ -77,8 +79,10 @@ while read LINE; do
         continue
     elif [[ ${LINE} =~ ^bgp ]]; then
         interface=${LINE%% *}
+        ((count+=1))
         if [[ ${LINE} =~ ^.*Established.*$ ]]; then
             established=true
+            ((count_ok+=1))
         else
             established=false
             return_state=${STATE_CRITICAL}
@@ -96,13 +100,13 @@ done <<< "$(sudo /usr/sbin/birdc6 show protocols all | grep -A 1 "^bgp")"
 
 if [[ ${return_state} -eq ${STATE_OK} ]]; then
     #echo "BGP OK: "${string:1:${#string}-2}" ${message:2}"
-    echo "BGP OK: ${message:2}"
+    echo "BGP OK: ${message:2}|established=${count_ok};1;1;0;${count}"
     exit ${STATE_OK}
 elif [[ ${return_state} -eq ${STATE_CRITICAL} ]]; then
-    echo "BGP CRITICAL: ${critical_message:2}"
+    echo "BGP CRITICAL: ${critical_message:2}|established=${count_ok};1;1;0;${count}"
     exit ${STATE_CRITICAL}
 else
-    echo "BGP UNKNOWN"
+    echo "BGP UNKNOWN|established=${count_ok};1;1;0;${count}"
     exit ${STATE_UNKNOWN}
 fi
 
