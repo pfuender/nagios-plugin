@@ -60,20 +60,56 @@ while [[ $# -ne 0 ]]; do
     esac
 done
 
-# do the work
+# checks
 if ! [[ -x /usr/sbin/birdc6 ]]; then
     echo "'birdc6' is not installed!"
     exit ${STATE_UNKNOWN}
 fi
 
-not_established=$(sudo /usr/sbin/birdc6 show protocols all | grep -E "^bgp" | grep -v "Established"); 
+# default return value
+return_state=${STATE_UNKNOWN}
+# return messages
+message=''
+critical_message=''
+# for performance data
+count=0
+count_ok=0
 
-if [[ -z ${not_established} ]]; then
-    echo "BGP OK: all connections established"
+# do the work
+established=false
+while read LINE; do
+    if [[ ${LINE} = -- ]]; then
+        continue
+    elif [[ ${LINE} =~ ^bgp ]]; then
+        interface=${LINE%% *}
+        ((count+=1))
+        if [[ ${LINE} =~ ^.*Established.*$ ]]; then
+            established=true
+            ((count_ok+=1))
+        else
+            established=false
+            return_state=${STATE_CRITICAL}
+        fi
+    else
+        gateway=${LINE##* }
+        if ${established}; then
+            message="${message}; ${interface} ${gateway}"
+        else
+            critical_message="${critical_message}; ${interface} ${gateway}"
+        fi
+        established=true
+    fi
+done <<< "$(sudo /usr/sbin/birdc6 show protocols all | grep -A 1 "^bgp")"
+
+if [[ ${count} -eq ${count_ok} ]]; then
+    echo "BGP OK: ${message:2}|established=${count_ok};1;1;0;${count}"
     exit ${STATE_OK}
-else
-    echo "BGP CRITICAL: ${not_establisehd}"
+elif [[ ${return_state} -eq ${STATE_CRITICAL} ]]; then
+    echo "BGP CRITICAL: ${critical_message:2}|established=${count_ok};1;1;0;${count}"
     exit ${STATE_CRITICAL}
+else
+    echo "BGP UNKNOWN|established=${count_ok};1;1;0;${count}"
+    exit ${STATE_UNKNOWN}
 fi
 
 # vim: ts=4 sw=4 et filetype=sh
