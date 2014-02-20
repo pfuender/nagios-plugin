@@ -335,6 +335,9 @@ if len(msg):
 elif len(ping6.reached) > 0:
     msg.append("%d/%d hosts in cluster %s are reachable (%s)" % (len(ping6.reached),n,cluster,pattern.sub('',', '.join(sorted(ping6.reached.keys())))))
 
+print("%s: " % (cur_state) + ', '.join(msg))
+
+msg = []
 if len(dcmanager_offline) > 0:
     msg.append("%d/%d hosts in cluster %s are down in dcmanager (%s)" % (len(dcmanager_offline),n,cluster,pattern.sub('',', '.join(sorted(dcmanager_offline)))))
 if len(ping6.offline) > 0:
@@ -344,7 +347,7 @@ if len(bgp_no_neighbor) > 0:
     msg.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor),pattern.sub('',', '.join(sorted(bgp_no_neighbor)))))
 ### TODO: end
 
-print("%s: " % (cur_state) + ', '.join(msg))
+print(", INFO: " % (cur_state) + ', '.join(msg))
 sys.exit(state[cur_state])
 
 # vim: ts=4 sw=4 et filetype=python
