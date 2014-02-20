@@ -66,14 +66,17 @@ if ! [[ -x /usr/sbin/birdc6 ]]; then
     exit ${STATE_UNKNOWN}
 fi
 
-return_state=${STATE_OK}
+# default return value
+return_state=${STATE_UNKNOWN}
+# return messages
 message=''
 critical_message=''
+# for performance data
 count=0
 count_ok=0
-established=false
 
 # do the work
+established=false
 while read LINE; do
     if [[ ${LINE} = -- ]]; then
         continue
@@ -98,8 +101,7 @@ while read LINE; do
     fi
 done <<< "$(sudo /usr/sbin/birdc6 show protocols all | grep -A 1 "^bgp")"
 
-if [[ ${return_state} -eq ${STATE_OK} ]]; then
-    #echo "BGP OK: "${string:1:${#string}-2}" ${message:2}"
+if [[ ${count} -eq ${count_ok} ]]; then
     echo "BGP OK: ${message:2}|established=${count_ok};1;1;0;${count}"
     exit ${STATE_OK}
 elif [[ ${return_state} -eq ${STATE_CRITICAL} ]]; then
