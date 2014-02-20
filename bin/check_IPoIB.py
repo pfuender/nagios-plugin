@@ -4,7 +4,7 @@ from __future__ import print_function
 import signal,sys,os,re,time,threading,subprocess
 import json
 import pprint
-from socket import getfqdn, gethostname, getaddrinfo, AF_INET6, SOCK_RAW
+import socket
 from string import split
 from urllib2 import Request, urlopen, URLError, HTTPError
 
@@ -19,11 +19,13 @@ class ping6(threading.Thread):
     reached = {}
     notreached = {}
     failed = {}
-   
+    offline = {}
+ 
     def __init__(self,cnt,ip):
         threading.Thread.__init__(self);
-        self.ip = ip
-        #self.status = -1
+        self.ping_address = ip["ping_address"]
+        self.hostalias = ip["hostalias"]
+        self.ipv4_address = ip["ipv4_address"]
         self.count = cnt
 
     def run(self):
@@ -31,12 +33,20 @@ class ping6(threading.Thread):
         try:
             devnull = open('/dev/null', 'w')
             try:
-                proc = subprocess.check_call(["ping6", "-c2", "-s", "0", "-w", "4", self.ip],stdout=devnull, stderr=devnull)
-                #print(str(self.count)+" : [REACHED] "+self.ip)
-                self.reached[self.ip] = 1
+                proc = subprocess.check_call(["ping6", "-c2", "-s", "0", "-w", "4", self.ping_address],stdout=devnull, stderr=devnull)
+                #print(str(self.count)+" : [REACHED] "+self.hostalias)
+                self.reached[self.hostalias] = 1
             except subprocess.CalledProcessError as e:
-                #print(str(self.count)+" : [NOT REACHED] "+self.ip+" (return code: %s)" % (e.returncode))
-                self.notreached[self.ip] = 1
+                ## host is not pingable via ping6
+                ## try to ping its ipv4 address to see if the host is offline
+                #print(str(self.count)+" : [IPv6 NOT REACHED] "+self.hostalias+" (return code: %s)" % (e.returncode))
+                try:
+                    proc = subprocess.check_call(["ping", "-c2", "-s", "0", "-w", "4", self.ipv4_address],stdout=devnull, stderr=devnull)
+                    #print(str(self.count)+" : [IPv4 REACHED] "+self.ipv4_address)
+                    self.notreached[self.hostalias] = 1
+                except subprocess.CalledProcessError as ee:
+                    #print(str(self.count)+" : [IPv4 NOT REACHED] "+self.ipv4_address+" (return code: %s)" % (ee.returncode))
+                    self.offline[self.hostalias] = 1
             devnull.close()
 
             ping6.lck.acquire()
@@ -53,18 +63,18 @@ class ping6(threading.Thread):
             if len(ping6.ping6list) == ping6.maxthreads-1:
                 #print("  PING6: set()")
                 ping6.evnt.set()
-            #else:
-                #print("  PING6: skipped set() + clear()")
           
             ping6.lck.release()
         except Exception, e:
-            if self.ip not in self.notreached and self.ip not in self.reached:
-                #print("did not find %s in self.reached or self.notreached" % (self.ip))
-                self.failed[self.ip] = 1
-            #elif self.ip in (self.reached):
-            #    print("found %s in self.reached" % (self.ip))
+            if self.hostalias not in self.notreached and self.hostalias not in self.reached and self.hostalias not in self.offline:
+                #print("did not find %s in self.reached, self.notreached or self.offline" % (self.hostalias))
+                self.failed[self.hostalias] = 1
+            #elif self.hostalias in (self.reached):
+            #    print("found %s in self.reached" % (self.hostalias))
+            #elif self.hostalias in (self.offline):
+            #    print("found %s in self.offline" % (self.hostalias))
             #else:
-            #    print("found %s in self.notreached" % (self.ip))
+            #    print("found %s in self.notreached" % (self.hostalias))
 
             # free the ping6.evnt for the next requestor
             ping6.evnt.set()
@@ -85,13 +95,6 @@ class ping6(threading.Thread):
 ############# END class ping6 ###############
 #############################################
 
-### TODO:
-### - pinghost should be a dict
-###       {
-###        ping_address: 'hostname or ipv6 addr',
-###        hostalias: 'hostname to display',
-###        ipv4_address: 'ping this address if ping6 to ping_address fails and only get CRITICAL if ipv4_address is pingable'
-###       }
 def pinghost(i,pinghost):
     ping6.lck.acquire()
     if len(ping6.ping6list) >= ping6.maxthreads:
@@ -113,7 +116,7 @@ def pinghost(i,pinghost):
     else:
         ping6.lck.release()
         #print("%s: go, current number of threads: %d" % (pinghost[hostalias],len(ping6.ping6list)))
-    ping6.newthread(i,pinghost["ping_address"])
+    ping6.newthread(i,pinghost)
     #ping6.newthread(i,pinghost.rstrip())
     i += 1
     return i
@@ -121,7 +124,7 @@ def pinghost(i,pinghost):
 ### TODO: get also hosts that are down and handle them correctly
 def get_serverlist(type):
     ## TODO: storages are not included yet
-    url='https://dcmanager.pb.local:443/dc/api/' + type + '/?up=true'
+    url='https://dcmanager.pb.local:443/dc/api/' + type + '/'
     token="604a3b5f6db67e5a3a48650313ddfb2e8bcf211b"
     
     req = Request(url, None, {'Authorization': "Token " + token})
@@ -177,7 +180,12 @@ def get_bgp_neighbors():
             if m:
                 bgp_hostname = m.group().strip("()")
             elif "Neighbor ID" in bgp_detail:
-                bgp_hostname = bgp_detail["Neighbor ID"]
+                try:
+                    bgp_hostname = socket.gethostbyaddr(bgp_detail["Neighbor ID"])[0]
+                    pattern = re.compile('.%s' % domain)
+                    bgp_hostname = pattern.sub('',bgp_hostname)
+                except socket.herror as e:
+                    bgp_hostname = bgp_detail["Neighbor ID"]
             elif "Neighbor address" in bgp_detail:
                 bgp_hostname = bgp_detail["Neighbor address"]
             else:
@@ -199,7 +207,7 @@ progname = "check_IPoIB.py"
 
 state = {"OK": 0, "WARNING": 1, "CRITICAL": 2, "UNKNOWN": 3}
 
-fqdn = getfqdn(gethostname())
+fqdn = socket.getfqdn(socket.gethostname())
 (hostname,domain) = split(fqdn,'.',1)
 del fqdn
 
@@ -222,8 +230,12 @@ else:
 cluster = ""
 for ps in serverlist:
     if ps["name"] == hostname :
-        cluster = ps["cluster"]
-        break
+        if ps["up"] == False:
+            print("OK: host %s is marked as down in dcmanager" % hostname);
+            sys.exit(state['OK'])
+        else:
+            cluster = ps["cluster"]
+            break
 
 del serverlist
 
@@ -231,14 +243,19 @@ if cluster == "":
     print("UNKNOWN: %s is not part of any cluster in dcmanager result set" % (hostname))
     sys.exit(state['UNKNOWN'])
 
+dcmanager_offline = []
 n = 0
 for ps in pservers:
     if ps["cluster"] == cluster :
+        if ps["up"] == False:
+            dcmanager_offline.append(ps["name"])
+            continue
         for i in range(2):
             fqdn = '%s-ib%i.%s' % (ps["name"], i, domain)
             ping_host = {}
             ping_host["ping_address"] = fqdn
-            ping_host["hostalias"] = '%s-ib%i' % (ps["name"], i)
+            ping_host["hostalias"] = fqdn
+            #ping_host["hostalias"] = '%s-ib%i' % (ps["name"], i)
             ping_host["ipv4_address"] = ps["ip"]
             n = pinghost(n,ping_host)
 
@@ -251,6 +268,9 @@ bgp_no_ipv4_address = []
 
 for ps in gateways:
     if ps["cluster"] == cluster :
+        if ps["up"] == False:
+            dcmanager_offline.append(ps["name"])
+            continue
         ping_hostname = ps["name"]
         if ping_hostname not in bgp_neighbors:
             if ps["ip_addr"] in bgp_neighbors:
@@ -292,25 +312,39 @@ while 1:
 pattern = re.compile('.%s' % domain)
 ##print("INFO: reached: %d, notreached: %d, failed: %d" % (len(ping6.reached),len(ping6.notreached),len(ping6.failed)))
 msg = []
+n += len(dcmanager_offline)
+cur_state = "OK"
 if len(ping6.notreached) > 0:
-    msg.append("%d of %d hosts are not reachable (%s)" % (len(ping6.notreached),n,pattern.sub('',', '.join(sorted(ping6.notreached.keys())))))
+    msg.append("%d/%d hosts are not reachable (%s)" % (len(ping6.notreached),n,pattern.sub('',', '.join(sorted(ping6.notreached.keys())))))
 if len(ping6.failed) > 0:
-    msg.append("failed check for %d of %d hosts (%s)" % (len(ping6.failed),n,pattern.sub('',', '.join(sorted(ping6.failed.keys())))))
+    msg.append("failed check for %d/%d hosts (%s)" % (len(ping6.failed),n,pattern.sub('',', '.join(sorted(ping6.failed.keys())))))
+### TODO: enable this line as soon as the gateways in cluster 1-4 are reinstalled and are visible by all pservers
+#if len(bgp_no_neighbor) > 0:
+#    msg.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor),pattern.sub('',', '.join(sorted(bgp_no_neighbor)))))
+if len(bgp_no_link) > 0:
+    msg.append("%d/%d hosts in bird setup have no established BGP state (%s)" % (len(bgp_no_link),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_link)))))
+if len(bgp_no_ipv4_address) > 0:
+    msg.append("%d/%d hosts have no IPv4 address in bird setup (%s)" % (len(bgp_no_ipv4_address),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_ipv4_address)))))
+if len(bgp_ipv4_mismatch) > 0:
+    msg.append("IPv4 address differs for %d/%d hosts between bird setup and dcmanager (%s)" % (len(bgp_ipv4_mismatch),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_ipv4_mismatch)))))
+if len(bgp_no_ipv6_address) > 0:
+    msg.append("%d/%d hosts in bird setup have no IPv6 address (%s)" % (len(bgp_no_ipv6_address),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_ipv6_address)))))
+
+if len(msg):
+    cur_state = "CRITICAL"
+elif len(ping6.reached) > 0:
+    msg.append("%d/%d hosts in cluster %s are reachable (%s)" % (len(ping6.reached),n,cluster,pattern.sub('',', '.join(sorted(ping6.reached.keys())))))
+
+if len(dcmanager_offline) > 0:
+    msg.append("%d/%d hosts in cluster %s are down in dcmanager (%s)" % (len(dcmanager_offline),n,cluster,pattern.sub('',', '.join(sorted(dcmanager_offline)))))
+if len(ping6.offline) > 0:
+    msg.append("%d/%d hosts in cluster %s are offline (%s)" % (len(ping6.offline),n,cluster,pattern.sub('',', '.join(sorted(ping6.offline.keys())))))
+### TODO: remove the next 2 lines (regarding bgp_no_neighbor) as soon as the gateways in cluster 1-4 are reinstalled and are visible by all pservers
 if len(bgp_no_neighbor) > 0:
     msg.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor),pattern.sub('',', '.join(sorted(bgp_no_neighbor)))))
-if len(bgp_no_link) > 0:
-    msg.append("%d of %d hosts in bird setup have no established BGP state (%s)" % (len(bgp_no_link),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_link)))))
-if len(bgp_no_ipv4_address) > 0:
-    msg.append("%d of %d hosts have no IPv4 address in bird setup (%s)" % (len(bgp_no_ipv4_address),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_ipv4_address)))))
-if len(bgp_ipv4_mismatch) > 0:
-    msg.append("IPv4 address differs for %d of %d hosts between bird setup and dcmanager (%s)" % (len(bgp_ipv4_mismatch),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_ipv4_mismatch)))))
-if len(bgp_no_ipv6_address) > 0:
-    msg.append("%d of %d hosts in bird setup have no IPv6 address (%s)" % (len(bgp_no_ipv6_address),len(bgp_neighbors),pattern.sub('',', '.join(sorted(bgp_no_ipv6_address)))))
-if len(msg):
-    print("CRITICAL: " + ', '.join(msg))
-    sys.exit(state['CRITICAL'])
-else:
-    print("OK: all hosts in cluster %s reachable (%s)" % (cluster,pattern.sub('',', '.join(sorted(ping6.reached.keys())))))
-    sys.exit(state['OK'])
+### TODO: end
+
+print("%s: " % (cur_state) + ', '.join(msg))
+sys.exit(state[cur_state])
 
 # vim: ts=4 sw=4 et filetype=python
