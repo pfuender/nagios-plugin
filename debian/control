@@ -36,7 +36,7 @@ Package: pb-nagios-plugins
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
  python-pkg-resources, python-nagios-plugin (= ${binary:Version}),
- python-dcmanager-client (>=0.4-1), nagios-plugins-basic
+ python-dcmanager-client (>=0.4-1), nagios-plugins-basic, libdbd-pg-perl
 Conflicts: pb-nagios-plugins-python3
 Recommends: smartmontools, ipmitool
 Description: Additional Nagios plugins for usage by ProfitBricks
