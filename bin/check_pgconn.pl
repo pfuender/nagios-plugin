@@ -79,7 +79,7 @@ my $avail_conn=$max_conn-$curr_conn;
 my $avail_pct=$avail_conn/$max_conn*100;
 my $used_pct=sprintf("%2.1f", $curr_conn/$max_conn*100);
 
-print "Max: $max_conn, Curr $curr_conn, Avail:$avail_conn, Avail Pct:$avail_pct, Used Pct: $used_pct, W: $warning, C: $critical\n";
+#print "Max: $max_conn, Curr $curr_conn, Avail:$avail_conn, Avail Pct:$avail_pct, Used Pct: $used_pct, W: $warning, C: $critical\n";
 
 my $code = "UNKNOWN";
 if ($used_pct > $critical) {
