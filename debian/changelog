@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.14-1) wheezy; urgency=low
+
+  * added dependency on libdbd-pg-perl for check_pgconn.pl
+  * removed debugging output from check_pgconn.pl
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Fri, 21 Feb 2014 10:43:32 +0100
+
 python-nagios-plugin (1.5.13-1) squeeze; urgency=low
 
   * changed output for check_IPoIB.py
