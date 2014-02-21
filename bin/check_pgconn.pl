@@ -53,12 +53,12 @@ my $status=$ERRORS{'UNKNOWN'};
 
 #Connect to Database
 my $Con = "DBI:Pg:dbname=$dbname;host=$host";
-my $Dbh = DBI->connect($Con, $username, $password) || &error("Unable to access Database $dbname on host $host as user $username. Error returned was: ". $DBI::errstr);
+my $Dbh = DBI->connect($Con, $username, $password, {RaiseError => 0, PrintError => 0}) || &error("CRITICAL: Unable to access Database $dbname on host $host as user $username. Error returned was: ". $DBI::errstr);
 
 my $sql = "SHOW max_connections;";
 
-my $sth = $Dbh->prepare($sql) or &error("cannot prepare sql statement: '$sql': ".$Dbh->errstr);
-$sth->execute() or &error("cannot execute sql statement: '$sql': ".$Dbh->errstr);
+my $sth = $Dbh->prepare($sql) or &error("CRITICAL: cannot prepare sql statement: '$sql': ".$Dbh->errstr);
+$sth->execute() or &error("CRITICAL: cannot execute sql statement: '$sql': ".$Dbh->errstr);
 my $max_conn = -1;
 while ( my ($mconn) = $sth->fetchrow() ) {
     $max_conn=$mconn;
@@ -66,8 +66,8 @@ while ( my ($mconn) = $sth->fetchrow() ) {
 $sth->finish();
 
 $sql = "SELECT COUNT(*) FROM pg_stat_activity;";
-$sth = $Dbh->prepare($sql) or &error("cannot prepare sql statement: '$sql': ".$Dbh->errstr);
-$sth->execute() or &error("cannot execute sql statement: '$sql': ".$Dbh->errstr);
+$sth = $Dbh->prepare($sql) or &error("CRITICAL: cannot prepare sql statement: '$sql': ".$Dbh->errstr);
+$sth->execute() or &error("CRITICAL: cannot execute sql statement: '$sql': ".$Dbh->errstr);
 my $curr_conn = -1;
 while ( my ($conn) = $sth->fetchrow() ) {
     $curr_conn=$conn;
