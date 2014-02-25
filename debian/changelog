@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.16-1) squeeze; urgency=low
+
+  * run check_IPoIB.py with sudo
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Tue, 25 Feb 2014 17:45:04 +0100
+
 python-nagios-plugin (1.5.15-1) squeeze; urgency=low
 
   * check_IPoIB.py ignores BGP errors when system is down
