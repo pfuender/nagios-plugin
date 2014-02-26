@@ -103,7 +103,7 @@ foreach my $l (@LINES) {
 					$error_msg.=" - $dev is DEGRADED";
 				}
 			} else {
-				if ($current < $normal) {
+				if ($current < $normal or $map ne "UU") {
                                         if (length $syncstate) {
                                             $STATE=1;
                                             #$syncstate =~ s/^\[.+\]\s+//;

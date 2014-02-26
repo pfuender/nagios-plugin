@@ -1,9 +1,50 @@
+python-nagios-plugin (1.5.18-1) stable; urgency=low
+
+  * bugfix: pb-check-softwareraid -> now also evaluate the map (e.g. [_U])
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 15:05:47 +0100
+
+python-nagios-plugin (1.5.17-4) stable; urgency=low
+
+  * fixed use of init script in pb-config-nagios-nrpe-server packages
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 14:20:46 +0100
+
+python-nagios-plugin (1.5.17-3) squeeze; urgency=low
+
+  * changed nrpe config to execute find_orphans with sudo
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 09:49:54 +0100
+
+python-nagios-plugin (1.5.17-2) squeeze; urgency=low
+
+  * added find_orphans to sudoers.d/nagios
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 09:47:03 +0100
+
+python-nagios-plugin (1.5.17-1) squeeze; urgency=low
+
+  * added find_orphans to nrpe config
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 09:33:29 +0100
+
+python-nagios-plugin (1.5.16-1) squeeze; urgency=low
+
+  * run check_IPoIB.py with sudo
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Tue, 25 Feb 2014 17:45:04 +0100
+
+python-nagios-plugin (1.5.15-1) squeeze; urgency=low
+
+  * check_IPoIB.py ignores BGP errors when system is down
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 24 Feb 2014 15:04:51 +0100
+
 python-nagios-plugin (1.5.15-1) wheezy; urgency=low
 
   * add ip address of SRX Las Vegas
 
  -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 21 Feb 2014 12:24:05 +0100
-
 python-nagios-plugin (1.5.14-2) wheezy; urgency=low
 
   * better error output for check_pgconn.pl

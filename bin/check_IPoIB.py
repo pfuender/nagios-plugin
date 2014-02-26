@@ -290,13 +290,14 @@ for ps in gateways:
         ping_host["ipv4_address"] = ps["ip_addr"]
         n = pinghost(n,ping_host)
 
-        if "BGP state" not in bgp_neighbors[ping_hostname] or bgp_neighbors[ping_hostname]["BGP state"] != "Established":
-            bgp_no_link.append(ping_hostname)
-
-        if "Neighbor ID" not in bgp_neighbors[ping_hostname]:
-            bgp_no_ipv4_address.append(ping_hostname)
-        elif bgp_neighbors[ping_hostname]["Neighbor ID"] != ps["ip_addr"]:
-            bgp_ipv4_mismatch.append(ping_hostname)
+        if ping_hostname not in ping6.offline:
+            if "BGP state" not in bgp_neighbors[ping_hostname] or bgp_neighbors[ping_hostname]["BGP state"] != "Established":
+                bgp_no_link.append(ping_hostname)
+    
+            if "Neighbor ID" not in bgp_neighbors[ping_hostname]:
+                bgp_no_ipv4_address.append(ping_hostname)
+            elif bgp_neighbors[ping_hostname]["Neighbor ID"] != ps["ip_addr"]:
+                bgp_ipv4_mismatch.append(ping_hostname)
 
 
 while 1:

@@ -1,1 +1,2 @@
 nagios ALL=(ALL:ALL) NOPASSWD:/usr/lib/nagios/plugins/*
+nagios ALL=(ALL:ALL) NOPASSWD:/usr/bin/find_orphans

@@ -19,5 +19,5 @@ fi
 
 ln -s ${target} ${nrpefile}
 
-test -x /etc/init.d/nagios-nrpe-server && /etc/init.d/nagios-nrpe-server stop || /bin/true
-test -x /etc/init.d/nagios-nrpe-server && /etc/init.d/nagios-nrpe-server start || /bin/true
+test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server stop || /bin/true
+test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server start || /bin/true
