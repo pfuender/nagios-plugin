@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.18-2) stable; urgency=low
+
+  * Version bump
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 15:58:03 +0100
+
 python-nagios-plugin (1.5.18-1) stable; urgency=low
 
   * bugfix: pb-check-softwareraid -> now also evaluate the map (e.g. [_U])
