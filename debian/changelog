@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.17-4) stable; urgency=low
+
+  * fixed use of init script in pb-config-nagios-nrpe-server packages
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 26 Feb 2014 14:20:46 +0100
+
 python-nagios-plugin (1.5.17-3) squeeze; urgency=low
 
   * changed nrpe config to execute find_orphans with sudo
