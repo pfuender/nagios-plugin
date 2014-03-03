@@ -129,7 +129,7 @@ def get_serverlist(type):
     
     req = Request(url, None, {'Authorization': "Token " + token})
     try:
-        response = urlopen(req)
+        response = urlopen(req, timeout = 7)
     except HTTPError as e:
         print('UNKNOWN: The server couldn\'t fulfill the request. Error code: ', e.code)
         sys.exit(state['UNKNOWN'])
