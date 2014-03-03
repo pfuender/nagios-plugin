@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.19-1) stable; urgency=low
+
+  * check_IPoIB.py: defined timeout of 7s for dcmanager api call
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 03 Mar 2014 08:30:19 +0100
+
 python-nagios-plugin (1.5.18-2) stable; urgency=low
 
   * Version bump
