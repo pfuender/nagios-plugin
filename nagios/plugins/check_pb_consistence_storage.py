@@ -623,6 +623,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 continue
 
             if lv['remove_timestamp']:
+                prov_state = self.all_api_volumes[guid]['state']
+                if prov_state and 'delete' in prov_state:
+                    # Volume is on deletion
+                    if self.verbose > 2:
+                        log.debug("LV %s/%s will deleted sometimes.",
+                                 lv['vgname'], lv['lvname'])
+                    self.count['zombies'] += 1
+                    continue
                 # Volume should be there, but remove date was set
                 self.count['error'] += 1
                 ts = lv['remove_timestamp']
@@ -656,6 +664,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     voltype = 'Image'
                 elif self.all_api_volumes[guid]['type'] == 'snap':
                     voltype = 'Snapshot'
+                prov_state = self.all_api_volumes[guid]['state']
+                if prov_state and 'delete' in prov_state:
+                    # Volume is on deletion
+                    if self.verbose > 2:
+                        log.debug("%s %s is on deletion in database.",
+                                voltype, guid)
+                    self.count['zombies'] += 1
+                    continue
                 log.info("%s %s with a size of %d MiB doesn't exists.", voltype,
                     guid, self.all_api_volumes[guid]['size'])
                 self.count['missing'] += 1
