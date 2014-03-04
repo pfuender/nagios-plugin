@@ -684,6 +684,9 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         for stor in storages:
 
+            if self.verbose > 4:
+                log.debug("Got Storage volume from API:\n%s", pp(stor))
+
             replicated = stor[key_replicated]
             size = stor[key_size]
             if replicated:
@@ -709,8 +712,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             }
             self.api_volumes.append(vol)
 
-            if self.verbose > 4:
-                log.debug("Got Storage volume from API:\n%s", pp(vol))
+            if self.verbose > 5:
+                log.debug("Transferred data of storage volume:\n%s", pp(vol))
 
         if self.verbose > 1:
             log.debug("Got %d Storage volumes from API.", len(self.api_volumes))
@@ -783,8 +786,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             }
             self.api_images.append(vol)
 
-            if self.verbose > 4:
-                log.debug("Got Image volume from API:\n%s", pp(vol))
+            if self.verbose > 5:
+                log.debug("Transferred data of image volume:\n%s", pp(vol))
 
         if self.verbose > 1:
             log.debug("Got %d Image volumes from API.", len(self.api_images))
@@ -832,8 +835,9 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             }
             self.api_snapshots.append(vol)
 
-            if self.verbose > 4:
-                log.debug("Got Snapshot volume from API:\n%s", pp(vol))
+            if self.verbose > 5:
+                log.debug("Transferred data of storage volume:\n%s", pp(vol))
+
 
         if self.verbose > 1:
             log.debug("Got %d Snapshot volumes from API.", len(self.api_snapshots))
