@@ -569,6 +569,13 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                         lv['vgname'], lv['lvname'])
                 continue
 
+            # open LVs with extension '-snap' also don't count
+            if lv['has_snap_ext'] and lv['is_open']:
+                self.count['snapshots'] += 1
+                log.debug("LV %s/%s is an opened, valid splitted LVM snapshot.",
+                        lv['vgname'], lv['lvname'])
+                continue
+
             # our sealed bottled coffee volume
             if lv['lvname'] == DUMMY_LV:
                 self.count['dummy'] += 1
@@ -909,6 +916,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             lv['cfg_file_exists'] = False
             lv['cfg_file_valid'] = False
             lv['remove_timestamp'] = None
+
+            lv['is_open'] = False
+            if lv['attr'][5] == 'o':
+                lv['is_open'] = True
 
             if lv['vgname'] == self.pb_vg:
                 match = re_pb_vol.search(lv['lvname'])
