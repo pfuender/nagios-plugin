@@ -483,6 +483,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             self.all_api_volumes[guid] = {
                 'size': size,
                 'type': 'vol',
+                'state': vol['state'],
             }
         self.api_volumes = None
 
@@ -493,6 +494,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             self.all_api_volumes[guid] = {
                 'size': size,
                 'type': 'img',
+                'state': vol['state'],
             }
         self.api_images = None
 
@@ -503,6 +505,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             self.all_api_volumes[guid] = {
                 'size': size,
                 'type': 'snap',
+                'state': vol['state'],
             }
         self.api_snapshots = None
 
@@ -569,6 +572,13 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                         lv['vgname'], lv['lvname'])
                 continue
 
+            # open LVs with extension '-snap' also don't count
+            if lv['has_snap_ext'] and lv['is_open']:
+                self.count['snapshots'] += 1
+                log.debug("LV %s/%s is an opened, valid splitted LVM snapshot.",
+                        lv['vgname'], lv['lvname'])
+                continue
+
             # our sealed bottled coffee volume
             if lv['lvname'] == DUMMY_LV:
                 self.count['dummy'] += 1
@@ -613,6 +623,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 continue
 
             if lv['remove_timestamp']:
+                prov_state = self.all_api_volumes[guid]['state']
+                if prov_state and 'delete' in prov_state:
+                    # Volume is on deletion
+                    if self.verbose > 2:
+                        log.debug("LV %s/%s will deleted sometimes.",
+                                 lv['vgname'], lv['lvname'])
+                    self.count['zombies'] += 1
+                    continue
                 # Volume should be there, but remove date was set
                 self.count['error'] += 1
                 ts = lv['remove_timestamp']
@@ -646,6 +664,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     voltype = 'Image'
                 elif self.all_api_volumes[guid]['type'] == 'snap':
                     voltype = 'Snapshot'
+                prov_state = self.all_api_volumes[guid]['state']
+                if prov_state and 'delete' in prov_state:
+                    # Volume is on deletion
+                    if self.verbose > 2:
+                        log.debug("%s %s is on deletion in database.",
+                                voltype, guid)
+                    self.count['zombies'] += 1
+                    continue
                 log.info("%s %s with a size of %d MiB doesn't exists.", voltype,
                     guid, self.all_api_volumes[guid]['size'])
                 self.count['missing'] += 1
@@ -660,12 +686,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         key_replicas = 'replicas'
         key_storage_server = 'storage_server'
         key_guid = 'guid'
+        key_virtual_state = 'virtual_state'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
             key_size = key_size.decode('utf-8')
             key_replicas = key_replicas.decode('utf-8')
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
+            key_virtual_state = key_virtual_state.decode('utf-8')
 
         storages = None
         try:
@@ -677,10 +705,15 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         for stor in storages:
 
+            if self.verbose > 4:
+                log.debug("Got Storage volume from API:\n%s", pp(stor))
+
             replicated = stor[key_replicated]
             size = stor[key_size]
             if replicated:
                 size += 4
+
+            state = None
 
             guid = None
             for replica in  stor[key_replicas]:
@@ -689,21 +722,29 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     hn = hn.encode('utf-8')
                 if hn == self.hostname:
                     guid = uuid.UUID(replica[key_guid])
+                    if key_virtual_state in replica:
+                        state = replica[key_virtual_state]
+                        if sys.version_info[0] <= 2:
+                            state = state.encode('utf-8')
                     break
 
             if not guid:
                 log.debug("No valid GUID found for storage volume:\n%s", pp(stor))
                 continue
 
+            if state:
+                state = state.lower()
+
             vol = {
                 'guid': guid,
                 'replicated': replicated,
                 'size': size,
+                'state': state,
             }
             self.api_volumes.append(vol)
 
-            if self.verbose > 4:
-                log.debug("Got Storage volume from API:\n%s", pp(vol))
+            if self.verbose > 5:
+                log.debug("Transferred data of storage volume:\n%s", pp(vol))
 
         if self.verbose > 1:
             log.debug("Got %d Storage volumes from API.", len(self.api_volumes))
@@ -721,6 +762,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         key_storage_server = 'storage_server'
         key_guid = 'guid'
         key_image_type = 'image_type'
+        key_virtual_state = 'virtual_state'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
             key_size = key_size.decode('utf-8')
@@ -728,6 +770,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
             key_image_type = key_image_type.decode('utf-8')
+            key_virtual_state = key_virtual_state.decode('utf-8')
 
         images = None
         try:
@@ -741,6 +784,12 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
             if self.verbose > 4:
                 log.debug("Got Image volume from API:\n%s", pp(stor))
+
+            state = None
+            if key_virtual_state in stor:
+                state = stor[key_virtual_state]
+                if sys.version_info[0] <= 2:
+                    state = state.encode('utf-8')
 
             replicated = False
             if stor[key_replicated]:
@@ -762,22 +811,30 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     hn = hn.encode('utf-8')
                 if hn == self.hostname:
                     guid = uuid.UUID(replica[key_guid])
+                    if key_virtual_state in replica:
+                        state = replica[key_virtual_state]
+                        if sys.version_info[0] <= 2:
+                            state = state.encode('utf-8')
                     break
 
             if not guid:
                 log.debug("No valid GUID found for image:\n%s", pp(stor))
                 continue
 
+            if state:
+                state = state.lower()
+
             vol = {
                 'guid': guid,
                 'replicated': replicated,
                 'size': size,
                 'img_type': img_type,
+                'state': state,
             }
             self.api_images.append(vol)
 
-            if self.verbose > 4:
-                log.debug("Got Image volume from API:\n%s", pp(vol))
+            if self.verbose > 5:
+                log.debug("Transferred data of image volume:\n%s", pp(vol))
 
         if self.verbose > 1:
             log.debug("Got %d Image volumes from API.", len(self.api_images))
@@ -795,6 +852,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         key_storage_server = 'storage_server'
         key_guid = 'guid'
         key_image_type = 'image_type'
+        key_virtual_state = 'virtual_state'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
             key_size = key_size.decode('utf-8')
@@ -802,6 +860,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
             key_image_type = key_image_type.decode('utf-8')
+            key_virtual_state = key_virtual_state.decode('utf-8')
 
         snapshots = None
         try:
@@ -819,14 +878,24 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             size = stor[key_size]
             guid = stor[key_guid]
 
+            state = None
+            if key_virtual_state in stor:
+                state = stor[key_virtual_state]
+                if sys.version_info[0] <= 2:
+                    state = state.encode('utf-8')
+            if state:
+                state = state.lower()
+
             vol = {
                 'guid': guid,
                 'size': size,
+                'state': state,
             }
             self.api_snapshots.append(vol)
 
-            if self.verbose > 4:
-                log.debug("Got Snapshot volume from API:\n%s", pp(vol))
+            if self.verbose > 5:
+                log.debug("Transferred data of storage volume:\n%s", pp(vol))
+
 
         if self.verbose > 1:
             log.debug("Got %d Snapshot volumes from API.", len(self.api_snapshots))
@@ -909,6 +978,10 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             lv['cfg_file_exists'] = False
             lv['cfg_file_valid'] = False
             lv['remove_timestamp'] = None
+
+            lv['is_open'] = False
+            if lv['attr'][5] == 'o':
+                lv['is_open'] = True
 
             if lv['vgname'] == self.pb_vg:
                 match = re_pb_vol.search(lv['lvname'])
