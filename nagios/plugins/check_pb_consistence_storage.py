@@ -664,7 +664,9 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     voltype = 'Image'
                 elif self.all_api_volumes[guid]['type'] == 'snap':
                     voltype = 'Snapshot'
+
                 prov_state = self.all_api_volumes[guid]['state']
+
                 if prov_state and 'delete' in prov_state:
                     # Volume is on deletion
                     if self.verbose > 2:
@@ -672,6 +674,16 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                                 voltype, guid)
                     self.count['zombies'] += 1
                     continue
+
+                if prov_state and 'to_be_created' in prov_state:
+                    # Volume is on creation
+                    if self.verbose > 2:
+                        log.debug("%s %s is on creation in database.",
+                                voltype, guid)
+                    self.count['ok'] += 1
+                    continue
+
+                # These volumes should be there
                 log.info("%s %s with a size of %d MiB doesn't exists.", voltype,
                     guid, self.all_api_volumes[guid]['size'])
                 self.count['missing'] += 1
