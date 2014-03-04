@@ -1,3 +1,15 @@
+python-nagios-plugin (1.5.20-1) stable; urgency=low
+
+  * Declared for stable
+  * Disabled errors on splitted LVM snapshot volumes in
+    nagios/plugins/check_pb_consistence_storage.py
+  * Got the state for every kind of volume from REST API in
+    nagios/plugins/check_pb_consistence_storage.py
+  * Used the virtual state from database to check the volumes in
+    nagios/plugins/check_pb_consistence_storage.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 04 Mar 2014 17:54:35 +0100
+
 python-nagios-plugin (1.5.19-1) wheezy; urgency=low
 
   * build for wheezy
