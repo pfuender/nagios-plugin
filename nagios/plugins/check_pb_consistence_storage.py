@@ -483,6 +483,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             self.all_api_volumes[guid] = {
                 'size': size,
                 'type': 'vol',
+                'state': vol['state'],
             }
         self.api_volumes = None
 
@@ -493,6 +494,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             self.all_api_volumes[guid] = {
                 'size': size,
                 'type': 'img',
+                'state': vol['state'],
             }
         self.api_images = None
 
@@ -503,6 +505,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             self.all_api_volumes[guid] = {
                 'size': size,
                 'type': 'snap',
+                'state': vol['state'],
             }
         self.api_snapshots = None
 
