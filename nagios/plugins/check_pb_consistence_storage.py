@@ -667,12 +667,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         key_replicas = 'replicas'
         key_storage_server = 'storage_server'
         key_guid = 'guid'
+        key_virtual_state = 'virtual_state'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
             key_size = key_size.decode('utf-8')
             key_replicas = key_replicas.decode('utf-8')
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
+            key_virtual_state = key_virtual_state.decode('utf-8')
 
         storages = None
         try:
@@ -692,6 +694,8 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             if replicated:
                 size += 4
 
+            state = None
+
             guid = None
             for replica in  stor[key_replicas]:
                 hn = replica[key_storage_server]
@@ -699,16 +703,24 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     hn = hn.encode('utf-8')
                 if hn == self.hostname:
                     guid = uuid.UUID(replica[key_guid])
+                    if key_virtual_state in replica:
+                        state = replica[key_virtual_state]
+                        if sys.version_info[0] <= 2:
+                            state = state.encode('utf-8')
                     break
 
             if not guid:
                 log.debug("No valid GUID found for storage volume:\n%s", pp(stor))
                 continue
 
+            if state:
+                state = state.lower()
+
             vol = {
                 'guid': guid,
                 'replicated': replicated,
                 'size': size,
+                'state': state,
             }
             self.api_volumes.append(vol)
 
@@ -731,6 +743,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         key_storage_server = 'storage_server'
         key_guid = 'guid'
         key_image_type = 'image_type'
+        key_virtual_state = 'virtual_state'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
             key_size = key_size.decode('utf-8')
@@ -738,6 +751,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
             key_image_type = key_image_type.decode('utf-8')
+            key_virtual_state = key_virtual_state.decode('utf-8')
 
         images = None
         try:
@@ -751,6 +765,12 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
             if self.verbose > 4:
                 log.debug("Got Image volume from API:\n%s", pp(stor))
+
+            state = None
+            if key_virtual_state in stor:
+                state = stor[key_virtual_state]
+                if sys.version_info[0] <= 2:
+                    state = state.encode('utf-8')
 
             replicated = False
             if stor[key_replicated]:
@@ -772,17 +792,25 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     hn = hn.encode('utf-8')
                 if hn == self.hostname:
                     guid = uuid.UUID(replica[key_guid])
+                    if key_virtual_state in replica:
+                        state = replica[key_virtual_state]
+                        if sys.version_info[0] <= 2:
+                            state = state.encode('utf-8')
                     break
 
             if not guid:
                 log.debug("No valid GUID found for image:\n%s", pp(stor))
                 continue
 
+            if state:
+                state = state.lower()
+
             vol = {
                 'guid': guid,
                 'replicated': replicated,
                 'size': size,
                 'img_type': img_type,
+                'state': state,
             }
             self.api_images.append(vol)
 
@@ -805,6 +833,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         key_storage_server = 'storage_server'
         key_guid = 'guid'
         key_image_type = 'image_type'
+        key_virtual_state = 'virtual_state'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
             key_size = key_size.decode('utf-8')
@@ -812,6 +841,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             key_storage_server = key_storage_server.decode('utf-8')
             key_guid = key_guid.decode('utf-8')
             key_image_type = key_image_type.decode('utf-8')
+            key_virtual_state = key_virtual_state.decode('utf-8')
 
         snapshots = None
         try:
@@ -829,9 +859,18 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             size = stor[key_size]
             guid = stor[key_guid]
 
+            state = None
+            if key_virtual_state in stor:
+                state = stor[key_virtual_state]
+                if sys.version_info[0] <= 2:
+                    state = state.encode('utf-8')
+            if state:
+                state = state.lower()
+
             vol = {
                 'guid': guid,
                 'size': size,
+                'state': state,
             }
             self.api_snapshots.append(vol)
 
