@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.22-1) stable; urgency=low
+
+  * Bugfix on calling 'ps' in nagios/plugins/check_procs.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 05 Mar 2014 15:50:53 +0100
+
 python-nagios-plugin (1.5.21-1) stable; urgency=low
 
   * Non existent volumes with the flag 'to_be_created' in database are
