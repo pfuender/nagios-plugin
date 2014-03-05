@@ -861,7 +861,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         fields = ('user', 'pid', 'ppid', 'stat', 'pcpu', 'vsz', 'rss', 'time',
                 'comm', 'args')
 
-        cmd = [self.ps_cmd, '-e', '-o', ','.join(fields)]
+        cmd = [self.ps_cmd, '-w', '-w' , '-e', '-o', ','.join(fields)]
         stdoutdata = ''
         stderrdata = ''
 
