@@ -36,17 +36,16 @@ Package: pb-nagios-plugins
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, python-support, python-argparse,
  python-pkg-resources, python-nagios-plugin (= ${binary:Version}),
- python-dcmanager-client (>=0.4-1), nagios-plugins-basic, libdbd-pg-perl
+ nagios-plugins-basic, libdbd-pg-perl
 Conflicts: pb-nagios-plugins-python3
-Recommends: smartmontools, ipmitool
+Recommends: smartmontools, ipmitool, python-dcmanager-client (>=0.4-1)
 Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: pb-nagios-plugins-python3
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3-nagios-plugin (= ${binary:Version}),
- python3-dcmanager-client (>=0.4-1)
+Depends: ${python3:Depends}, ${misc:Depends}, python3-nagios-plugin (= ${binary:Version})
 Conflicts: pb-nagios-plugins
-Recommends: smartmontools, ipmitool
+Recommends: smartmontools, ipmitool, python3-dcmanager-client (>=0.4-1)
 Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc
