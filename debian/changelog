@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.23-1) wheezy; urgency=low
+
+  * add check_proc
+  * use default check_procs C-binary for check_proc_arg
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 10 Mar 2014 15:44:35 +0100
+
 python-nagios-plugin (1.5.22-1) wheezy; urgency=low
 
   * Build for wheezy
