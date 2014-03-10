@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.23-1) squeeze; urgency=low
+
+  * pb-nagios-plugins and pb-nagios-plugins-python3 are recommending dcmanager
+    client now
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 10 Mar 2014 11:24:30 +0100
+
 python-nagios-plugin (1.5.23-1) wheezy; urgency=low
 
   * pb-nagios-plugins and pb-nagios-plugins-python3 are recommending dcmanager
