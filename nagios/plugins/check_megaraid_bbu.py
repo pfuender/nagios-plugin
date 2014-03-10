@@ -292,11 +292,9 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
             add_infos.append("Temperature is %r." % (temperature))
 
         if lc_req and lc_req != 'no':
-            state = max_state(max_state, nagios.state.warning)
             add_infos.append("Learn Cycle Requested: %r." % (lc_req))
 
         if lc_act and lc_act != 'no':
-            state = max_state(max_state, nagios.state.warning)
             add_infos.append("Learn Cycle Active: %r." % (lc_act))
 
         if lc_state and lc_state != 'ok':
