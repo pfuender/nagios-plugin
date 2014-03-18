@@ -19,6 +19,8 @@ our $host;
 our $STATCMD;
 $STATCMD="cat /proc/mdstat";
 
+my $DEBUG = 0;
+
 my @LINES;
 open(FH,"$STATCMD |");
 my $buffer="";
@@ -47,6 +49,7 @@ close(FH);
 my $last="";
 
 foreach my $l (@LINES) {
+	print "DEBUG: $l\n" if $DEBUG;
 	$l=~s/\t/ /g;
 	if ($l=~/^(md\d+) : (inactive) (.*)$/){
 
@@ -70,7 +73,19 @@ foreach my $l (@LINES) {
 		my @fdevs;
 		undef(@devs);
 		undef(@fdevs);
-		
+		if ($DEBUG) {
+			print "DEBUG:   dev = $dev\n";
+			print "DEBUG:   state = $state\n";
+			print "DEBUG:   read = $read\n";
+			print "DEBUG:   level = $level\n";
+			print "DEBUG:   devices = $devices\n";
+			print "DEBUG:   blocks = $blocks\n";
+			print "DEBUG:   normal = $normal\n";
+			print "DEBUG:   current = $current\n";
+			print "DEBUG:   map = $map\n";
+			print "DEBUG:   syncstate = $syncstate\n";
+			print "\n"
+		}
 		foreach my $dev (split(/ /,$devices)) {
 
 			if ($dev=~/^(.*)\[(\d+)\](\(\w+\))?$/) {
@@ -107,7 +122,7 @@ foreach my $l (@LINES) {
                                         if (length $syncstate) {
                                             $STATE=1;
                                             #$syncstate =~ s/^\[.+\]\s+//;
-                                            $syncstate =~ / = (\d+\.\d+\%)/;
+                                            $syncstate =~ / =\s+(\d+\.\d+\%)/;
 					    $error_msg.=" - $dev is recovering ($1)";
                                         } else {
 					    $STATE=2;
