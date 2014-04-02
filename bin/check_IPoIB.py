@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import json
-import os
 import pprint
 import re
 import signal
@@ -11,7 +10,6 @@ import socket
 import subprocess
 import sys
 import threading
-import time
 from string import split
 from urllib2 import HTTPError, Request, URLError, urlopen
 
@@ -48,7 +46,7 @@ class ping6(threading.Thread):
                 ## try to ping its ipv4 address to see if the host is offline
                 #print(str(self.count) + " : [IPv6 NOT REACHED] " + self.hostalias + " (return code: %s)" % e.returncode)
                 try:
-                    proc = subprocess.check_call(["ping", "-c2", "-s", "0", "-w", "4", self.ipv4_address], stdout=devnull, stderr=devnull)
+                    subprocess.check_call(["ping", "-c2", "-s", "0", "-w", "4", self.ipv4_address], stdout=devnull, stderr=devnull)
                     #print(str(self.count) + " : [IPv4 REACHED] " + self.ipv4_address)
                     self.notreached[self.hostalias] = 1
                 except subprocess.CalledProcessError as ee:
@@ -72,29 +70,29 @@ class ping6(threading.Thread):
                 ping6.evnt.set()
 
             ping6.lck.release()
-        except Exception as e:
+        except Exception:
             if self.hostalias not in self.notreached and self.hostalias not in self.reached and self.hostalias not in self.offline:
-                #print("did not find %s in self.reached, self.notreached or self.offline" % (self.hostalias))
+                #print("did not find %s in self.reached, self.notreached or self.offline" % self.hostalias)
                 self.failed[self.hostalias] = 1
             #elif self.hostalias in (self.reached):
-            #    print("found %s in self.reached" % (self.hostalias))
+            #    print("found %s in self.reached" % self.hostalias)
             #elif self.hostalias in (self.offline):
-            #    print("found %s in self.offline" % (self.hostalias))
+            #    print("found %s in self.offline" % self.hostalias)
             #else:
-            #    print("found %s in self.notreached" % (self.hostalias))
+            #    print("found %s in self.notreached" % self.hostalias)
 
             # free the ping6.evnt for the next requestor
             ping6.evnt.set()
             try:
                 # free any existing lock for the next requestor
                 ping6.lck.release()
-            except ThreadError as te:
-                dummy = 0
+            except threading.ThreadError:
+                pass
                 #print("there was no lock")
 
-    def newthread(count, hst):
+    def newthread(count, host):
         ping6.lck.acquire()
-        pg6 = ping6(count, hst)
+        pg6 = ping6(count, host)
         ping6.ping6list.append(pg6)
         ping6.lck.release()
         pg6.start()
@@ -140,10 +138,10 @@ def get_serverlist(type):
     try:
         response = urlopen(req, timeout=7)
     except HTTPError as e:
-        print('UNKNOWN: The server couldn\'t fulfill the request. Error code: ', e.code)
+        print("UNKNOWN: The server couldn't fulfill the request. Error code: ", e.code)
         sys.exit(state['UNKNOWN'])
     except URLError as e:
-        print('UNKNOWN: Failed to reach dcmanager api. Reason: ', e.reason)
+        print('UNKNOWN: Failed to reach DC Manager API. Reason: ', e.reason)
         sys.exit(state['UNKNOWN'])
     return json.loads(response.read())
 
@@ -159,7 +157,7 @@ def get_bgp_neighbors():
     ## bgp2
     ## bgp3
     ## bgp4
-    cmd = subprocess.Popen("sudo birdc6 show protocols  |grep BGP| awk '{print $1}'", shell=True, stdout=subprocess.PIPE, stderr=devnull)
+    cmd = subprocess.Popen("sudo birdc6 show protocols | grep BGP | awk '{print $1}'", shell=True, stdout=subprocess.PIPE, stderr=devnull)
     for bgp in cmd.stdout:
         bgp = bgp.strip()
         if not bgp_pattern.match(bgp):
@@ -169,13 +167,13 @@ def get_bgp_neighbors():
         #print(bgp)
 
         ## EXPECTED OUTPUT
-        ## tmoericke@pserver1719:~$ sudo birdc6 show protocols all bgp1 |egrep '(BGP state|Neighbor address|Neighbor ID|Description):'
+        ## tmoericke@pserver1719:~$ sudo birdc6 show protocols all bgp1 | egrep '(BGP state|Neighbor address|Neighbor ID|Description):'
         ##   Description:    gateway-fc57:1:0:1:0:11:2:1 (gw1701)
         ##   BGP state:          Established
         ##     Neighbor address: fc57:1:0:1:0:11:2:1
         ##     Neighbor ID:      10.1.171.249
         birdc6_command = "sudo birdc6 show protocols all %s" % bgp
-        cmd2 = subprocess.Popen("%s |egrep '(BGP state|Neighbor address|Neighbor ID|Description):'" % birdc6_command, shell=True, stdout=subprocess.PIPE, stderr=devnull)
+        cmd2 = subprocess.Popen("%s | egrep '(BGP state|Neighbor address|Neighbor ID|Description):'" % birdc6_command, shell=True, stdout=subprocess.PIPE, stderr=devnull)
         bgp_detail = {}
         for line in cmd2.stdout:
             #line = line.strip()
@@ -194,7 +192,7 @@ def get_bgp_neighbors():
                     bgp_hostname = socket.gethostbyaddr(bgp_detail["Neighbor ID"])[0]
                     pattern = re.compile('.%s' % domain)
                     bgp_hostname = pattern.sub('', bgp_hostname)
-                except socket.herror as e:
+                except socket.herror:
                     bgp_hostname = bgp_detail["Neighbor ID"]
             elif "Neighbor address" in bgp_detail:
                 bgp_hostname = bgp_detail["Neighbor address"]
@@ -233,7 +231,7 @@ if hosttype == "pserver":
 elif hosttype == "gw":
     serverlist = gateways
 else:
-    print("UNKNOWN: hosttype '%s' is not supported currently" % (hosttype))
+    print("UNKNOWN: hosttype '%s' is not supported currently" % hosttype)
     sys.exit(state['UNKNOWN'])
 
 
@@ -250,7 +248,7 @@ for ps in serverlist:
 del serverlist
 
 if cluster == "":
-    print("UNKNOWN: %s is not part of any cluster in dcmanager result set" % (hostname))
+    print("UNKNOWN: %s is not part of any cluster in dcmanager result set" % hostname)
     sys.exit(state['UNKNOWN'])
 
 dcmanager_offline = []
@@ -310,7 +308,7 @@ for ps in gateways:
                 bgp_ipv4_mismatch.append(ping_hostname)
 
 
-while 1:
+while True:
     num_threads = len(ping6.ping6list)
     #print(num_threads)
     if num_threads == 0:
@@ -321,7 +319,7 @@ while 1:
 
 
 pattern = re.compile('.%s' % domain)
-##print("INFO: reached: %d, notreached: %d, failed: %d" % (len(ping6.reached),len(ping6.notreached),len(ping6.failed)))
+##print("INFO: reached: %d, notreached: %d, failed: %d" % (len(ping6.reached), len(ping6.notreached), len(ping6.failed)))
 msg = []
 n += len(dcmanager_offline)
 cur_state = "OK"
