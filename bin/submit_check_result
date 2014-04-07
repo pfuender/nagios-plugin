@@ -4,6 +4,7 @@ dir=/var/lib/icinga/spool/checkresult-queue
 
 log_target=$(basename $0)
 verbose=0
+debug=0
 
 function float_eval()
 {
