@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.26-1) wheezy; urgency=low
+
+  * added debug mode to submit_check_result
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 07 Apr 2014 11:21:31 +0200
+
 python-nagios-plugin (1.5.25-1) stable; urgency=low
 
   * pb-check-softwareraid: fixed syncstate regexp and added optional debug code
