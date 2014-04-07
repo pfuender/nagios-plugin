@@ -40,11 +40,12 @@ function error {
 function usage {
     echo "$@" 1>&2
     echo "
-    Usage: $0 [-v] --submit-results
-           $0 [-v] --queue-host-result <hostname> <state> <plugin_output> <performance_data>
-           $0 [-v] --queue-service-result <hostname> <svc_description> <state> <plugin_output> <performance_data>
+    Usage: $0 [-v] [-d] --submit-results
+           $0 [-v] [-d] --queue-host-result <hostname> <state> <plugin_output> <performance_data>
+           $0 [-v] [-d] --queue-service-result <hostname> <svc_description> <state> <plugin_output> <performance_data>
 
            -v, --verbose           enable verbose output
+           -d, --debug             enable debug mode
            --submit-results	   send content of each result file via send_nsca
            --queue-host-result     queue a host check result
            --queue-service-result  queue a service check result
@@ -77,8 +78,10 @@ function submit_results {
             continue
         fi
         
-        date >> /tmp/send_nsca.log
-        cat $file >> /tmp/send_nsca.log
+        if [ $debug -gt 0 ];then
+            date >> /tmp/send_nsca.log
+            cat $file >> /tmp/send_nsca.log
+	fi
         a=$(date +%s.%N)
         state=$(cat $file | /usr/sbin/send_nsca -H  icinga01-webui.pb.local -c /etc/icinga/send_nsca.cfg)
         b=$(date +%s.%N)
@@ -164,6 +167,10 @@ while true ; do
 #        if [ -n "$1" ];then
 #            usage "option --queue-service-result takes 4 arguments"
 #        fi
+        ;;
+    -d|--debug)
+        debug=1
+        shift
         ;;
     -v|--verbose)
         verbose=1
