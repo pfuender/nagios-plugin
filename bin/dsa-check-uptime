@@ -44,11 +44,11 @@ totalMinutes=`expr $dayMinutes \+ $hourMinutes`;
 totalMinutes=`expr $totalMinutes \+ $minutes`;
 
 # Has it been rebooted in the last hour?
-if [ "$totalMinutes" -lt 60 ]
+if [ "$totalMinutes" -lt 180 ]
 then
 	# exit with a warning
-	echo "Uptime WARNING: Uptime less than one hour (currently $totalMinutes minutes)|mins=$totalMinutes";
-	exit 1;
+	echo "Uptime CRITICAL: Uptime less than one hour (currently $totalMinutes minutes)|mins=$totalMinutes";
+	exit 2;
 else
 	# everything's okay!
 	echo "Uptime OK: Currently $days days, $hours hours and $minutes minutes|mins=$totalMinutes";
