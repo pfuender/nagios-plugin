@@ -1,3 +1,10 @@
+python-nagios-plugin (1.5.28-1) stable; urgency=low
+
+  * Add check_vcb_automap
+  * Remove obsolete check-procs.pl script
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 28 Apr 2014 13:49:15 +0200
+
 python-nagios-plugin (1.5.27-1) wheezy; urgency=low
 
   * build for wheezy

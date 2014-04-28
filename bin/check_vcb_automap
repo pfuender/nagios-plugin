@@ -1,0 +1,116 @@
+#!/bin/bash
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+#UTILS="${PROGPATH}/../utils.sh"
+UTILS=/usr/lib/nagios/plugins/utils.sh
+if ! [[ -e ${UTILS} ]]; then
+    echo "File '${UTILS}' does not exist, aborting!"
+    exit 1
+fi
+. /usr/lib/nagios/plugins/utils.sh
+
+VERBOSE=0
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} [-v|--verbose]"
+    echo ""
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks if automap is enabled and if so"
+    echo "all map files exist."
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    if [[ ${VERBOSE} -eq 1 ]]; then
+        echo $1
+    fi
+}
+
+
+CHECK="VCB AUTOMAP"
+DEF_PATH=/opt/profitbricks/vcb/pbkvm/def
+
+# get arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        *)
+            echo "Unknown argument '$1', aborting!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+# checks
+if ! [[ -d ${DEF_PATH} ]]; then
+    echo "${CHECK}: Directory '${DEF_PATH}' does not exist!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# default return value
+return_state=${STATE_UNKNOWN}
+# return messages
+message="${CHECK}: "
+critical_message="${CHECK}: map file for"
+# for performance data
+count_ok=0
+count_missing=0
+
+### do the work
+# check if automap is enabled
+if echo help | nc localhost 4490 | grep -q 'toggle-vm-sto-automap-mode (=no)'; then
+    echo "VCB AUTOMAP: automap is disabled."
+    exit ${STATE_WARNING}
+else
+    for def_file in ${DEF_PATH}/*.def; do
+        filename=${def_file##*/}
+        uuid=${filename%.*}
+        if [[ -e ${DEF_PATH}/${uuid}.map ]]; then
+            ((++count_ok))
+        else
+            ((++count_missing))
+            critical_message="${critical_message} ${uuid}"
+            return_state=${STATE_CRITICAL}
+        fi
+    done
+fi
+
+critical_message="${critical_message} missing!"
+perf_data="|map_ok=${count_ok} map_missing=${count_missing}"
+
+if [[ ${return_state} -eq ${STATE_CRITICAL} ]]; then
+    echo "${critical_message} ${perf_data}"
+    exit ${STATE_CRITICAL}
+elif [[ ${count_missing} -eq 0 ]]; then
+    echo "${message} automap enabled and all map files exist. ${perf_data}"
+    exit ${STATE_OK}
+else
+    echo "${message} UNKNOWN. ${perf_data}"
+    exit ${STATE_UNKNOWN}
+fi
+
+# vim: ts=4 sw=4 et filetype=sh
