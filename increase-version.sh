@@ -239,7 +239,7 @@ for script in $py_scripts; do
 done
 
 # Mangling Perl scripts
-pl_scripts="bin/check-procs.pl bin/check-vg-free"
+pl_scripts="bin/check-vg-free"
 for script in $pl_scripts; do
     if [ -f $script ] ; then
         echo -n "Performing $script ... "
