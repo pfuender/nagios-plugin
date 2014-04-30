@@ -3,11 +3,11 @@
 dir=/var/lib/icinga/spool/checkresult-queue
 
 log_target=$(basename $0)
+recipient=icinga01-webui.pb.local
 verbose=0
 debug=0
 
-function float_eval()
-{
+function float_eval() {
     local float_scale=2
     local stat=0
     local result=0.0
@@ -20,7 +20,7 @@ function float_eval()
     return $stat
 }
 
-function info {
+function info() {
     if [ $verbose -gt 0 ];then
         echo -n -e "\033[1mINFO:\033[0m" 1>&2
         tput sgr0                               # Reset colors to "normal."
@@ -29,7 +29,7 @@ function info {
     fi
 }
 
-function error {
+function error() {
     echo -n -e '\E[47;31m'"\033[1mERROR:\033[0m" 1>&2
     tput sgr0                               # Reset colors to "normal."
     echo " $@" 1>&2
@@ -38,16 +38,18 @@ function error {
 }
 
 
-function usage {
+function usage() {
     echo "$@" 1>&2
     echo "
-    Usage: $0 [-v] [-d] --submit-results
+    Usage: $0 [-v] [-d] --submit-results [--recipient <recipient>]
            $0 [-v] [-d] --queue-host-result <hostname> <state> <plugin_output> <performance_data>
            $0 [-v] [-d] --queue-service-result <hostname> <svc_description> <state> <plugin_output> <performance_data>
 
            -v, --verbose           enable verbose output
            -d, --debug             enable debug mode
-           --submit-results	   send content of each result file via send_nsca
+           --recipient             send result to <recipient>
+                                   default: ${recipient}
+           --submit-results	       send content of each result file via send_nsca
            --queue-host-result     queue a host check result
            --queue-service-result  queue a service check result
 
@@ -65,8 +67,7 @@ function usage {
     exit 1
 }
 
-function submit_results {
-    
+function submit_results() {
     # pipe the check results info into the send_nsca program, which
     # in turn transmits the data to the nsca daemon on the central
     # monitoring server
@@ -84,17 +85,16 @@ function submit_results {
             cat $file >> /tmp/send_nsca.log
 	fi
         a=$(date +%s.%N)
-        state=$(cat $file | /usr/sbin/send_nsca -H  icinga01-webui.pb.local -c /etc/icinga/send_nsca.cfg)
+        state=$(cat $file | /usr/sbin/send_nsca -H ${recipient} -c /etc/icinga/send_nsca.cfg)
         b=$(date +%s.%N)
         c=$(float_eval "$b - $a"|sed 's/^\./0./')
         info "Sent results of file $file via send_nsca in $c seconds. Response: $state"
         rm -f $file
     done
-
 }
 
 
-function queue_result {
+function queue_result() {
     # Convert the state string to the corresponding return code
     return_code=-1
     
@@ -132,9 +132,6 @@ while true ; do
     --submit-results)
         submit=1
         shift
-#        if [ -n "$1" ];then
-#            usage "option --submit-results takes no argument"
-#        fi
         ;;
     --queue-host-result)
         queue=1
@@ -146,11 +143,8 @@ while true ; do
         [ -z "${performance_data}" ] && shift 3 || shift 4
         # some plugins do not have performance data
         if [ -z "$plugin_output" ];then
-            usage "option --queue-host-result takes 3 arguments"
+            usage "option --queue-host-result takes at least 3 arguments"
         fi
-#        if [ -n "$1" ];then
-#            usage "option --queue-host-result takes 3 arguments"
-#        fi
         ;;
     --queue-service-result)
         queue=1
@@ -163,11 +157,12 @@ while true ; do
         [ -z "${performance_data}" ] && shift 4 || shift 5
         # some plugins do not have performance data
         if [ -z "$plugin_output" ];then
-            usage "option --queue-service-result takes 4 arguments at minimum"
+            usage "option --queue-service-result takes at least 4 arguments"
         fi
-#        if [ -n "$1" ];then
-#            usage "option --queue-service-result takes 4 arguments"
-#        fi
+        ;;
+    --recipient)
+        recipient=$2
+        shift
         ;;
     -d|--debug)
         debug=1
