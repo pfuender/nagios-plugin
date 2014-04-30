@@ -8,8 +8,7 @@ verbose=0
 debug=0
 
 function float_eval() {
-    local float_scale=2
-    local stat=0
+    local float_scale=2 local stat=0
     local result=0.0
     if [[ $# -gt 0 ]]; then
         result=$(echo "scale=$float_scale; $*" | bc -q 2>/dev/null)
@@ -162,7 +161,7 @@ while true ; do
         ;;
     --recipient)
         recipient=$2
-        shift
+        shift 2
         ;;
     -d|--debug)
         debug=1
