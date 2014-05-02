@@ -162,7 +162,7 @@ while true ; do
         ;;
     --recipient)
         recipient=$2
-        shift
+        shift 2
         ;;
     -d|--debug)
         debug=1
