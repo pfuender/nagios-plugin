@@ -126,8 +126,7 @@ function queue_result() {
 }
 
 
-while true ; do
-  test -z "$1" && break
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --submit-results)
         submit=1
