@@ -171,6 +171,10 @@ while true ; do
         verbose=1
         shift
         ;;
+    -h|--help)
+        usage
+        exit 0
+        ;;
     --) shift; break ;;
     *) error "unknown option $1" ;;
   esac
