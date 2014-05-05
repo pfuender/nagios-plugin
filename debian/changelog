@@ -1,6 +1,6 @@
 python-nagios-plugin (1.5.31-1) stable; urgency=low
 
-  * Version bump
+  * Correct parameter handling of submit_check_result
 
  -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 02 May 2014 14:24:10 +0200
 
