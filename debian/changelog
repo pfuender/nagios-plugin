@@ -1,3 +1,9 @@
+python-nagios-plugin (1.5.32-1) stable; urgency=low
+
+  * Redirect stderr to stdout when running the plugin in run_as_passive_check
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 05 May 2014 14:26:07 +0200
+
 python-nagios-plugin (1.5.31-1) stable; urgency=low
 
   * Correct parameter handling of submit_check_result
