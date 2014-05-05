@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# run the given plugin as plugin and submit the results
+
+svc_description=''
+plugin=''
+p_state=("OK" "WARNING" "CRITICAL" "UNKNOWN")
+host=$(hostname -s)
+
+help() {
+    echo "Run a plugin as passive check for the given service description."
+    echo
+    echo "Usage:"
+    echo " $0 -s|--svc_description SVC_DESCRIPTION -p|--plugin PLUGIN [-H|--host HOST]"
+    echo
+    echo "  -s|--svc_description  service description as used in icinga config"
+    echo "  -p|--plugin           plugin to run (full command line)"
+    echo "  -H|--host             hostname to use"
+    echo "                          default: hostname -s "
+    echo "  -h|--help             show this help"
+    echo
+    echo "Attention:"
+    echo "  Due to a limitation of submit_check_result this script assumes that"
+    echo "  after performance data no further output is printed - "
+    echo "  in contrast to icinga which can handle variants, see"
+    echo "  https://www.monitoring-plugins.org/doc/guidelines.html#AEN33"
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -s|--svc_description)
+            svc_description=$2
+            shift 2
+            ;;
+        -p|--plugin)
+            plugin=$2
+            shift 2
+            ;;
+        -r|--recipient)
+            recipient=$2
+            shift 2
+            ;;
+        -H|--host)
+            host=$2
+            shift 2
+            ;;
+        -h|--help)
+            help
+            exit 0
+            ;;
+        *)
+            echo "Unknown option '$1'!"
+            echo
+            help
+            exit 1
+    esac
+done
+
+# check parameters
+if [[ -z ${svc_description} ]]; then
+    echo "No 'svc_description' given!"
+    exit 2
+fi
+if [[ -z ${plugin} ]]; then
+    echo "No 'plugin' given!"
+    exit 2
+fi
+
+# run the plugin and get necessary information
+output="$(${plugin})"
+p_rc=$?
+p_output=$(echo ${output} | cut -d '|' -f 1)
+p_perf_data=$(echo ${output} | cut -d '|' -f 2)
+
+# /usr/lib/nagios/plugins/pb/submit_check_result [-v] [-d] 
+#   --queue-service-result <hostname> <svc_description> <state> <plugin_output> <performance_data>
+/usr/lib/nagios/plugins/pb/submit_check_result --queue-service-result ${host} "${svc_description}" "${p_state[${p_rc}]}" "${p_output}" "${p_perf_data}"

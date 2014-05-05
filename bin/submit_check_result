@@ -2,7 +2,7 @@
 
 dir=/var/lib/icinga/spool/checkresult-queue
 
-log_target=$(basename $0)
+log_target=${0##*/}
 recipient=icinga01-webui.pb.local
 verbose=0
 debug=0
@@ -13,18 +13,18 @@ function float_eval() {
     if [[ $# -gt 0 ]]; then
         result=$(echo "scale=$float_scale; $*" | bc -q 2>/dev/null)
         stat=$?
-        if [[ $stat -eq 0  &&  -z "$result" ]]; then stat=1; fi
+        [[ ${stat} -eq 0 ]] && [[ -z "${result}" ]] && stat=1
     fi
-    echo $result
-    return $stat
+    echo ${result}
+    return ${stat}
 }
 
 function info() {
-    if [ $verbose -gt 0 ];then
+    if [[ ${verbose} -gt 0 ]]; then
         echo -n -e "\033[1mINFO:\033[0m" 1>&2
         tput sgr0                               # Reset colors to "normal."
         echo " $@"
-        logger -p local7.info -t $log_target $@
+        logger -p local7.info -t ${log_target} $@
     fi
 }
 
@@ -32,7 +32,7 @@ function error() {
     echo -n -e '\E[47;31m'"\033[1mERROR:\033[0m" 1>&2
     tput sgr0                               # Reset colors to "normal."
     echo " $@" 1>&2
-    logger -p local7.err -t $log_target $@
+    logger -p local7.err -t ${log_target} $@
     exit 2
 }
 
@@ -62,7 +62,7 @@ function usage() {
                                    output for the service or host checks
            
 " 1>&2
-    logger -p local7.crit -t $log_target "Usage error"
+    logger -p local7.crit -t ${log_target} "Usage error"
     exit 1
 }
 
@@ -72,23 +72,23 @@ function submit_results() {
     # monitoring server
     
     time=$(date +%s)
-    for file in $(find $dir -type f );do
-        let "age=$time-$(stat -c "%Y" $file)"
-        if [ $age -lt 15 ];then
+    for file in $(find $dir -type f ); do
+        let "age=${time}-$(stat -c "%Y" ${file})"
+        if [[ ${age} -lt 15 ]]; then
             #echo "SKIP: $file $age"
             continue
         fi
         
-        if [ $debug -gt 0 ];then
+        if [[ ${debug} -gt 0 ]]; then
             date >> /tmp/send_nsca.log
-            cat $file >> /tmp/send_nsca.log
+            cat ${file} >> /tmp/send_nsca.log
 	fi
         a=$(date +%s.%N)
-        state=$(cat $file | /usr/sbin/send_nsca -H ${recipient} -c /etc/icinga/send_nsca.cfg)
+        state=$(cat ${file} | /usr/sbin/send_nsca -H ${recipient} -c /etc/icinga/send_nsca.cfg)
         b=$(date +%s.%N)
-        c=$(float_eval "$b - $a"|sed 's/^\./0./')
-        info "Sent results of file $file via send_nsca in $c seconds. Response: $state"
-        rm -f $file
+        c=$(float_eval "${b} - ${a}" | sed 's/^\./0./')
+        info "Sent results of file ${file} via send_nsca in ${c} seconds. Response: ${state}"
+        rm -f ${file}
     done
 }
 
@@ -113,20 +113,19 @@ function queue_result() {
     esac
 
     time=$(date +%Y%m%d_%H%M%S | sed 's/[0-9]$/x/')
-    file="$dir/$time"
+    file="${dir}/${time}"
 
-    if [ -n "$svc_description" ];then
-        info "queueing service check results to $file: $hostname $svc_description $return_code $plugin_output $performance_data"
-        /usr/bin/printf "%s\t%s\t%s\t%s|%s\027" "$hostname" "$svc_description" "$return_code" "$plugin_output" "$performance_data" >> $file || error "cannot write results to $file: $!"
+    if [ -n "${svc_description}" ];then
+        info "queueing service check results to ${file}: ${hostname} ${svc_description} ${return_code} ${plugin_output} ${performance_data}"
+        echo -e "${hostname}\t${svc_description}\t${return_code}\t${plugin_output}|${performance_data}" >> $file || error "cannot write results to ${file}: $!"
     else
-        info "queueing host check results to $file: $hostname $return_code $plugin_output $performance_data"
-        /usr/bin/printf "%s\t%s\t%s|%s\027" "$hostname" "$return_code" "$plugin_output" "$performance_data" >> $file || error "cannot write results to $file: $!"
+        info "queueing host check results to ${file}: ${hostname} ${return_code} ${plugin_output} ${performance_data}"
+        echo -e "${hostname}\t${return_code}\t${plugin_output}|${performance_data}" >> $file || error "cannot write results to ${file}: $!"
     fi
 }
 
 
-while true ; do
-  test -z "$1" && break
+while [[ $# -gt 0 ]]; do
   case "$1" in
     --submit-results)
         submit=1
@@ -139,9 +138,9 @@ while true ; do
         state=$2
         plugin_output=$3
         performance_data=$4
-        [ -z "${performance_data}" ] && shift 3 || shift 4
+        [[ -z "${performance_data}" ]] && shift 3 || shift 4
         # some plugins do not have performance data
-        if [ -z "$plugin_output" ];then
+        if [[ -z "${plugin_output}" ]]; then
             usage "option --queue-host-result takes at least 3 arguments"
         fi
         ;;
@@ -153,9 +152,9 @@ while true ; do
         state=$3
         plugin_output=$4
         performance_data=$5
-        [ -z "${performance_data}" ] && shift 4 || shift 5
+        [[ -z "${performance_data}" ]] && shift 4 || shift 5
         # some plugins do not have performance data
-        if [ -z "$plugin_output" ];then
+        if [[ -z "$plugin_output" ]]; then
             usage "option --queue-service-result takes at least 4 arguments"
         fi
         ;;
@@ -183,17 +182,17 @@ done
 #########################
 ## check the user id
 user=nagios
-if [ $(id -nu) != "$user" ];then
-    error "must run as user $user"
+if [[ $(id -nu) != "$user" ]]; then
+    error "must run as user '$user'"
 fi
 
-if [ ! -d $dir ];then
-    mkdir -p $dir || error "cannot create directory $dir: $!"
+if [[ ! -d ${dir} ]]; then
+    mkdir -p ${dir} || error "cannot create directory ${dir}: $!"
 fi
 
-if [ "$submit" == "1" ];then
+if [[ ${submit} -eq 1 ]]; then
    submit_results
-elif [ "$queue" == "1" ];then
+elif [[ ${queue} -eq 1 ]]; then
    queue_result
 else
    usage

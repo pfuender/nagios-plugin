@@ -1,8 +1,14 @@
-python-nagios-plugin (1.5.30-1) stable; urgency=low
+python-nagios-plugin (1.5.31-1) stable; urgency=low
 
   * Correct parameter handling of submit_check_result
 
- -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 30 Apr 2014 16:12:11 +0200
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 02 May 2014 14:24:10 +0200
+
+python-nagios-plugin (1.5.30-1) stable; urgency=low
+
+  * Add run_as_passive_check
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 02 May 2014 14:23:44 +0200
 
 python-nagios-plugin (1.5.29-1) stable; urgency=low
 
