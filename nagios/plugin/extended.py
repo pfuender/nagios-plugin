@@ -180,7 +180,7 @@ class ExtNagiosPlugin(NagiosPlugin):
         @type timeout: int
         @param verbose: verbosity level inside the module
         @type verbose: int
-        @param prepend_searchpath: a single path oor a list of paths to prepend
+        @param prepend_searchpath: a single path or a list of paths to prepend
                                    to the search path list
         @type prepend_searchpath: str or list of str
         @param append_searchpath: a single path oor a list of paths to append

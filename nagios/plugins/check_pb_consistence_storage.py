@@ -396,6 +396,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 warning = self.warning,
                 critical = self.critical,
         )
+
     #--------------------------------------------------------------------------
     def read_config(self):
         """
