@@ -67,7 +67,7 @@ if [[ -z ${plugin} ]]; then
 fi
 
 # run the plugin and get necessary information
-output="$(${plugin})"
+output=$(${plugin} 2>&1)
 p_rc=$?
 p_output=$(echo ${output} | cut -d '|' -f 1)
 p_perf_data=$(echo ${output} | cut -d '|' -f 2)
