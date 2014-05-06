@@ -56,7 +56,7 @@ from dcmanagerclient.client import RestApi, RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 log = logging.getLogger(__name__)
@@ -180,6 +180,8 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         @type: RestApi
         """
 
+        self.add_args()
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -199,7 +201,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         return d
 
     #--------------------------------------------------------------------------
-    def _add_args(self):
+    def add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
@@ -218,10 +220,8 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
                 dest = "api_url",
                 metavar = 'URL',
                 help = ("The URL of the REST API (Default: %(default)r)." % {
-                        'default': self.api_url.geturl()}),
+                        'default': DEFAULT_API_URL}),
         )
-
-
 
     #--------------------------------------------------------------------------
     def parse_args(self, args = None):
@@ -288,8 +288,8 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         log.debug("Creating REST API client object ...")
         self.api = RestApi.from_config(
-                extra_config_file = self.parser.args.extra_config_file,
-                api_url = self.parser.args.api_url,
+                extra_config_file = self.argparser.args.extra_config_file,
+                api_url = self.argparser.args.api_url,
                 timeout = self.timeout,
         )
 

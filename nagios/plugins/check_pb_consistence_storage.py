@@ -104,7 +104,7 @@ class CfgFileNotValidError(ExtNagiosPluginError):
 #==============================================================================
 class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
     """
-    A special /Nagios/Icinga plugin to check the existent volumes on a storage
+    A special Nagios/Icinga plugin to check the existent volumes on a storage
     server against the target state from provisioning database.
     The target volumes from database are get via REST API calls.
     """
@@ -173,7 +173,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         self._critical = NagiosRange(DEFAULT_CRIT_VOL_ERRORS)
         """
         @ivar: the critical threshold of the test, max number of volume errors,
-               before a warning result is given
+               before a critical result is given
         @type: NagiosRange
         """
 
