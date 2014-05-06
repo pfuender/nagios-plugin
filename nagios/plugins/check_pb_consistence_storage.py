@@ -49,22 +49,22 @@ from nagios.plugin.threshold import NagiosThreshold
 from nagios.plugin.extended import ExtNagiosPluginError
 from nagios.plugin.extended import ExecutionTimeoutError
 from nagios.plugin.extended import CommandNotFoundError
-from nagios.plugin.extended import ExtNagiosPlugin
 
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
-from dcmanagerclient.client import RestApi, RestApiError
+from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
+from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
+
+from dcmanagerclient.client import RestApiError
 
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.7.2'
+__version__ = '0.8.1'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
-DEFAULT_API_URL = 'https://dcmanager.pb.local/dc/api'
-DEFAULT_API_AUTHTOKEN = '604a3b5f6db67e5a3a48650313ddfb2e8bcf211b'
 DEFAULT_PB_VG = 'storage'
 STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
 DUMMY_LV = 'ed00-0b07-71ed-000c0ffee000'
@@ -102,9 +102,9 @@ class CfgFileNotValidError(ExtNagiosPluginError):
         return msg
 
 #==============================================================================
-class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
+class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
     """
-    A special /Nagios/Icinga plugin to check the existent volumes on a storage
+    A special Nagios/Icinga plugin to check the existent volumes on a storage
     server against the target state from provisioning database.
     The target volumes from database are get via REST API calls.
     """
@@ -128,35 +128,17 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         blurb += ("Checks the existent volumes on a storage server against " +
                     "the target state from provisioning database.")
 
-        super(CheckPbConsistenceStoragePlugin, self).__init__(
-                shortname = 'PB_CONSIST_STORAGE',
-                usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
-        )
-
         self._hostname = socket.gethostname()
         """
         @ivar: the hostname of the current storage server
         @type: str
         """
 
-        self._api_url = None
-        """
-        @ivar: the URL of the Dc-Manager REST API
-        @type: str
-        """
-
-        self._api_authtoken = None
-        """
-        @ivar: the authentication token for the DC-Manager REST API.
-        @type: str
-        """
-
-        self.api = None
-        """
-        @ivar: an initialized REST API clinet object
-        @type: RestApi
-        """
+        super(CheckPbConsistenceStoragePlugin, self).__init__(
+                shortname = 'PB_CONSIST_STORAGE',
+                usage = usage, blurb = blurb,
+                version = __version__, timeout = DEFAULT_TIMEOUT,
+        )
 
         self._pb_vg = None
         """
@@ -173,7 +155,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         self._critical = NagiosRange(DEFAULT_CRIT_VOL_ERRORS)
         """
         @ivar: the critical threshold of the test, max number of volume errors,
-               before a warning result is given
+               before a critical result is given
         @type: NagiosRange
         """
 
@@ -199,25 +181,11 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         if failed_commands:
             raise CommandNotFoundError(failed_commands)
 
-        self._add_args()
-
     #------------------------------------------------------------
     @property
     def hostname(self):
         """The hostname of the current storage server."""
         return self._hostname
-
-    #------------------------------------------------------------
-    @property
-    def api_url(self):
-        """The URL of the Dc-Manager REST API."""
-        return self._api_url
-
-    #------------------------------------------------------------
-    @property
-    def api_authtoken(self):
-        """The authentication token for the DC-Manager REST API."""
-        return self._api_authtoken
 
     #------------------------------------------------------------
     @property
@@ -257,19 +225,14 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
 
         d['hostname'] = self.hostname
         d['lvm_command'] = self.lvm_command
-        d['api_url'] = self.api_url
-        d['api_authtoken'] = self.api_authtoken
         d['pb_vg'] = self.pb_vg
         d['warning'] = self.warning
         d['critical'] = self.critical
-        d['api'] = None
-        if self.api:
-            d['api'] = self.api.__dict__
 
         return d
 
     #--------------------------------------------------------------------------
-    def _add_args(self):
+    def add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
@@ -308,21 +271,6 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         )
 
         self.add_arg(
-                '--api-url',
-                metavar = 'URL',
-                dest = 'api_url',
-                help = ("The URL of the Dc-Manager REST API (Default: %r)." % (
-                        DEFAULT_API_URL)),
-        )
-
-        self.add_arg(
-                '--api-authtoken',
-                metavar = 'TOKEN',
-                dest = 'api_authtoken',
-                help = ("The authentication token of the Dc-Manager REST API."),
-        )
-
-        self.add_arg(
                 '--vg', '--volume-group',
                 metavar = 'VG',
                 dest = 'pb_vg',
@@ -330,18 +278,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                         DEFAULT_PB_VG)),
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
-        """
-        Executes self.argparser.parse_args().
-
-        @param args: the argument strings to parse. If not given, they are
-                     taken from sys.argv.
-        @type args: list of str or None
-
-        """
-
-        super(CheckPbConsistenceStoragePlugin, self).parse_args(args)
+        super(CheckPbConsistenceStoragePlugin, self).add_args()
 
     #--------------------------------------------------------------------------
     def parse_args_second(self):
@@ -355,24 +292,6 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             hn = hn.strip()
         if hn:
             self._hostname = hn.lower()
-
-        # define API URL
-        if self.argparser.args.api_url:
-            self._api_url = self.argparser.args.api_url
-
-        if self.argparser.args.api_authtoken:
-            self._api_authtoken = self.argparser.args.api_authtoken
-
-        if not self.api_url:
-            self._api_url = os.environ.get('RESTAPI_URL')
-        if not self.api_url:
-            self._api_url = DEFAULT_API_URL
-
-        # define API authtoken
-        if not self.api_authtoken:
-            self._api_authtoken = os.environ.get('RESTAPI_AUTHTOKEN')
-        if not self.api_authtoken:
-            self._api_authtoken = DEFAULT_API_AUTHTOKEN
 
         # define storage volume group
         if self.argparser.args.pb_vg:
@@ -396,6 +315,7 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                 warning = self.warning,
                 critical = self.critical,
         )
+
     #--------------------------------------------------------------------------
     def read_config(self):
         """
@@ -431,48 +351,13 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
                     log.debug("Got a volume group from config: %r", vg)
                 self._pb_vg = vg
 
-        if cfg.has_section('dcmanager_rest_api'):
-
-            cfg_api_url = None
-            if cfg.has_option('dcmanager_rest_api', 'url'):
-                cfg_api_url = cfg.get('dcmanager_rest_api', 'url')
-            if cfg_api_url:
-                cfg_api_url = cfg_api_url.strip()
-            if cfg_api_url:
-                if self.verbose > 1:
-                    log.debug("Got a REST API URL from config: %r", cfg_api_url)
-                self._api_url = cfg_api_url
-
-            cfg_api_authtoken = None
-            if cfg.has_option('dcmanager_rest_api', 'authtoken'):
-                cfg_api_authtoken = cfg.get('dcmanager_rest_api', 'authtoken')
-            if cfg_api_authtoken:
-                if self.verbose > 3:
-                    log.debug("Got a REST API authentication token from config: %r",
-                            cfg_api_authtoken)
-                self._api_authtoken = cfg_api_authtoken
-
     #--------------------------------------------------------------------------
-    def __call__(self):
-        """
-        Method to call the plugin directly.
-        """
-
-        self.parse_args()
-        self.init_root_logger()
-
-        self.read_config()
-
-        self.parse_args_second()
+    def run(self):
+        """Main execution method."""
 
         state = nagios.state.ok
         out = "Storage volumes on %r seems to be okay." % (
                 self.hostname)
-
-        self.api = RestApi(url = self.api_url, authtoken = self.api_authtoken)
-
-        if self.verbose > 2:
-            log.debug("Current object:\n%s", pp(self.as_dict()))
 
         self.all_api_volumes = {}
 
@@ -1040,7 +925,6 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
             raise CfgFileNotValidError(cfg_file, msg)
 
         return timestamp
-
 
 #==============================================================================
 
