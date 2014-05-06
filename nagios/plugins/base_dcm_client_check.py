@@ -50,21 +50,14 @@ from nagios.plugin.extended import ExtNagiosPlugin
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
+from dcmanagerclient.client import DEFAULT_CFG_FILES, DEFAULT_API_URL
 from dcmanagerclient.client import RestApi, RestApiError
 
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
-
-DEFAULT_API_URL = 'https://dcmanager.pb.local/api'
-DEFAULT_API_TOKEN = ''
-
-DEFAULT_CFG_FILES = (
-    os.sep + os.path.join('etc', 'dcmanager.ini'),
-    os.path.expanduser(os.path.join('~', '.dcmanager')),
-)
 
 log = logging.getLogger(__name__)
 
@@ -116,7 +109,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
             version = nagios.__version__, url = None, blurb = None,
             licence = lgpl3_licence_text, extra = None, plugin = None,
             timeout = default_timeout, verbose = 0, prepend_searchpath = None,
-            append_searchpath = None, dcm_cfg_file = None):
+            append_searchpath = None):
         """
         Constructor of the BaseDcmClientPlugin class.
 
@@ -163,9 +156,6 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         @param append_searchpath: a single path oor a list of paths to append
                                   to the search path list
         @type append_searchpath: str or list of str
-        @param dcm_cfg_file: one or more additional configuration files
-                             for the DcManage-Client
-        @type dcm_cfg_file: str or list of str or None
 
         """
 
@@ -184,75 +174,11 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
                 append_searchpath = append_searchpath,
         )
 
-        def_api_url = os.environ.get('RESTAPI_URL') or DEFAULT_API_URL
-        self._api_url =  urlparse(def_api_url)
-        """
-        @ivar: The URL of the REST API
-        @type: urlparse.ParseResult
-        """
-
-        self._api_authtoken = os.environ.get('RESTAPI_AUTHTOKEN') or DEFAULT_API_TOKEN
-        """
-        @ivar: The authorization token for the REST API
-        @type: str
-        """
-
         self.api = None
         """
-        @ivar: an initialized REST API clinet object
+        @ivar: an initialized REST API client object
         @type: RestApi
         """
-
-        self.dcm_cfg_files = []
-        """
-        @ivar: additional configuration files for the DcManage-Client
-        @type: list of str
-        """
-        if isinstance(dcm_cfg_file, list) or isinstance(dcm_cfg_file, tuple):
-            for cfile in dcm_cfg_file:
-                self.dcm_cfg_files.append(str(cfile))
-        elif dcm_cfg_file:
-            self.dcm_cfg_files.append(str(dcm_cfg_file))
-
-        self.extra_config_file = None
-        """
-        @ivar: an extra configuration file, given per commandline option,
-               which overrides the api_url and api_authtoken for the standard
-               configuration files and from environment
-        @type: str
-        """
-
-        self.dcm_config_files = []
-        """
-        @ivar: a list with all evaluated DcManager config files
-        @type: list of str
-        """
-
-        self.api = None
-        """
-        @ivar: a RestApi client object
-        @type: RestApi
-        """
-
-    #------------------------------------------------------------
-    @property
-    def api_url(self):
-        """The URL of the REST API."""
-        return self._api_url
-
-    @api_url.setter
-    def api_url(self, value):
-        self._api_url = urlparse(value)
-
-    #------------------------------------------------------------
-    @property
-    def api_authtoken(self):
-        """The authorization token for the REST API."""
-        return self._api_authtoken
-
-    @api_authtoken.setter
-    def api_authtoken(self, value):
-        self._api_authtoken = str(value).strip()
 
     #--------------------------------------------------------------------------
     def as_dict(self):
@@ -266,8 +192,6 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         d = super(BaseDcmClientPlugin, self).as_dict()
 
-        d['api_url'] = self.api_url
-        d['api_authtoken'] = self.api_authtoken
         d['api'] = None
         if self.api:
             d['api'] = self.api.__dict__
@@ -312,12 +236,6 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         super(BaseDcmClientPlugin, self).parse_args(args)
 
-        if self.args.extra_config_file:
-            self.extra_config_file = self.args.extra_config_file
-
-        if self.args.api_url:
-            self.api_url = self.args.api_url
-
     #--------------------------------------------------------------------------
     def parse_args_second(self):
         """
@@ -344,27 +262,6 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
             log.debug("Could not read NagiosPluginConfig: %s", e)
             return
 
-        if cfg.has_section('dcmanager_rest_api'):
-
-            cfg_api_url = None
-            if cfg.has_option('dcmanager_rest_api', 'url'):
-                cfg_api_url = cfg.get('dcmanager_rest_api', 'url')
-            if cfg_api_url:
-                cfg_api_url = cfg_api_url.strip()
-            if cfg_api_url:
-                if self.verbose > 1:
-                    log.debug("Got a REST API URL from config: %r", cfg_api_url)
-                self._api_url = cfg_api_url
-
-            cfg_api_authtoken = None
-            if cfg.has_option('dcmanager_rest_api', 'authtoken'):
-                cfg_api_authtoken = cfg.get('dcmanager_rest_api', 'authtoken')
-            if cfg_api_authtoken:
-                if self.verbose > 3:
-                    log.debug("Got a REST API authentication token from config: %r",
-                            cfg_api_authtoken)
-                self._api_authtoken = cfg_api_authtoken
-
         self.read_config(cfg)
 
     #--------------------------------------------------------------------------
@@ -378,99 +275,6 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         return
 
     #--------------------------------------------------------------------------
-    def _read_default_dcm_cfg_files(self):
-        """Reading in the default configuration files::
-            * /etc/dcmanager.ini
-            * ~/.dcmanager
-        """
-
-        for cfg_file in DEFAULT_CFG_FILES:
-            if os.path.exists(cfg_file) and os.path.isfile(cfg_file):
-                self.read_dcm_cfg_file(cfg_file)
-
-        for cfg_file in self.dcm_cfg_files.reverse():
-            if os.path.exists(cfg_file) and os.path.isfile(cfg_file):
-                self.read_dcm_cfg_file(cfg_file)
-
-    #--------------------------------------------------------------------------
-    def _read_extra_dcm_cfg_file(self):
-
-        if not self.extra_config_file:
-            return
-
-        if not os.path.exists(self.extra_config_file):
-            msg = "Config file %r doesn't exists." % (self.extra_config_file)
-            log.error(msg)
-            sys.exit(1)
-
-        if not os.path.isfile(self.extra_config_file):
-            msg = "Config file %r is not a regular file." % (self.extra_config_file)
-            log.error(msg)
-            sys.exit(1)
-
-        if not os.access(self.extra_config_file, os.R_OK):
-            msg = "No read access for config file %r." % (self.extra_config_file)
-            log.error(msg)
-            sys.exit(1)
-
-        log.debug("Reading extra DcManager configuration file %r ...",
-                self.extra_config_file)
-        self.read_dcm_cfg_file(self.extra_config_file)
-
-    #--------------------------------------------------------------------------
-    def _read_dcm_cfg_file(self, cfg_file):
-        """
-        The underlying method to read in the configuration file of
-        the DcManager client.
-        """
-
-        if not os.path.exists(cfg_file):
-            msg = "Config file %r doesn't exists." % (cfg_file)
-            sys.stderr.write("%s\n" % (msg))
-            return
-
-        if not os.path.isfile(cfg_file):
-            msg = "Config file %r is not a regular file." % (cfg_file)
-            sys.stderr.write("%s\n" % (msg))
-            return
-
-        if not os.access(cfg_file, os.R_OK):
-            msg = "No read access for config file %r." % (cfg_file)
-            sys.stderr.write("%s\n" % (msg))
-            return
-
-        cfg = cfgparser.ConfigParser()
-        cfg.read(cfg_file)
-
-        for section in cfg.sections():
-
-            if not section.lower() == "client":
-                continue
-
-            # [client]/url
-            if cfg.has_option(section, 'url'):
-                v = None
-                try:
-                    v = urlparse(cfg.get(section, 'url'))
-                except (AttributeError, ValueError) as e:
-                    msg = "Invalid value %r for [client]/url in %r." % (
-                            cfg.get(section, 'url'), cfg_file)
-                    sys.stderr.write("%s\n" % (msg))
-                else:
-                    if v.scheme:
-                        self._api_url = v
-                    else:
-                        msg = "Invalid value %r for [client]/url in %r." % (
-                                cfg.get(section, 'url'), cfg_file)
-                        sys.stderr.write("%s\n" % (msg))
-
-            # [client]/authtoken
-            if cfg.has_option(section, 'authtoken'):
-                self.api_authtoken = cfg.get(section, 'authtoken')
-
-        self.dcm_config_files.insert(0, cfg_file)
-
-    #--------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -479,14 +283,13 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         self.parse_args()
         self.init_root_logger()
 
-        self._read_default_dcm_cfg_files()
         self._read_config()
         self.parse_args_second()
-        self._read_extra_dcm_cfg_file()
 
-        self.api = RestApi(
-                url = self.api_url.geturl(),
-                authtoken = self.api_authtoken,
+        log.debug("Creating REST API client object ...")
+        self.api = RestApi.from_config(
+                extra_config_file = self.parser.args.extra_config_file,
+                api_url = self.parser.args.api_url,
                 timeout = self.timeout,
         )
 
