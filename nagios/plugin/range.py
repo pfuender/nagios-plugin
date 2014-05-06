@@ -25,7 +25,7 @@ from nagios import BaseNagiosError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 log = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ class NagiosRange(object):
             self.parse_range_string(range_str)
             return
 
-        if isinstance(start, int) or isinstance(start, int):
+        if isinstance(start, int):
             self._start = int(start)
         elif isinstance(start, float):
             self._start = start
@@ -167,7 +167,7 @@ class NagiosRange(object):
             raise ValueError("Start value %r for NagiosRange is unusable." %
                     (start))
 
-        if isinstance(end, int) or isinstance(end, int):
+        if isinstance(end, int):
             self._end = int(end)
         elif isinstance(end, float):
             self._end = end
