@@ -49,7 +49,6 @@ from nagios.plugin.threshold import NagiosThreshold
 from nagios.plugin.extended import ExtNagiosPluginError
 from nagios.plugin.extended import ExecutionTimeoutError
 from nagios.plugin.extended import CommandNotFoundError
-from nagios.plugin.extended import ExtNagiosPlugin
 
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
@@ -62,7 +61,7 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.8.0'
+__version__ = '0.8.1'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -103,7 +102,7 @@ class CfgFileNotValidError(ExtNagiosPluginError):
         return msg
 
 #==============================================================================
-class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
+class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
     """
     A special Nagios/Icinga plugin to check the existent volumes on a storage
     server against the target state from provisioning database.
@@ -129,17 +128,17 @@ class CheckPbConsistenceStoragePlugin(ExtNagiosPlugin):
         blurb += ("Checks the existent volumes on a storage server against " +
                     "the target state from provisioning database.")
 
-        super(CheckPbConsistenceStoragePlugin, self).__init__(
-                shortname = 'PB_CONSIST_STORAGE',
-                usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
-        )
-
         self._hostname = socket.gethostname()
         """
         @ivar: the hostname of the current storage server
         @type: str
         """
+
+        super(CheckPbConsistenceStoragePlugin, self).__init__(
+                shortname = 'PB_CONSIST_STORAGE',
+                usage = usage, blurb = blurb,
+                version = __version__, timeout = DEFAULT_TIMEOUT,
+        )
 
         self._pb_vg = None
         """
