@@ -14,6 +14,7 @@ import sys
 import re
 import logging
 import textwrap
+import time
 
 from numbers import Number
 
@@ -42,16 +43,18 @@ from nagios.plugin.config import NagiosPluginConfig
 from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
 from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
+from dcmanagerclient.client import RestApiError
+
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
 
-DEFAULT_WARN_TIME = 5.0
-DEFAULT_CRIT_TIME = 15.0
+DEFAULT_WARN_TIME = 10.0
+DEFAULT_CRIT_TIME = 20.0
 
 log = logging.getLogger(__name__)
 
@@ -184,8 +187,29 @@ class CheckDcmanagerApiPlugin(BaseDcmClientPlugin):
     def run(self):
         """Main execution method."""
 
-        log.warn("Hiiilfeee!!!")
+        state = nagios.state.ok
+        out = "DcManager API %r seems to be okay." % (
+                self.api.url)
 
+        end_time = None
+        start_time = time.time()
+        try:
+            clusters = self.api.clusters()
+        except RestApiError as e:
+            state = nagios.state.critical
+            self.exit(state, str(e))
+
+        end_time = time.time()
+        duration = end_time - start_time
+
+        nr_clusters = len(clusters)
+        state = self.threshold.get_status(duration)
+        self.add_perfdata(label = 'resp_time', uom = 's', value = duration,
+                threshold = self.threshold)
+        out = "Response time of DcManager API %r: %0.2f sec, found %d clusters." % (
+                self.api.url, duration, nr_clusters)
+
+        self.exit(state, out)
 
 #==============================================================================
 
