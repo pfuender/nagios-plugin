@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.1-2) wheezy; urgency=low
+
+  * Release 1.6.1-2 for wheezy
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 12 May 2014 11:50:04 +0200
+
 python-nagios-plugin (1.6.1-1) stable; urgency=low
 
   * Bugfixing in nagios/plugins/check_pb_consistence_storage.py
