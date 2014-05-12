@@ -61,7 +61,7 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.8.1'
+__version__ = '0.8.2'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -317,18 +317,14 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         )
 
     #--------------------------------------------------------------------------
-    def read_config(self):
+    def read_config(self, cfg):
         """
-        Read configuration from an optional configuration file.
-        """
+        Read configuration from an already read in configuration file.
 
-        cfg = NagiosPluginConfig()
-        try:
-            configs = cfg.read()
-            log.debug("Read configuration files:\n%s", pp(configs))
-        except NoConfigfileFound as e:
-            log.debug("Could not read NagiosPluginConfig: %s", e)
-            return
+        @param cfg: the already read in nagion configuration
+        @type cfg: NagiosPluginConfig
+
+        """
 
         if cfg.has_section('general'):
             hostname = None
