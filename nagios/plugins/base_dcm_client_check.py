@@ -263,7 +263,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
             return
 
         if self.verbose > 2:
-            log.debug("Read configuration:\n%s", pp(cfg))
+            log.debug("Read configuration:\n%s", pp(cfg.__dict__))
         self.read_config(cfg)
 
     #--------------------------------------------------------------------------
