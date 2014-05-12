@@ -56,7 +56,7 @@ from dcmanagerclient.client import RestApi, RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 log = logging.getLogger(__name__)
@@ -262,12 +262,17 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
             log.debug("Could not read NagiosPluginConfig: %s", e)
             return
 
+        if self.verbose > 2:
+            log.debug("Read configuration:\n%s", pp(cfg))
         self.read_config(cfg)
 
     #--------------------------------------------------------------------------
     def read_config(self, cfg):
         """
-        Read configuration from an optional configuration file.
+        Read configuration from an already read in configuration file.
+
+        @param cfg: the already read in nagion configuration
+        @type cfg: NagiosPluginConfig
 
         This method may be overridden.
         """
