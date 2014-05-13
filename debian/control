@@ -51,6 +51,7 @@ Depends: libdbd-pg-perl,
          python-nagios-plugin (= ${binary:Version}),
          python-pkg-resources,
          ${misc:Depends},
+         ${perl:Depends},
          ${python:Depends}
 Recommends: ipmitool, python-dcmanager-client (>= 0.9.2-1), smartmontools
 Description: Additional Nagios plugins for usage by ProfitBricks
