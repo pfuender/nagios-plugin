@@ -57,6 +57,7 @@ Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc
 Architecture: all
+Section: doc
 Depends: ${misc:Depends}
 Suggests: pdf-viewer, python-nagios-plugin (= ${binary:Version}), www-browser
 Description: Base module for Nagios check plugins written in Python - documentation
