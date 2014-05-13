@@ -21,3 +21,5 @@ ln -s ${target} ${nrpefile}
 
 test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server stop || /bin/true
 test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server start || /bin/true
+
+#DEBHELPER#
