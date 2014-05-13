@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 nrpefile=/etc/nagios/nrpe.cfg
 target=/usr/share/pb-config-nagios-nrpe-server/nrpe.cfg
@@ -19,7 +20,7 @@ fi
 
 ln -s ${target} ${nrpefile}
 
-test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server stop || true
-test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server start || true
+test ! -x /etc/init.d/nagios-nrpe-server || invoke-rc.d nagios-nrpe-server stop
+test ! -x /etc/init.d/nagios-nrpe-server || invoke-rc.d nagios-nrpe-server start
 
 #DEBHELPER#
