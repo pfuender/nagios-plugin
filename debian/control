@@ -52,17 +52,7 @@ Depends: libdbd-pg-perl,
          python-pkg-resources,
          ${misc:Depends},
          ${python:Depends}
-Conflicts: pb-nagios-plugins-python3
 Recommends: ipmitool, python-dcmanager-client (>= 0.9.2-1), smartmontools
-Description: Additional Nagios plugins for usage by ProfitBricks
-
-Package: pb-nagios-plugins-python3
-Architecture: all
-Depends: python3-nagios-plugin (= ${binary:Version}),
-         ${misc:Depends},
-         ${python3:Depends}
-Conflicts: pb-nagios-plugins
-Recommends: ipmitool, python3-dcmanager-client (>= 0.9.2-1), smartmontools
 Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc

@@ -4,212 +4,48 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-LIB_PKGNAME_P2 := python-nagios-plugin
-LIB_PKGNAME_P3 := python3-nagios-plugin
-BIN_PKGNAME_P2 := pb-nagios-plugins
-BIN_PKGNAME_P3 := pb-nagios-plugins-python3
-DOC_PKGNAME    := python-nagios-plugin-doc
-CFG_PKGNAME    := pb-config-nagios-nrpe-server
+DOC_PKGNAME := python-nagios-plugin-doc
+CFG_PKGNAME := pb-config-nagios-nrpe-server
 
-INSTALL_DIR_LIB_P2 := $(CURDIR)/debian/$(LIB_PKGNAME_P2)
-INSTALL_DIR_LIB_P3 := $(CURDIR)/debian/$(LIB_PKGNAME_P3)
-INSTALL_DIR_BIN_P2 := $(CURDIR)/debian/$(BIN_PKGNAME_P2)
-INSTALL_DIR_BIN_P3 := $(CURDIR)/debian/$(BIN_PKGNAME_P3)
-DOC_DIR            := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
-CFG_DIR            := $(CURDIR)/debian/$(CFG_PKGNAME)/usr/share/$(CFG_PKGNAME)/
+DOC_DIR := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
+CFG_DIR := $(CURDIR)/debian/$(CFG_PKGNAME)/usr/share/$(CFG_PKGNAME)/
 
-PYTHON2S    := $(shell pyversions -vr || true)
-PYTHON3S    := $(shell py3versions -vr || true)
-PYTHON2_BIN := /usr/bin/$(shell pyversions -i | awk '{print $$NF}')
+PYTHON2S := $(shell pyversions -vr || true)
+PYTHON3S := $(shell py3versions -vr || true)
 
 %:
 	dh $@ --with python2,python3
 
 override_dh_auto_build:
-	$(info )
-	$(info ########################)
-	$(info Building ...)
-	$(info )
-
-	dh_testdir
-	@echo ""
 	@echo "Building Python 2 stuff ..."
 	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py build; done
-	@echo ""
 	@echo "Building Python 3 stuff ..."
 	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py build; done
 
 override_dh_auto_install:
-	$(info )
-	$(info ########################)
-	$(info Installing ...)
-	$(info )
-
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_installdirs
-	dh_install
-
-	@echo ""
 	@echo "Installing Python 2 stuff ..."
-	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_LIB_P2) --install-layout=deb; done
-	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_BIN_P2) --install-layout=deb; done
-
-	@echo ""
-	@echo "Mangling plugin scripts in $(INSTALL_DIR_BIN_P2)/usr/lib/nagios/plugins/pb ..."
-	for f in $(INSTALL_DIR_BIN_P2)/usr/lib/nagios/plugins/pb/* ; do \
-		if head -n 1 $${f} | grep -i python >/dev/null ; then \
-			if [ ! -f "$${f}" ] ; then \
-				continue ; \
-			fi ; \
-			echo "  Mangeling $${f} ..."; \
-			sed -i -e '1d' -e '2i#!$(PYTHON2_BIN)' "$${f}" ; \
-		fi; \
-	done
-
-	@echo ""
+	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=debian/tmp --install-layout=deb; done
 	@echo "Installing Python 3 stuff ..."
-	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_LIB_P3) --install-layout=deb; done
-	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=$(INSTALL_DIR_BIN_P3) --install-layout=deb; done
-
-	@echo ""
-	@echo "Mangling plugin scripts in $(INSTALL_DIR_BIN_P3)/usr/lib/nagios/plugins/pb ..."
-	for f in $(INSTALL_DIR_BIN_P3)/usr/lib/nagios/plugins/pb/* ; do \
-		if head -n 1 $${f} | grep -i python >/dev/null ; then \
-			if [ ! -f "$${f}" ] ; then \
-				continue ; \
-			fi ; \
-			echo "  Mangeling $${f} ..."; \
-			sed -i -e '1d' -e '2i#!/usr/bin/python3' "$${f}" ; \
-		fi; \
-	done
-
-	@echo ""
+	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=debian/tmp --install-layout=deb; done
 	@echo "Documentation ..."
 	mkdir -p $(DOC_DIR)/html
 	mkdir -p $(DOC_DIR)/pdf
-
 	epydoc --html -v -o $(DOC_DIR)/html $(CURDIR)/nagios
 	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/nagios
-
-
-	@echo ""
 	@echo "Configuration ..."
 	mkdir -p $(CFG_DIR)/nrpe.d
 	cp $(CURDIR)/etc/nrpe.cfg $(CFG_DIR)/
 	cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
-
 	mkdir -p debian/$(CFG_PKGNAME)/etc/sudoers.d
 	cp $(CURDIR)/etc/sudoers.d/* debian/$(CFG_PKGNAME)/etc/sudoers.d/
 	chmod 0440 debian/$(CFG_PKGNAME)/etc/sudoers.d/*
 
-
-	dh_link
-
 override_dh_auto_clean:
-	$(info )
-	$(info ########################)
-	$(info Cleaning ...)
-	$(info )
-
 	dh_auto_clean
-	rm -fv $(CURDIR)/debian/*debhelper.log
 	rm -rf $(CURDIR)/build
-	rm -rf *.egg-info
 
-binary: binary-indep
-binary-arch: build install
-	# nothing to do here.
+override_dh_install:
+	dh_install --fail-missing
 
-binary-indep: build install
-
-	dh_testroot -i
-	dh_prep -i
-	dh_installdirs -i
-
-	debian/rules override_dh_auto_install
-
-
-	$(info )
-	$(info ########################)
-	$(info Installing architecture-independent files ...)
-	$(info )
-
-#	dh $@ --with python2,python3
-
-	dh_install -i
-	dh_installdocs -i
-	dh_installchangelogs -i
-	dh_installexamples -i
-	dh_installman -i
-	dh_installcatalogs -i
-	dh_installcron -i
-	dh_installdebconf -i
-	dh_installemacsen -i
-	dh_installifupdown -i
-	dh_installinfo -i
-
-	@echo ""
-	@echo "Python 2 support ..."
-	dh_python2 -i
-
-	@echo ""
-	@echo "Python 3 support ..."
-	dh_python3 -i
-
-	@echo ""
-	@echo "Cleaning $(INSTALL_DIR_LIB_P2) ..."
-	rm -rv $(INSTALL_DIR_LIB_P2)/usr/lib/nagios
-	rm -rv $(INSTALL_DIR_LIB_P2)/usr/lib/python*/dist-packages/nagios/plugins
-	rm -rv $(INSTALL_DIR_LIB_P2)/usr/share/pyshared/nagios/plugins
-
-	@echo ""
-	@echo "Cleaning $(INSTALL_DIR_LIB_P3) ..."
-	rm -rvf $(INSTALL_DIR_LIB_P3)/usr/lib/nagios
-	rm -rvf $(INSTALL_DIR_LIB_P3)/usr/lib/python3/dist-packages/nagios/plugins
-
-	@echo ""
-	@echo "Cleaning $(INSTALL_DIR_BIN_P2) ..."
-	rm -v $(INSTALL_DIR_BIN_P2)/usr/share/pyshared/nagios-*.egg-info
-	rm -v $(INSTALL_DIR_BIN_P2)/usr/share/pyshared/nagios/*.py
-	rm -rv $(INSTALL_DIR_BIN_P2)/usr/share/pyshared/nagios/plugin
-	rm -v $(INSTALL_DIR_BIN_P2)/usr/lib/python*/dist-packages/nagios-*.egg-info
-	rm -v $(INSTALL_DIR_BIN_P2)/usr/lib/python*/dist-packages/nagios/*.py
-	rm -rv $(INSTALL_DIR_BIN_P2)/usr/lib/python*/dist-packages/nagios/plugin
-
-	@echo ""
-	@echo "Cleaning $(INSTALL_DIR_BIN_P3) ..."
-	rm -vf $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios-*.egg-info
-	rm -vf $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/*.py
-	rm -rvf $(INSTALL_DIR_BIN_P3)/usr/lib/python3/dist-packages/nagios/plugin
-
-	dh_installinit -i
-	dh_installmenu -i
-	dh_installmime -i
-	dh_installmodules -i
-	dh_installlogcheck -i
-	dh_installlogrotate -i
-	dh_installpam -i
-	dh_installppp -i
-	dh_installudev -i
-	dh_installwm -i
-	dh_installxfonts -i
-	dh_installgsettings -i
-	dh_bugfiles -i
-	dh_ucf -i
-	dh_lintian -i
-	dh_gconf -i
-	dh_icons -i
-	dh_perl -i
-	dh_usrlocal -i
-	dh_link -i
-	dh_compress -i -X.py -X.pdf
-	dh_fixperms -i
-	dh_installdeb -i
-	dh_gencontrol -i
-	dh_md5sums -i
-	dh_builddeb -i
-
-.PHONY: install binary binary-arch binary-indep
-
+override_dh_compress:
+	dh_compress -X.py -X.pdf
