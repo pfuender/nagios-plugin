@@ -15,8 +15,9 @@ Build-Depends: debhelper (>= 7.0.50~),
                texlive-latex-base,
                texlive-latex-extra
 Standards-Version: 3.8.4
-Vcs-Git: git+ssh://git.profitbricks.localdomain/srv/git/python/nagios-plugin.git
-Vcs-Browser: http://git.profitbricks.localdomain/gitweb/?p=python/nagios-plugin.git;a=summary
+Homepage: http://git.pb.local/gitweb/?p=python/nagios-plugin.git
+Vcs-Browser: http://git.pb.local/gitweb/?p=python/nagios-plugin.git
+Vcs-Git: git+ssh://git.pb.local/srv/git/python/nagios-plugin.git
 X-Python-Version: >= 2.6
 X-Python3-Version: >= 3.2
 
