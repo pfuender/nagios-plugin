@@ -10,7 +10,6 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-docutils,
                python-epydoc,
                python-pkg-resources,
-               python-support,
                python3-all,
                texlive-latex-base,
                texlive-latex-extra
@@ -25,7 +24,6 @@ Package: python-nagios-plugin
 Architecture: all
 Depends: python-argparse,
          python-pkg-resources,
-         python-support,
          ${misc:Depends},
          ${python:Depends}
 Description: Base module for Nagios check plugins written in Python
@@ -52,7 +50,6 @@ Depends: libdbd-pg-perl,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
          python-pkg-resources,
-         python-support,
          ${misc:Depends},
          ${python:Depends}
 Conflicts: pb-nagios-plugins-python3
