@@ -2,7 +2,7 @@
 # -*- makefile -*-
 
 # Uncomment this to turn on verbose mode.
-export DH_VERBOSE=1
+#export DH_VERBOSE=1
 
 LIB_PKGNAME_P2 := python-nagios-plugin
 LIB_PKGNAME_P3 := python3-nagios-plugin
