@@ -57,6 +57,7 @@ Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc
 Architecture: all
+Depends: ${misc:Depends}
 Suggests: pdf-viewer, python-nagios-plugin (= ${binary:Version}), www-browser
 Description: Base module for Nagios check plugins written in Python - documentation
  .
@@ -64,8 +65,8 @@ Description: Base module for Nagios check plugins written in Python - documentat
 
 Package: pb-config-nagios-nrpe-server
 Architecture: all
+Depends: nagios-nrpe-server, ${misc:Depends}
 Suggests: python-nagios-plugin (= ${binary:Version})
-Depends: nagios-nrpe-server
 Description: Config file replacements for nagios-nrpe-server
  .
  This package contains the profitbricks configuration for nrpe. Replaces
