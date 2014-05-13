@@ -25,6 +25,8 @@ override_dh_auto_build:
 override_dh_auto_install:
 	@echo "Installing Python 2 stuff ..."
 	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=debian/tmp --install-layout=deb; done
+	@echo "Workaround for Debian Squeeze"
+	mkdir -p debian/tmp/usr/lib/python3/dist-packages
 	@echo "Installing Python 3 stuff ..."
 	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py install --root=debian/tmp --install-layout=deb; done
 	@echo "Documentation ..."
