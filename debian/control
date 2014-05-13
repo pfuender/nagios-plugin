@@ -36,8 +36,8 @@ Description: Base module for Nagios check plugins written in Python
 Package: python3-nagios-plugin
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}
-Description: Base module for Nagios check plugins written in Python
- This package provides a family of Python modules
+Description: Base module for Nagios check plugins written in Python 3
+ This package provides a family of Python 3 modules
  to streamline writing Nagios plugins.
  .
  These modules are rewritten modules originated by the
