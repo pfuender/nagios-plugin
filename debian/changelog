@@ -1,3 +1,32 @@
+python-nagios-plugin (1.6.1-1) stable; urgency=low
+
+  * Bugfixing in nagios/plugins/check_pb_consistence_storage.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 12 May 2014 11:44:56 +0200
+
+python-nagios-plugin (1.6.0-2) stable; urgency=low
+
+  * Declared for stable
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 06 May 2014 17:35:06 +0200
+
+python-nagios-plugin (1.6.0-1) unstable; urgency=low
+
+  * Declared for unstable
+  * Added etc/dcmanager.ini
+  * Added nagios/plugins/base_dcm_client_check.py as a base class for
+    all checks depending on the DcManager API
+  * Rewritten nagios/plugins/base_dcm_client_check.py to use
+    RestApi.from_config() to init a DcManagerApi-Client
+  * Minor changes in nagios/plugin/range.py
+  * Added bin/check_dcmanager_api and
+    nagios/plugins/check_dcmanager_api.py as the first script using
+    nagios/plugins/base_dcm_client_check.py
+  * Modified nagios/plugins/check_pb_consistence_storage.py to use
+    nagios/plugins/base_dcm_client_check.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 06 May 2014 17:31:40 +0200
+
 python-nagios-plugin (1.5.32-1) stable; urgency=low
 
   * Redirect stderr to stdout when running the plugin in run_as_passive_check
