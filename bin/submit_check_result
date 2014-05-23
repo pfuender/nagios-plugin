@@ -101,13 +101,13 @@ function queue_result() {
         OK|UP)
             return_code=0
             ;;
-        WARNING)
+        WARNING|DOWN)
             return_code=1
             ;;
-        CRITICAL|DOWN)
+        CRITICAL|UNREACHABLE)
             return_code=2
             ;;
-        UNKNOWN|UNREACHABLE)
+        UNKNOWN)
             return_code=3
             ;;
     esac
