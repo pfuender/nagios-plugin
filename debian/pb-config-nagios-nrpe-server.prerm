@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 nrpefile=/etc/nagios/nrpe.cfg
 origtarget=/usr/share/pb-config-nagios-nrpe-server/nrpe.cfg.orig_from_etc
@@ -6,15 +7,17 @@ origtarget=/usr/share/pb-config-nagios-nrpe-server/nrpe.cfg.orig_from_etc
 
 if [[ -L ${nrpefile} ]];then
     echo "removing symlink ${nrpefile}"
-    /bin/rm -f ${nrpefile}
+    rm -f ${nrpefile}
 fi
     
 if [[ ! -e ${nrpefile} ]];then
     if [[ -f ${origtarget} ]];then
         echo "restoring ${nrpefile} from ${origtarget}"
-        /bin/mv ${origtarget} ${nrpefile}
+        mv ${origtarget} ${nrpefile}
     fi
 fi
 
-test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server stop || /bin/true
-test -x /etc/init.d/nagios-nrpe-server && invoke-rc.d nagios-nrpe-server start || /bin/true
+test ! -x /etc/init.d/nagios-nrpe-server || invoke-rc.d nagios-nrpe-server stop
+test ! -x /etc/init.d/nagios-nrpe-server || invoke-rc.d nagios-nrpe-server start
+
+#DEBHELPER#

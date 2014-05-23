@@ -1,3 +1,47 @@
+python-nagios-plugin (1.6.3-1) wheezy; urgency=medium
+
+  * Correct state translation for host checks.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 23 May 2014 11:20:53 +0200
+
+python-nagios-plugin (1.6.2-1) wheezy; urgency=medium
+
+  * Correct echo command for queuing check results.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 23 May 2014 09:03:35 +0200
+
+python-nagios-plugin (1.6.1-4) wheezy; urgency=medium
+
+  * Rebuild for wheezy.
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Tue, 13 May 2014 16:54:36 +0200
+
+python-nagios-plugin (1.6.1-3) stable; urgency=medium
+
+  * Disable DH_VERBOSE.
+  * Drop build dependency on python3 (python3-all is enough).
+  * Add Homepage field pointing to gitweb.
+  * Drop unused python-support from dependencies.
+  * Bump Standard-Version to 3.9.5 (no changes required).
+  * Simplify debian/rules.
+  * Add missing ${misc:Depends}
+  * Add missing debhelper token to maintainer scripts.
+  * Let dh_python2 scan usr/lib/nagios/plugins/pb for Python scripts.
+  * Put python-nagios-plugin-doc into doc section.
+  * Fix command-with-path-in-maintainer-script.
+  * Add missing ${perl:Depends} to pb-nagios-plugins.
+  * Drop empty paragraphs in long description.
+  * Use "set -e" in maintainer scripts.
+  * Add missing python-dcmanager-client build dependency for the doc package.
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Tue, 13 May 2014 15:59:54 +0200
+
+python-nagios-plugin (1.6.1-2) wheezy; urgency=low
+
+  * Release 1.6.1-2 for wheezy
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 12 May 2014 11:50:04 +0200
+
 python-nagios-plugin (1.6.1-1) stable; urgency=low
 
   * Bugfixing in nagios/plugins/check_pb_consistence_storage.py
