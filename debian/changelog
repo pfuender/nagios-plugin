@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.3-1) wheezy; urgency=medium
+
+  * Correct state translation for host checks.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 23 May 2014 11:20:53 +0200
+
 python-nagios-plugin (1.6.2-1) wheezy; urgency=medium
 
   * Correct echo command for queuing check results.
