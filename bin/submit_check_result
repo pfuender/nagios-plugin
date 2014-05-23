@@ -126,6 +126,8 @@ function queue_result() {
 
 
 while [[ $# -gt 0 ]]; do
+  # if we don't have performance data
+  test -z "$1" && break
   case "$1" in
     --submit-results)
         submit=1
@@ -174,8 +176,13 @@ while [[ $# -gt 0 ]]; do
         usage
         exit 0
         ;;
-    --) shift; break ;;
-    *) error "unknown option $1" ;;
+    --) 
+        shift
+        break
+        ;;
+    *) 
+        error "unknown option $1"
+        ;;
   esac
 done
 
