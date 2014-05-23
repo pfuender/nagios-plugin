@@ -64,7 +64,7 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_ERRORS = 0
@@ -292,6 +292,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         }
 
         self.get_api_storage_exports()
+        self.get_api_image_exports()
 
         self.exit(state, out)
 
@@ -466,6 +467,33 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         log.debug("Finished retrieving storage mappings from API, found %d mappings.",
                 len(self.storage_exports))
+
+    #--------------------------------------------------------------------------
+    def get_api_image_exports(self):
+
+        self.image_exports = []
+        api_volumes = {}
+
+
+        log.debug("Retrieving image volumes from API ...")
+        images = None
+        try:
+            images = self.api.vimages(pstorage = self.hostname)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        first = True
+        for img in images:
+
+            vl = 4
+            if first:
+                vl = 2
+
+            if self.verbose > vl:
+                log.debug("Got Image volume from API:\n%s", pp(img))
+
 
 #==============================================================================
 
