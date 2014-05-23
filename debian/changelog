@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.4-1) wheezy; urgency=medium
+
+  * Correct while loop in submit_check_results if no performance data exist.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 23 May 2014 14:48:38 +0200
+
 python-nagios-plugin (1.6.3-1) wheezy; urgency=medium
 
   * Correct state translation for host checks.
