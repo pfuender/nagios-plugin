@@ -34,6 +34,8 @@ except ImportError:
 
 # Own modules
 
+from pb_base.crc import crc64, crc64_digest
+
 import nagios
 from nagios import BaseNagiosError
 

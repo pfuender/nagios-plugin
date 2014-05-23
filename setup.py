@@ -66,7 +66,7 @@ setup(
     ],
     data_files = datafiles,
     requires = [
-        #'pb_base (>= 0.3.10)',
+        'pb_base (>= 0.5.4)',
     ]
 )
 
