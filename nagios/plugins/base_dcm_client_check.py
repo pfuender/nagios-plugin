@@ -56,8 +56,13 @@ from dcmanagerclient.client import RestApi, RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
+
+DEFAULT_TIMEOUT = 60
+DEFAULT_PB_VG = 'storage'
+STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
+DUMMY_LV = 'ed00-0b07-71ed-000c0ffee000'
 
 log = logging.getLogger(__name__)
 
