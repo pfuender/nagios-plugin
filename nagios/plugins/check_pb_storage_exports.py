@@ -389,7 +389,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             if first:
                 first = False
 
-
         log.debug("Retrieving storage mappings from API ...")
         maps = None
         try:
@@ -474,6 +473,23 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.image_exports = []
         api_volumes = {}
 
+        key_replicated = 'replicate'
+        key_replicas = 'replicas'
+        key_storage_server = 'storage_server'
+        key_guid = 'guid'
+        key_uuid = 'uuid'
+        key_pstorage_name = 'pstorage_name'
+        key_vstorage_uuid = 'vstorage_uuid'
+        key_pserver_name = 'pserver_name'
+        if sys.version_info[0] <= 2:
+            key_replicated = key_replicated.decode('utf-8')
+            key_replicas = key_replicas.decode('utf-8')
+            key_storage_server = key_storage_server.decode('utf-8')
+            key_guid = key_guid.decode('utf-8')
+            key_uuid = key_uuid.decode('utf-8')
+            key_pstorage_name = key_pstorage_name.decode('utf-8')
+            key_vstorage_uuid = key_vstorage_uuid.decode('utf-8')
+            key_pserver_name = key_pserver_name.decode('utf-8')
 
         log.debug("Retrieving image volumes from API ...")
         images = None
@@ -487,12 +503,109 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         first = True
         for img in images:
 
+            """
+            {   'absolute_path': 'ftp://getimgs:oahohthaeV5yuozahWos@imageserver/3111/iso-images/windows-VirtIO-driver-0.1.30.iso',
+                'contract': 31720930,
+                'creation_date': '2014-02-06T14:55:19.333',
+                'image_type': 'CDROM',
+                'modification_date': '2014-02-06T14:55:19.333',
+                'replicas': [   {   'guid': '600144f0-0001-d843-4c30-8f3e11e3ae16',
+                                    'storage_server': 'storage108',
+                                    'virtual_state': 'AVAILABLE'},
+                                {   'guid': '600144f0-0001-d843-4c31-8f3e11e3ae16',
+                                    'storage_server': 'storage203',
+                                    'virtual_state': 'AVAILABLE'}],
+                'replicate': True,
+                'size': 272,
+                'uuid': 'b24d6e86-8f3e-11e3-b7e8-52540066fee9',
+                'virtual_state': 'AVAILABLE'}
+            """
+
             vl = 4
             if first:
                 vl = 2
 
             if self.verbose > vl:
                 log.debug("Got Image volume from API:\n%s", pp(img))
+
+            replicated = bool(img[key_replicated])
+            vol_uuid = uuid.UUID(img[key_uuid])
+
+            guid = None
+            for replica in  img[key_replicas]:
+                hn = replica[key_storage_server]
+                if sys.version_info[0] <= 2:
+                    hn = hn.encode('utf-8')
+                if hn == self.hostname:
+                    guid = uuid.UUID(replica[key_guid])
+                    break
+
+            if not guid:
+                log.debug("No valid GUID found for image volume:\n%s", pp(img))
+                continue
+
+            vol = {
+                'guid': guid,
+                'replicated': replicated,
+            }
+            api_volumes[vol_uuid] = vol
+
+            if self.verbose > vl:
+                log.debug("Transformed Image volume %r:\n%s", vol_uuid, pp(vol))
+
+            if first:
+                first = False
+
+        log.debug("Retrieving image mappings from API ...")
+        maps = None
+        try:
+            maps = self.api.vimage_maps(pstorage = self.hostname)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        first = True
+
+        for mapping in maps:
+
+            """
+            {   'boot_order': 1,
+                'creation_date': '2014-03-03T09:23:35.748',
+                'dc_name': 'ldcb.tjasys.net',
+                'image_guid': '600144f0-0001-7e84-f65a-a2b511e3ad7d',
+                'image_legalentity': 12508,
+                'image_name': 'GSP1RMCPRXFREO_DE_DVD.ISO',
+                'image_size': 3271557120,
+                'image_type': 'CDROM',
+                'image_uuid': 'ada919ce-a284-11e3-b5f6-52540066fee9',
+                'modification_date': '2014-03-03T09:45:16.915',
+                'mount_state': 'DEALLOCATED',
+                'mount_type': 'IDE',
+                'mount_uuid': '0b778d45-b5ac-4be8-bd89-3b4de4e13491',
+                'network_uuid': '8ca30b27-9300-9b8e-dc84-f0349a0498de',
+                'order_nr': 1,
+                'pserver_name': None,
+                'pserver_uuid': None,
+                'pstorage_name': 'storage108',
+                'pstorage_uuid': '00000000-0000-0000-0000-002590A93640',
+                'replicated': True,
+                'size_mb': 3120,
+                'vm_name': 'Win7Test',
+                'vm_uuid': 'c1b53ee7-66a7-4dc9-8240-e50432438582'}
+            """
+            vl = 4
+            if first:
+                vl = 2
+
+            if self.verbose > vl:
+                log.debug("Got Image mapping from API:\n%s", pp(mapping))
+
+            if first:
+                first = False
+
+        log.debug("Finished retrieving image mappings from API, found %d mappings.",
+                len(self.image_exports))
 
 
 #==============================================================================
