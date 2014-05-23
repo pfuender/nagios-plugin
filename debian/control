@@ -3,28 +3,30 @@ Section: python
 Priority: extra
 Maintainer: Frank Brehm <frank.brehm@profitbricks.com>
 Build-Depends: debhelper (>= 7.0.50~),
-               python-all (>= 2.6.5-2~),
-               python3-all,
-               python-epydoc,
-               python-docutils,
-               python-support,
-               texlive-latex-base,
-               texlive-latex-extra,
                ghostscript,
-               python-argparse,
                help2man,
-               python-pkg-resources
-Standards-Version: 3.8.4
-Vcs-Git: git+ssh://git.profitbricks.localdomain/srv/git/python/nagios-plugin.git
-Vcs-Browser: http://git.profitbricks.localdomain/gitweb/?p=python/nagios-plugin.git;a=summary
-X-Python-Version: >=2.6
-X-Python3-Version: >=3.2
+               python-all (>= 2.6.5-2~),
+               python-argparse,
+               python-dcmanager-client,
+               python-docutils,
+               python-epydoc,
+               python-pkg-resources,
+               python3-all,
+               texlive-latex-base,
+               texlive-latex-extra
+Standards-Version: 3.9.5
+Homepage: http://git.pb.local/gitweb/?p=python/nagios-plugin.git
+Vcs-Browser: http://git.pb.local/gitweb/?p=python/nagios-plugin.git
+Vcs-Git: git+ssh://git.pb.local/srv/git/python/nagios-plugin.git
+X-Python-Version: >= 2.6
+X-Python3-Version: >= 3.2
 
 Package: python-nagios-plugin
 Architecture: all
-Depends: ${python:Depends},
+Depends: python-argparse,
+         python-pkg-resources,
          ${misc:Depends},
-         python-argparse
+         ${python:Depends}
 Description: Base module for Nagios check plugins written in Python
  This package provides a family of Python modules
  to streamline writing Nagios plugins.
@@ -34,10 +36,9 @@ Description: Base module for Nagios check plugins written in Python
 
 Package: python3-nagios-plugin
 Architecture: all
-Depends: ${python3:Depends},
-         ${misc:Depends}
-Description: Base module for Nagios check plugins written in Python
- This package provides a family of Python modules
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: Base module for Nagios check plugins written in Python 3
+ This package provides a family of Python 3 modules
  to streamline writing Nagios plugins.
  .
  These modules are rewritten modules originated by the
@@ -45,46 +46,29 @@ Description: Base module for Nagios check plugins written in Python
 
 Package: pb-nagios-plugins
 Architecture: all
-Depends: ${python:Depends},
-         ${misc:Depends},
+Depends: libdbd-pg-perl,
+         nagios-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
-         nagios-plugins-basic,
-         libdbd-pg-perl,
-         python-pb-base
-Conflicts: pb-nagios-plugins-python3
-Recommends: smartmontools,
-            ipmitool,
-            python-dcmanager-client (>=0.9.2-1)
-Description: Additional Nagios plugins for usage by ProfitBricks
-
-Package: pb-nagios-plugins-python3
-Architecture: all
-Depends: ${python3:Depends},
+         python-pkg-resources,
          ${misc:Depends},
-         python3-nagios-plugin (= ${binary:Version}),
-         python3-pb-base
-Conflicts: pb-nagios-plugins
-Recommends: smartmontools,
-            ipmitool,
-            python3-dcmanager-client (>=0.9.2-1)
+         ${perl:Depends},
+         ${python:Depends}
+Recommends: ipmitool, python-dcmanager-client (>= 0.9.2-1), smartmontools
 Description: Additional Nagios plugins for usage by ProfitBricks
 
 Package: python-nagios-plugin-doc
 Architecture: all
-Suggests: python-nagios-plugin (= ${binary:Version}),
-          pdf-viewer,
-          www-browser
+Section: doc
+Depends: ${misc:Depends}
+Suggests: pdf-viewer, python-nagios-plugin (= ${binary:Version}), www-browser
 Description: Base module for Nagios check plugins written in Python - documentation
- .
  This package contains the documentation in HTML and PDF format.
 
 Package: pb-config-nagios-nrpe-server
 Architecture: all
+Depends: nagios-nrpe-server, ${misc:Depends}
 Suggests: python-nagios-plugin (= ${binary:Version})
-Depends: nagios-nrpe-server
 Description: Config file replacements for nagios-nrpe-server
- .
  This package contains the profitbricks configuration for nrpe. Replaces
  /etc/nagios/nrpe.cfg from nagios-nrpe-server.
-
