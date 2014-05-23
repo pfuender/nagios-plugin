@@ -54,6 +54,8 @@ from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
 from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
+from nagios.plugins.base_dcm_client_check import DEFAULT_TIMEOUT, DEFAULT_PB_VG
+from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR, DUMMY_LV
 from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
 from dcmanagerclient.client import RestApiError
@@ -61,13 +63,8 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.8.2'
+__version__ = '0.8.3'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
-
-DEFAULT_TIMEOUT = 60
-DEFAULT_PB_VG = 'storage'
-STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
-DUMMY_LV = 'ed00-0b07-71ed-000c0ffee000'
 
 DEFAULT_WARN_VOL_ERRORS = 0
 DEFAULT_CRIT_VOL_ERRORS = 2
