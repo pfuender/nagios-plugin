@@ -117,10 +117,10 @@ function queue_result() {
 
     if [ -n "${svc_description}" ];then
         info "queueing service check results to ${file}: ${hostname} ${svc_description} ${return_code} ${plugin_output} ${performance_data}"
-        echo -e "${hostname}\t${svc_description}\t${return_code}\t${plugin_output}|${performance_data}" >> $file || error "cannot write results to ${file}: $!"
+        echo -en "${hostname}\t${svc_description}\t${return_code}\t${plugin_output}|${performance_data}\027" >> $file || error "cannot write results to ${file}: $!"
     else
         info "queueing host check results to ${file}: ${hostname} ${return_code} ${plugin_output} ${performance_data}"
-        echo -e "${hostname}\t${return_code}\t${plugin_output}|${performance_data}" >> $file || error "cannot write results to ${file}: $!"
+        echo -en "${hostname}\t${return_code}\t${plugin_output}|${performance_data}\027" >> $file || error "cannot write results to ${file}: $!"
     fi
 }
 
