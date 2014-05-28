@@ -1,3 +1,10 @@
+python-nagios-plugin (1.6.5-1) squeeze; urgency=medium
+
+  * Simplified while loop in submit_check_results.
+  * Add icinga21-ka to allowed hosts in nrpe config.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 28 May 2014 15:43:31 +0200
+
 python-nagios-plugin (1.6.4-1) wheezy; urgency=medium
 
   * Correct while loop in submit_check_results if no performance data exist.
