@@ -19,9 +19,6 @@ BASE_URL = 'http://localhost:4848/monitoring/domain/server'
 
 def get_args():
     parser = argparse.ArgumentParser(description='Check glassfish.')
-    checks = [
-        'jvm_memory',
-    ]
     subparsers = parser.add_subparsers(
         dest='subparser_name',
         help='sub-command help',
@@ -55,7 +52,7 @@ def get_args():
 
     parser_classes = subparsers.add_parser('classes', help='class loading system')
 
-    parser_classes = subparsers.add_parser('garbage-collection', help='garbage collectors')
+    parser_garbage_collection = subparsers.add_parser('garbage-collection', help='garbage collectors')
 
     return parser.parse_args()
 
