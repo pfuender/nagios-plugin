@@ -21,6 +21,7 @@ import socket
 import uuid
 import math
 import datetime
+import glob
 
 
 from numbers import Number
@@ -56,7 +57,8 @@ from nagios.plugin.config import NagiosPluginConfig
 
 from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
 from nagios.plugins.base_dcm_client_check import DEFAULT_TIMEOUT
-from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR, DUMMY_LV
+from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR
+from nagios.plugins.base_dcm_client_check import DUMMY_LV, DUMMY_CRC
 from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
 from dcmanagerclient.client import RestApiError
@@ -69,6 +71,10 @@ __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_ERRORS = 0
 DEFAULT_CRIT_ERRORS = 2
+
+SCST_BASE_DIR = os.sep + os.path.join('sys', 'kernel', 'scst_tgt')
+SCST_DEV_DIR = os.path.join(SCST_BASE_DIR, 'devices')
+DEFAULT_STORAGE_VG = 'storage'
 
 log = logging.getLogger(__name__)
 
@@ -105,6 +111,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         @type: str
         """
 
+        self._storage_vg = DEFAULT_STORAGE_VG
+
         super(CheckPbStorageExportsPlugin, self).__init__(
                 shortname = 'PB_STORAGE_EXPORTS',
                 usage = usage, blurb = blurb,
@@ -128,6 +136,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.all_api_exports = {}
         self.storage_exports = []
         self.image_exports = []
+        self.existing_exports = {}
         self.count = {}
 
         # Some commands are missing
@@ -152,6 +161,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         """The critical threshold of the test."""
         return self._critical
 
+    #------------------------------------------------------------
+    @property
+    def storage_vg(self):
+        """The storage volume group."""
+        return self._storage_vg
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -167,6 +182,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         d['hostname'] = self.hostname
         d['warning'] = self.warning
         d['critical'] = self.critical
+        d['storage_vg'] = self.storage_vg
 
         return d
 
@@ -209,6 +225,14 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                         "(Default: %r).") % (self.hostname)),
         )
 
+        self.add_arg(
+                '--vg',
+                metavar = 'VOLUME_GROUP',
+                dest = 'storage_vg',
+                default = self.storage_vg,
+                help = ("The storage volume group (default %(default)r."),
+        )
+
         super(CheckPbStorageExportsPlugin, self).add_args()
 
     #--------------------------------------------------------------------------
@@ -223,6 +247,10 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             hn = hn.strip()
         if hn:
             self._hostname = hn.lower()
+
+        # define storage volume group
+        if self.argparser.args.storage_vg:
+            self._storage_vg = self.argparser.args.storage_vg
 
         # define warning level
         if self.argparser.args.warning is not None:
@@ -278,6 +306,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 self.hostname)
 
         self.all_api_exports = {}
+        self.existing_exports = {}
 
         self.count = {
                 'total': 0,
@@ -293,6 +322,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         self.get_api_storage_exports()
         self.get_api_image_exports()
+        self.get_existing_exports()
 
         self.exit(state, out)
 
@@ -639,6 +669,133 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         log.debug("Finished retrieving image mappings from API, found %d mappings.",
                 len(self.image_exports))
 
+    #--------------------------------------------------------------------------
+    def get_existing_exports(self):
+
+        self.existing_exports = {}
+
+        pb_lv_pattern = (r'^' + os.sep + os.path.join('dev', self.storage_vg) +
+                os.sep + r'((?:[0-9a-f]{4}-){3}[0-9a-f]{12})$')
+        if self.verbose > 2:
+            log.debug("Search pattern for ProfiBricks volumes: %r", pb_lv_pattern)
+        pb_lv = re.compile(pb_lv_pattern)
+
+        pattern = os.path.join(SCST_DEV_DIR, '*')
+        log.debug("Searching for SCST devices in %r ...", pattern)
+        for dev_dir in glob.glob(pattern):
+
+            filename_file = os.path.join(dev_dir, 'filename')
+            handler_link = os.path.join(dev_dir, 'handler')
+            has_errors = False
+
+            if not os.path.exists(filename_file):
+                continue
+            if not os.path.exists(handler_link):
+                continue
+
+            exported_dir = os.path.join(dev_dir, 'exported')
+            devname = os.path.basename(dev_dir)
+            export_filename = self.get_scst_export_filename(filename_file)
+            if not export_filename:
+                log.error("No devicename found for export %r.", devname)
+                continue
+
+            match = pb_lv.search(export_filename)
+            if not match:
+                if self.verbose > 2:
+                    log.debug(("Export %r for device %r is not a regular " +
+                            "ProfitBricks volume."), devname, export_filename)
+                continue
+            short_guid = match.group(1)
+            if short_guid == DUMMY_LV and devname == DUMMY_CRC:
+                if self.verbose > 1:
+                    log.debug("Found the exported notorious dummy device.")
+                continue
+
+            guid = '600144f0-' + short_guid
+            digest = crc64_digest(guid)
+            if not digest == devname:
+                log.error(("Found mismatch between volume name %r and SCST " +
+                        "device name %r (should be %r)."), export_filename,
+                        devname, digest)
+                continue
+
+            fc_ph_id_expected = guid.replace('-', '')
+            fc_ph_id_current = self.get_fc_ph_id(dev_dir)
+            if fc_ph_id_expected != fc_ph_id_current:
+                log.error("Export %r for device %r has wrong fc_ph_id %r.",
+                        devname, export_filename, fc_ph_id_current)
+                has_errors = True
+
+            if self.verbose > 2:
+                log.debug("Found export %r.", devname)
+
+    #--------------------------------------------------------------------------
+    def get_fc_ph_id(self, dev_dir):
+
+        fc_ph_id_filename = os.path.join(dev_dir, 'fc_ph_id')
+        if not os.path.exists(fc_ph_id_filename):
+            log.error("File for pc_ph_id %r doesn't exists.", fc_ph_id_filename)
+            return None
+
+        if not os.path.isfile(fc_ph_id_filename):
+            log.error("File for pc_ph_id %r is not a regular file.",
+                    fc_ph_id_filename)
+            return None
+
+        if not os.access(fc_ph_id_filename, os.R_OK):
+            log.error("No read access for file for pc_ph_id %r.",
+                    fc_ph_id_filename)
+            return None
+
+        fc_ph_id = None
+        fh = None
+        try:
+            fh = open(fc_ph_id_filename, 'r')
+            lines = fh.readlines()
+            if len(lines):
+                fc_ph_id = lines[0].strip()
+            else:
+                log.error("No pc_ph_id found in %r.", fc_ph_id_filename)
+        finally:
+            if fh:
+                fh.close()
+                fh = None
+
+        return fc_ph_id
+
+    #--------------------------------------------------------------------------
+    def get_scst_export_filename(self, filename_file):
+
+        if not os.path.exists(filename_file):
+            log.error("SCST export filename file %r doesn't exists.", filename_file)
+            return None
+
+        if not os.path.isfile(filename_file):
+            log.error("SCST export filename file %r is not a regular file.",
+                    filename_file)
+            return None
+
+        if not os.access(filename_file, os.R_OK):
+            log.error("No read access for SCST export filename file %r.",
+                    filename_file)
+            return None
+
+        export_filename = None
+        fh = None
+        try:
+            fh = open(filename_file, 'r')
+            lines = fh.readlines()
+            if len(lines):
+                export_filename = lines[0].strip()
+            else:
+                log.error("No devicename found in %r.", filename_file)
+        finally:
+            if fh:
+                fh.close()
+                fh = None
+
+        return export_filename
 
 #==============================================================================
 
