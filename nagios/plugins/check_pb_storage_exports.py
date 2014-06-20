@@ -447,7 +447,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             scst_devname =  crc64_digest(str(guid))
             pserver = mapping[key_pserver_name]
             if sys.version_info[0] <= 2:
-                pserver = pserver.decode('utf-8')
+                pserver = pserver.encode('utf-8')
 
             m = {
                 'uuid': vol_uuid,
@@ -480,6 +480,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         key_uuid = 'uuid'
         key_pstorage_name = 'pstorage_name'
         key_vstorage_uuid = 'vstorage_uuid'
+        key_image_uuid = 'image_uuid'
         key_pserver_name = 'pserver_name'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
@@ -489,6 +490,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             key_uuid = key_uuid.decode('utf-8')
             key_pstorage_name = key_pstorage_name.decode('utf-8')
             key_vstorage_uuid = key_vstorage_uuid.decode('utf-8')
+            key_image_uuid = key_image_uuid.decode('utf-8')
             key_pserver_name = key_pserver_name.decode('utf-8')
 
         log.debug("Retrieving image volumes from API ...")
@@ -594,6 +596,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 'vm_name': 'Win7Test',
                 'vm_uuid': 'c1b53ee7-66a7-4dc9-8240-e50432438582'}
             """
+
+            if mapping[key_pstorage_name] != self.hostname:
+                continue
+            if mapping[key_pserver_name] is None:
+                continue
+
             vl = 4
             if first:
                 vl = 2
@@ -603,6 +611,30 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             if first:
                 first = False
+
+            vol_uuid = uuid.UUID(mapping[key_image_uuid])
+
+            if not vol_uuid in api_volumes:
+                log.error("No volume for mapping of %r found.", vol_uuid)
+                continue
+
+            guid = api_volumes[vol_uuid]['guid']
+            scst_devname =  crc64_digest(str(guid))
+            pserver = mapping[key_pserver_name]
+            if sys.version_info[0] <= 2:
+                pserver = pserver.encode('utf-8')
+
+            m = {
+                'uuid': vol_uuid,
+                'guid': guid,
+                'scst_devname': scst_devname,
+                'replicated': api_volumes[vol_uuid]['replicated'],
+                'pserver': pserver,
+            }
+            self.image_exports.append(m)
+
+            if self.verbose > vl:
+                log.debug("Transformed storage mapping:\n%s",  pp(m))
 
         log.debug("Finished retrieving image mappings from API, found %d mappings.",
                 len(self.image_exports))
