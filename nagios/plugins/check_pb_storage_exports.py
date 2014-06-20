@@ -309,12 +309,10 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.existing_exports = {}
 
         self.count = {
-                'total': 0,
+                'exported_devs': 0,
+                'exported_luns': 0,
                 'missing': 0,
                 'alien': 0,
-                'orphans': 0,
-                'zombies': 0,
-                'snapshots': 0,
                 'ok': 0,
                 'dummy': 0,
                 'error': 0,
@@ -671,8 +669,20 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
     #--------------------------------------------------------------------------
     def get_existing_exports(self):
+        """ Result of descovering - dict of dicts in the form:
+                {   'devicename': '5ce99e968d67ded2',
+                    'guid': UUID('600144f0-0001-8aa6-91a2-19f911e39d8f'),
+                    'has_errors': False,
+                    'luns': {   'pserver123': '26'},
+                    'read_only': False,
+                    'volume': '/dev/storage/0001-8aa6-91a2-19f911e39d8f'}
+
+            Keys of the upper dict are the SCST devicenames.
+
+        """
 
         self.existing_exports = {}
+        first = True
 
         pb_lv_pattern = (r'^' + os.sep + os.path.join('dev', self.storage_vg) +
                 os.sep + r'((?:[0-9a-f]{4}-){3}[0-9a-f]{12})$')
@@ -682,22 +692,47 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         pattern = os.path.join(SCST_DEV_DIR, '*')
         log.debug("Searching for SCST devices in %r ...", pattern)
-        for dev_dir in glob.glob(pattern):
+        dev_dirs = glob.glob(pattern)
+        for dev_dir in dev_dirs:
+
+            vl = 4
+            if first:
+                vl = 2
 
             filename_file = os.path.join(dev_dir, 'filename')
             handler_link = os.path.join(dev_dir, 'handler')
             has_errors = False
+            read_only = False
 
             if not os.path.exists(filename_file):
                 continue
             if not os.path.exists(handler_link):
                 continue
 
+            self.count['exported_devs'] += 1
+
             exported_dir = os.path.join(dev_dir, 'exported')
+            luns = {}
+            if os.path.isdir(exported_dir):
+                exports = glob.glob(os.path.join(exported_dir, '*'))
+                for export_link in exports:
+                    exp_name = os.path.basename(export_link)
+                    link_target = os.readlink(export_link)
+                    if os.path.isabs(link_target):
+                        lun_dir = os.path.realpath(lun_dir)
+                    else:
+                        lun_dir = os.path.realpath(os.path.relpath(link_target,
+                                os.path.dirname(export_link)))
+                    ini_group = os.path.basename(os.path.dirname(os.path.dirname(lun_dir)))
+                    lun_nr = os.path.basename(lun_dir)
+                    #lun_dir = os.path.realpath(exp_name)
+                    luns[ini_group] = lun_nr
+
             devname = os.path.basename(dev_dir)
             export_filename = self.get_scst_export_filename(filename_file)
             if not export_filename:
                 log.error("No devicename found for export %r.", devname)
+                self.count['error'] += 1
                 continue
 
             match = pb_lv.search(export_filename)
@@ -705,11 +740,13 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 if self.verbose > 2:
                     log.debug(("Export %r for device %r is not a regular " +
                             "ProfitBricks volume."), devname, export_filename)
+                self.count['alien'] += 1
                 continue
             short_guid = match.group(1)
             if short_guid == DUMMY_LV and devname == DUMMY_CRC:
                 if self.verbose > 1:
                     log.debug("Found the exported notorious dummy device.")
+                self.count['dummy'] += 1
                 continue
 
             guid = '600144f0-' + short_guid
@@ -718,6 +755,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 log.error(("Found mismatch between volume name %r and SCST " +
                         "device name %r (should be %r)."), export_filename,
                         devname, digest)
+                self.count['error'] += 1
                 continue
 
             fc_ph_id_expected = guid.replace('-', '')
@@ -727,8 +765,31 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                         devname, export_filename, fc_ph_id_current)
                 has_errors = True
 
+            read_only = self.get_read_only(dev_dir)
+            if read_only is None:
+                has_errors = True
+
+            export = {
+                'devicename': devname,
+                'volume': export_filename,
+                'guid': uuid.UUID(guid),
+                'read_only': read_only,
+                'has_errors': has_errors,
+                'luns': luns,
+            }
+
+            self.existing_exports[devname] = export
+            if has_errors:
+                self.count['error'] += 1
+
             if self.verbose > 2:
                 log.debug("Found export %r.", devname)
+
+            if self.verbose > vl:
+                log.debug("Got existing export:\n%s", pp(export))
+
+            if first:
+                first = False
 
     #--------------------------------------------------------------------------
     def get_fc_ph_id(self, dev_dir):
@@ -763,6 +824,40 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 fh = None
 
         return fc_ph_id
+
+    #--------------------------------------------------------------------------
+    def get_read_only(self, dev_dir):
+
+        read_only_filename = os.path.join(dev_dir, 'read_only')
+        if not os.path.exists(read_only_filename):
+            log.error("File for read_only %r doesn't exists.", read_only_filename)
+            return None
+
+        if not os.path.isfile(read_only_filename):
+            log.error("File for read_only %r is not a regular file.",
+                    read_only_filename)
+            return None
+
+        if not os.access(read_only_filename, os.R_OK):
+            log.error("No read access for file for read_only %r.",
+                    read_only_filename)
+            return None
+
+        read_only = None
+        fh = None
+        try:
+            fh = open(read_only_filename, 'r')
+            lines = fh.readlines()
+            if len(lines):
+                read_only = bool(int(lines[0].strip()))
+            else:
+                log.error("No read_only info found in %r.", read_only_filename)
+        finally:
+            if fh:
+                fh.close()
+                fh = None
+
+        return read_only
 
     #--------------------------------------------------------------------------
     def get_scst_export_filename(self, filename_file):
@@ -805,4 +900,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4 et sw=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et sw=4 softtabstop=4
