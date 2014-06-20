@@ -1,3 +1,40 @@
+python-nagios-plugin (1.6.6-2) wheezy; urgency=low
+
+  * build for wheezy
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 12 Jun 2014 12:47:29 +0200
+
+python-nagios-plugin (1.6.6-1) stable; urgency=low
+
+  * allowed icinga staging hosts to query nrpe daemon
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 12 Jun 2014 12:45:47 +0200
+
+python-nagios-plugin (1.6.5-4) wheezy; urgency=low
+
+  * build for wheezy
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 11 Jun 2014 15:11:39 +0200
+
+python-nagios-plugin (1.6.5-3) stable; urgency=low
+
+  * added new Recommends to pb-nagios-plugins
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 11 Jun 2014 15:02:06 +0200
+
+python-nagios-plugin (1.6.5-2) wheezy; urgency=medium
+
+  * Rebuild for wheezy.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 02 Jun 2014 13:58:17 +0200
+
+python-nagios-plugin (1.6.5-1) squeeze; urgency=medium
+
+  * Simplified while loop in submit_check_results.
+  * Add icinga21-ka to allowed hosts in nrpe config.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 28 May 2014 15:43:31 +0200
+
 python-nagios-plugin (1.6.4-1) wheezy; urgency=medium
 
   * Correct while loop in submit_check_results if no performance data exist.
