@@ -1,3 +1,10 @@
+python-nagios-plugin (1.6.7-1) wheezy; urgency=low
+
+  * Added plugin bin/check_pb_storage_exports and its module
+    nagios/plugins/check_pb_storage_exports.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 23 Jun 2014 13:40:16 +0200
+
 python-nagios-plugin (1.6.6-2) wheezy; urgency=low
 
   * build for wheezy
