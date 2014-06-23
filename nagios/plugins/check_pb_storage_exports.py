@@ -140,7 +140,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.image_exports = []
         self.existing_exports = {}
         self.count = {}
-        self.pservers = {}
+        self.valid_pservers = {}
 
         # Some commands are missing
         if failed_commands:
@@ -336,6 +336,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 self.hostname)
 
         self.get_current_cluster()
+        self.get_cluster_pservers()
 
         self.all_api_exports = {}
         self.existing_exports = {}
@@ -386,6 +387,71 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             cluster = cluster.encode('utf-8')
         log.debug("Cluster of current storage server %r: %r", self.hostname, cluster)
         self._current_cluster = cluster
+
+    #--------------------------------------------------------------------------
+    def get_cluster_pservers(self):
+
+        if not self.current_cluster:
+            self.die("No current cluster defined - cannot get pservers.")
+            return
+
+        self.valid_pservers = {}
+
+        try:
+            pservers = self.api.pservers(cluster = self.current_cluster)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        if self.verbose > 3:
+            log.debug("Info about pservers in current cluster %r from API:\n%s",
+                    self.current_cluster, pp(pservers))
+
+        key_name = 'name'
+        key_zone = 'zone'
+        if sys.version_info[0] <= 2:
+            key_name = key_name.decode('utf-8')
+            key_zone = key_zone.decode('utf-8')
+
+        for pserver in pservers:
+            """
+            {   u'alloc_cores': 22,
+                u'alloc_ram': 50465865728,
+                u'cluster': u'de-ka-cluster-01',
+                u'cores_per_die': 8,
+                u'cores_per_package': 16,
+                u'dedication': None,
+                u'ip': u'10.1.21.59',
+                u'liveboot_version': u'liveboot-20131207-1344',
+                u'name': u'pserver259',
+                u'region': u'europe',
+                u'total_cores': 62,
+                u'total_ram': 257698037760,
+                u'up': True,
+                u'uuid': u'C0899115-C3C4-4A0B-9C26-2513CAEEC71C',
+                u'vservers': 4,
+                u'zone': 2},
+            """
+
+            pserver_name = pserver[key_name]
+            if sys.version_info[0] <= 2:
+                pserver_name = pserver_name.encode('utf-8')
+
+            pserver_zone = pserver[key_zone]
+            try:
+                if pserver_zone:
+                    pserver_zone = int(pserver_zone)
+                else:
+                    pserver_zone = 0
+            except ValueError:
+                pserver_zone = -1
+
+            self.valid_pservers[pserver_name] = pserver_zone
+
+        if self.verbose > 2:
+            log.debug("Found Pservers in current cluster %r from API:\n%s",
+                    self.current_cluster, pp(self.valid_pservers))
 
     #--------------------------------------------------------------------------
     def check_exports(self):
