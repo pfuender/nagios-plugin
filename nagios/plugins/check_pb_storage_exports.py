@@ -74,6 +74,10 @@ DEFAULT_CRIT_ERRORS = 2
 
 SCST_BASE_DIR = os.sep + os.path.join('sys', 'kernel', 'scst_tgt')
 SCST_DEV_DIR = os.path.join(SCST_BASE_DIR, 'devices')
+SCST_TARGET_DIR = os.path.join(SCST_BASE_DIR, 'targets')
+SCST_SRP_TARGET_DIR = os.path.join(SCST_TARGET_DIR, 'ib_srpt')
+SCST_SRP_TARGET0_DIR = os.path.join(SCST_SRP_TARGET_DIR, 'ib_srpt_target_0')
+SCST_INI_GROUP_DIR = os.path.join(SCST_SRP_TARGET0_DIR, 'ini_groups')
 DEFAULT_STORAGE_VG = 'storage'
 
 log = logging.getLogger(__name__)
@@ -357,6 +361,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.get_existing_exports()
 
         self.check_exports()
+        self.check_ini_groups()
 
         log.debug("Results of check:\n%s", pp(self.count))
 
@@ -1013,6 +1018,44 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             if first:
                 first = False
+
+    #--------------------------------------------------------------------------
+    def check_ini_groups(self):
+
+        igroup_pattern = os.path.join(SCST_INI_GROUP_DIR, '*')
+        if self.verbose > 3:
+            log.debug("Get ini groups with pattern %r ...", igroup_pattern)
+        for ini_group_dir in glob.glob(igroup_pattern):
+            if not os.path.isdir(ini_group_dir):
+                continue
+            ini_group = os.path.basename(ini_group_dir)
+            if self.verbose > 3:
+                log.debug("Checking initiator group %r ...", ini_group)
+
+            if not ini_group in self.valid_pservers:
+                log.info("Initiator group %r is not a pserver from current cluster.",
+                        ini_group)
+                self.count['alien'] += 1
+                continue
+
+            luns_dir = os.path.join(ini_group_dir, 'luns')
+            luns_pattern = os.path.join(luns_dir, '*')
+            nr_luns = 0
+            has_lun_zero = False
+            for lun_dir in glob.glob(luns_pattern):
+                if not os.path.isdir(lun_dir):
+                    continue
+                nr_luns += 1
+                lun = os.path.basename(lun_dir)
+                if lun == '0':
+                    has_lun_zero = True
+            if nr_luns:
+                if not has_lun_zero:
+                    log.info("Initiator group %r has no LUN '0'.", ini_group)
+                    self.count['error'] += 1
+            else:
+                log.info("Initiator group %r has no LUNs.", ini_group)
+                self.count['error'] += 1
 
     #--------------------------------------------------------------------------
     def get_fc_ph_id(self, dev_dir):
