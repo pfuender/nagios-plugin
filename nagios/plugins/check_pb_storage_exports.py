@@ -365,6 +365,22 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         log.debug("Results of check:\n%s", pp(self.count))
 
+        total_errors = self.count['missing'] + self.count['error'] + self.count['needless']
+        state = self.threshold.get_status(total_errors)
+        if total_errors == 1:
+            out = "There is one error on exported or not exported volumes."
+        elif total_errors > 1:
+            out = "There are %d errors on exported or not exported volumes." % (
+                    total_errors)
+
+        # generate performance data (except number of dummy volumes)
+        self.add_perfdata(label = 'total_errors', value = total_errors,
+                threshold = self.threshold)
+        for key in self.count:
+            if key == 'dummy':
+                continue
+            self.add_perfdata(label = key, value = self.count[key])
+
         self.exit(state, out)
 
     #--------------------------------------------------------------------------
