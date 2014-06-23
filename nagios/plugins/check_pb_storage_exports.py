@@ -460,7 +460,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self.check_storage_export(storage_export)
             if not storage_export['checked']:
                 self.count['missing'] += 1
-                log.debug("Missing export of storage volume %s (%s) to %r.",
+                log.info("Missing export of storage volume %s (%s) to %r.",
                         storage_export['guid'], storage_export['uuid'],
                         storage_export['pserver'])
 
@@ -468,7 +468,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self.check_image_export(image_export)
             if not image_export['checked']:
                 self.count['missing'] += 1
-                log.debug("Missing export of image volume %s (%s) to %r.",
+                log.info("Missing export of image volume %s (%s) to %r.",
                         image_export['guid'], image_export['uuid'],
                         image_export['pserver'])
 
@@ -476,12 +476,17 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             export = self.existing_exports[devname]
             if export['luns']:
                 for ini_group in export['luns']:
-                    if not export['luns'][ini_group]['checked']:
+                    if export['luns'][ini_group]['checked']:
+                        self.count['ok'] += 1
+                    else:
                         self.count['needless'] += 1
                         lun_id = export['luns'][ini_group]['id']
-                        log.debug("Needless export of %r (%s) to %r (LUN %s).",
+                        log.info("Needless export of %r (%s) to %r (LUN %s).",
                                 export['volume'], devname, ini_group, lun_id)
-
+            else:
+                log.info("Found SCST device %r (%s) without exported LUNs.",
+                        devname, export['volume'])
+                self.count['needless'] += 1
 
     #--------------------------------------------------------------------------
     def check_storage_export(self, storage_export):
@@ -497,7 +502,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 storage_export['checked'] = True
                 if export['read_only']:
                     self.count['error'] += 1
-                    log.debug(("Export of storage volume %s (%s) " +
+                    log.info(("Export of storage volume %s (%s) " +
                             "must not be read_only."), export['guid'], uuid)
                 if self.verbose > 2:
                     log.debug(("Found export for storage volume %s (%s) " +
@@ -519,7 +524,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 if not export['read_only']:
                     if not self.may_have_rw_img_exports:
                         self.count['error'] += 1
-                    log.debug(("Export of image volume %s (%s) " +
+                    log.info(("Export of image volume %s (%s) " +
                             "must be read_only."), export['guid'], uuid)
                 if self.verbose > 2:
                     log.debug(("Found export for image volume %s (%s) " +
@@ -657,7 +662,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             if mapping[key_pstorage_name] != self.hostname:
                 continue
-            if mapping[key_pserver_name] is None:
+
+            pserver = mapping[key_pserver_name]
+            if pserver is None:
+                continue
+            if not pserver in self.valid_pservers:
+                log.debug("Storage export to %r not considered.", pserver)
                 continue
 
             vl = 4
@@ -675,7 +685,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             guid = api_volumes[vol_uuid]['guid']
             scst_devname =  crc64_digest(str(guid))
-            pserver = mapping[key_pserver_name]
             if sys.version_info[0] <= 2:
                 pserver = pserver.encode('utf-8')
 
@@ -830,7 +839,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             if mapping[key_pstorage_name] != self.hostname:
                 continue
-            if mapping[key_pserver_name] is None:
+
+            pserver = mapping[key_pserver_name]
+            if pserver is None:
+                continue
+            if not pserver in self.valid_pservers:
+                log.debug("Image export to %r not considered.", pserver)
                 continue
 
             vl = 4
@@ -851,7 +865,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             guid = api_volumes[vol_uuid]['guid']
             scst_devname =  crc64_digest(str(guid))
-            pserver = mapping[key_pserver_name]
             if sys.version_info[0] <= 2:
                 pserver = pserver.encode('utf-8')
 
@@ -919,7 +932,9 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             luns = {}
             if os.path.isdir(exported_dir):
                 exports = glob.glob(os.path.join(exported_dir, '*'))
+                nr_exports = 0
                 for export_link in exports:
+                    nr_exports += 1
                     exp_name = os.path.basename(export_link)
                     link_target = os.readlink(export_link)
                     if os.path.isabs(link_target):
@@ -932,10 +947,13 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                     luns[ini_group] = {'id': lun_nr, 'checked': False}
                     self.count['exported_luns'] += 1
 
+                #if nr_exports > 1:
+                #    vl = 2
+
             devname = os.path.basename(dev_dir)
             export_filename = self.get_scst_export_filename(filename_file)
             if not export_filename:
-                log.error("No devicename found for export %r.", devname)
+                log.info("No devicename found for export %r.", devname)
                 self.count['error'] += 1
                 continue
 
@@ -956,7 +974,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             guid = '600144f0-' + short_guid
             digest = crc64_digest(guid)
             if not digest == devname:
-                log.debug(("Found mismatch between volume name %r and SCST " +
+                log.info(("Found mismatch between volume name %r and SCST " +
                         "device name %r (should be %r)."), export_filename,
                         devname, digest)
                 self.count['error'] += 1
@@ -965,7 +983,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             fc_ph_id_expected = guid.replace('-', '')
             fc_ph_id_current = self.get_fc_ph_id(dev_dir)
             if fc_ph_id_expected != fc_ph_id_current:
-                log.debug("Export %r for device %r has wrong fc_ph_id %r.",
+                log.info("Export %r for device %r has wrong fc_ph_id %r.",
                         devname, export_filename, fc_ph_id_current)
                 has_errors = True
 
