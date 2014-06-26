@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.8-1) wheezy; urgency=low
+
+  * pb-check-softwareraid: optimized for raid5
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 26 Jun 2014 14:21:44 +0200
+
 python-nagios-plugin (1.6.7-1) wheezy; urgency=low
 
   * Added plugin bin/check_pb_storage_exports and its module
