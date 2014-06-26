@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.8-2) stable; urgency=low
+
+  * Declared for stable
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 26 Jun 2014 14:36:50 +0200
+
 python-nagios-plugin (1.6.8-1) wheezy; urgency=low
 
   * pb-check-softwareraid: optimized for raid5
