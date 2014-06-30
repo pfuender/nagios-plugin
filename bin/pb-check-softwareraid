@@ -51,7 +51,7 @@ my $last="";
 foreach my $l (@LINES) {
 	print "DEBUG: $l\n" if $DEBUG;
 	$l=~s/\t/ /g;
-	if ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s+(\[[=>.]+\].+\/sec)?.*$/) {
+	if ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s*(\[[=>.]+\].+\/sec)?.*$/) {
 
 		$STATE=0;
 		my $dev=$1;
