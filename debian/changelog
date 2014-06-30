@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.10-1) stable; urgency=low
+
+  * dsa-check-uptime: takes number of minutes as arg1 now
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 30 Jun 2014 16:58:21 +0200
+
 python-nagios-plugin (1.6.9-2) stable; urgency=low
 
   * Declared for stable
