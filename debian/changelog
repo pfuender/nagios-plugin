@@ -1,6 +1,6 @@
-python-nagios-plugin (1.6.10-2) wheezy; urgency=low
+python-nagios-plugin (1.6.10-2) stable; urgency=low
 
-  * build for wheezy
+  * changed nrpe config for dsa-check-uptime
 
  -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 30 Jun 2014 16:59:21 +0200
 
