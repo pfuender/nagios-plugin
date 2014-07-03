@@ -7,6 +7,10 @@ uptimeOutput=`/usr/bin/uptime`;
 PATH="/bin:/usr/bin:/usr/local/bin";
 export PATH;
 
+max_minutes=$1
+
+
+
 days=`echo $uptimeOutput | /bin/sed 's/^.* up.* \([0-9][0-9]*\) *day[\(s\)]*.*$/\1/'`;
 if [ x"`echo $days | /bin/grep -w up`" != x ]
 then
@@ -44,10 +48,10 @@ totalMinutes=`expr $dayMinutes \+ $hourMinutes`;
 totalMinutes=`expr $totalMinutes \+ $minutes`;
 
 # Has it been rebooted in the last hour?
-if [ "$totalMinutes" -lt 180 ]
+if [ "$totalMinutes" -lt $max_minutes ]
 then
 	# exit with a warning
-	echo "Uptime CRITICAL: Uptime less than one hour (currently $totalMinutes minutes)|mins=$totalMinutes";
+	echo "Uptime CRITICAL: Uptime less than $max_minutes minutes (currently $totalMinutes minutes)|mins=$totalMinutes";
 	exit 2;
 else
 	# everything's okay!
