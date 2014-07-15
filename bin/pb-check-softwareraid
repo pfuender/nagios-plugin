@@ -51,12 +51,13 @@ my $last="";
 foreach my $l (@LINES) {
 	print "DEBUG: $l\n" if $DEBUG;
 	$l=~s/\t/ /g;
-	if ($l=~/^(md\d+) : (inactive) (.*)$/){
-
-        	 print "Storage OK - $1 $2 \n";
-	         exit 0;
-	         
-	}elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s+(\[[=>.]+\].+\/sec)?.*$/) {
+# md39 : inactive dm-58[1](S) dm-46[0](S)      1572864000 blocks super 1.2
+	if ($l=~/^(md\d+) : inactive .*$/) {
+		my $dev=$1;
+		$STATE=2;
+		$error_msg.=" - $dev is INACTIVE";
+		$OVERSTATE=$STATE if ($STATE > $OVERSTATE);
+	} elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s*(\[[=>.]+\].+\/sec)?.*$/) {
 
 		$STATE=0;
 		my $dev=$1;
@@ -105,30 +106,30 @@ foreach my $l (@LINES) {
 			}
 		}
 
-		if ($state eq "inactive") {
-			$STATE=2;
-			$error_msg.=" - $dev is INACTIVE";
-		} elsif ($state eq "active") {
-			if ($level eq 5) {
-				if ($current < ($normal - 1)) {
-					$STATE=2;
-					$error_msg.=" - $dev is FAILED";
-				} elsif ($current < $normal) { 
-					$STATE=1 if ($STATE < 2);
-					$error_msg.=" - $dev is DEGRADED";
+		if ($state eq "active") {
+			if ($level eq 1) {
+				if (length $syncstate) {
+				    $STATE=1;
+				    #$syncstate =~ s/^\[.+\]\s+//;
+				    $syncstate =~ / =\s+(\d+\.\d+\%)/;
+				    $error_msg.=" - $dev is recovering ($1)";
+				} elsif ($current < $normal or $map ne "UU") {
+				    $STATE=2;
+				    $error_msg.=" - $dev is FAILED";
+				}
+			} elsif ($level eq 5) {
+				if (length $syncstate) {
+			            $STATE=1;
+				    #$syncstate =~ s/^\[.+\]\s+//;
+				    $syncstate =~ / =\s+(\d+\.\d+\%)/;
+				    $error_msg.=" - $dev is recovering ($1)";
+				} elsif ($current < $normal or $map !~ /^U+$/) {
+				    $STATE=2;
+				    $error_msg.=" - $dev is FAILED";
 				}
 			} else {
-				if ($current < $normal or $map ne "UU") {
-                                        if (length $syncstate) {
-                                            $STATE=1;
-                                            #$syncstate =~ s/^\[.+\]\s+//;
-                                            $syncstate =~ / =\s+(\d+\.\d+\%)/;
-					    $error_msg.=" - $dev is recovering ($1)";
-                                        } else {
-					    $STATE=2;
-					    $error_msg.=" - $dev is FAILED";
-                                        }
-				}
+                                $STATE=3;
+                                $error_msg.=" - raid level $level is unsupported for $dev";
 			}
 		} else {
 			$STATE=2;

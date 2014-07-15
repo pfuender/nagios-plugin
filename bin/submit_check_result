@@ -126,8 +126,6 @@ function queue_result() {
 
 
 while [[ $# -gt 0 ]]; do
-  # if we don't have performance data
-  test -z "$1" && break
   case "$1" in
     --submit-results)
         submit=1
@@ -140,7 +138,7 @@ while [[ $# -gt 0 ]]; do
         state=$2
         plugin_output=$3
         performance_data=$4
-        [[ -z "${performance_data}" ]] && shift 3 || shift 4
+        shift 4
         # some plugins do not have performance data
         if [[ -z "${plugin_output}" ]]; then
             usage "option --queue-host-result takes at least 3 arguments"
@@ -154,7 +152,7 @@ while [[ $# -gt 0 ]]; do
         state=$3
         plugin_output=$4
         performance_data=$5
-        [[ -z "${performance_data}" ]] && shift 4 || shift 5
+        shift 5
         # some plugins do not have performance data
         if [[ -z "$plugin_output" ]]; then
             usage "option --queue-service-result takes at least 4 arguments"
@@ -182,6 +180,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     *) 
         error "unknown option $1"
+        exit 1
         ;;
   esac
 done

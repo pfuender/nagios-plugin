@@ -21,6 +21,7 @@ import socket
 import uuid
 import math
 import datetime
+import glob
 
 
 from numbers import Number
@@ -56,7 +57,8 @@ from nagios.plugin.config import NagiosPluginConfig
 
 from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
 from nagios.plugins.base_dcm_client_check import DEFAULT_TIMEOUT
-from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR, DUMMY_LV
+from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR
+from nagios.plugins.base_dcm_client_check import DUMMY_LV, DUMMY_CRC
 from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
 from dcmanagerclient.client import RestApiError
@@ -69,6 +71,14 @@ __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_ERRORS = 0
 DEFAULT_CRIT_ERRORS = 2
+
+SCST_BASE_DIR = os.sep + os.path.join('sys', 'kernel', 'scst_tgt')
+SCST_DEV_DIR = os.path.join(SCST_BASE_DIR, 'devices')
+SCST_TARGET_DIR = os.path.join(SCST_BASE_DIR, 'targets')
+SCST_SRP_TARGET_DIR = os.path.join(SCST_TARGET_DIR, 'ib_srpt')
+SCST_SRP_TARGET0_DIR = os.path.join(SCST_SRP_TARGET_DIR, 'ib_srpt_target_0')
+SCST_INI_GROUP_DIR = os.path.join(SCST_SRP_TARGET0_DIR, 'ini_groups')
+DEFAULT_STORAGE_VG = 'storage'
 
 log = logging.getLogger(__name__)
 
@@ -105,6 +115,10 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         @type: str
         """
 
+        self._storage_vg = DEFAULT_STORAGE_VG
+        self._may_have_rw_img_exports = False
+        self._current_cluster = None
+
         super(CheckPbStorageExportsPlugin, self).__init__(
                 shortname = 'PB_STORAGE_EXPORTS',
                 usage = usage, blurb = blurb,
@@ -128,7 +142,9 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.all_api_exports = {}
         self.storage_exports = []
         self.image_exports = []
+        self.existing_exports = {}
         self.count = {}
+        self.valid_pservers = {}
 
         # Some commands are missing
         if failed_commands:
@@ -152,6 +168,24 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         """The critical threshold of the test."""
         return self._critical
 
+    #------------------------------------------------------------
+    @property
+    def storage_vg(self):
+        """The storage volume group."""
+        return self._storage_vg
+
+    #------------------------------------------------------------
+    @property
+    def current_cluster(self):
+        """The cluster of the current storage server."""
+        return self._current_cluster
+
+    #------------------------------------------------------------
+    @property
+    def may_have_rw_img_exports(self):
+        """Flag indicating, that image volumes may read/write exported."""
+        return self._may_have_rw_img_exports
+
     #--------------------------------------------------------------------------
     def as_dict(self):
         """
@@ -167,6 +201,9 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         d['hostname'] = self.hostname
         d['warning'] = self.warning
         d['critical'] = self.critical
+        d['storage_vg'] = self.storage_vg
+        d['may_have_rw_img_exports'] = self.may_have_rw_img_exports
+        d['current_cluster'] = self.current_cluster
 
         return d
 
@@ -209,6 +246,21 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                         "(Default: %r).") % (self.hostname)),
         )
 
+        self.add_arg(
+                '--vg',
+                metavar = 'VOLUME_GROUP',
+                dest = 'storage_vg',
+                default = self.storage_vg,
+                help = ("The storage volume group (default %(default)r."),
+        )
+
+        self.add_arg(
+                '--rw-image-exports',
+                dest = 'may_have_rw_img_exports',
+                action = 'store_true',
+                help = "May image volumes read/write exported?.",
+        )
+
         super(CheckPbStorageExportsPlugin, self).add_args()
 
     #--------------------------------------------------------------------------
@@ -223,6 +275,16 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             hn = hn.strip()
         if hn:
             self._hostname = hn.lower()
+
+        # define storage volume group
+        if self.argparser.args.storage_vg:
+            self._storage_vg = self.argparser.args.storage_vg
+
+        may_have = getattr(self.argparser, 'may_have_rw_img_exports', False)
+        if may_have:
+            self._may_have_rw_img_exports = True
+        # TODO: delete later
+        self._may_have_rw_img_exports = True
 
         # define warning level
         if self.argparser.args.warning is not None:
@@ -277,24 +339,218 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         out = "Storage exports on %r seems to be okay." % (
                 self.hostname)
 
+        self.get_current_cluster()
+        self.get_cluster_pservers()
+
         self.all_api_exports = {}
+        self.existing_exports = {}
 
         self.count = {
-                'total': 0,
+                'exported_devs': 0,
+                'exported_luns': 0,
                 'missing': 0,
                 'alien': 0,
-                'orphans': 0,
-                'zombies': 0,
-                'snapshots': 0,
                 'ok': 0,
                 'dummy': 0,
                 'error': 0,
+                'needless': 0,
         }
 
         self.get_api_storage_exports()
         self.get_api_image_exports()
+        self.get_existing_exports()
+
+        self.check_exports()
+        self.check_ini_groups()
+
+        log.debug("Results of check:\n%s", pp(self.count))
+
+        total_errors = self.count['missing'] + self.count['error'] + self.count['needless']
+        state = self.threshold.get_status(total_errors)
+        if total_errors == 1:
+            out = "There is one error on exported or not exported volumes."
+        elif total_errors > 1:
+            out = "There are %d errors on exported or not exported volumes." % (
+                    total_errors)
+
+        # generate performance data (except number of dummy volumes)
+        self.add_perfdata(label = 'total_errors', value = total_errors,
+                threshold = self.threshold)
+        for key in self.count:
+            if key == 'dummy':
+                continue
+            self.add_perfdata(label = key, value = self.count[key])
 
         self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def get_current_cluster(self):
+
+        try:
+            storages = self.api.pstorages(name = self.hostname)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        log.debug("Info about current storage server from API:\n%s",
+                pp(storages))
+
+        if not len(storages):
+            self.die("Could not find information about current storage server %r." % (
+                    self.hostname))
+
+        key_cluster = 'cluster'
+        if sys.version_info[0] <= 2:
+            key_cluster = key_cluster.decode('utf-8')
+        cluster = storages[0][key_cluster]
+        if sys.version_info[0] <= 2:
+            cluster = cluster.encode('utf-8')
+        log.debug("Cluster of current storage server %r: %r", self.hostname, cluster)
+        self._current_cluster = cluster
+
+    #--------------------------------------------------------------------------
+    def get_cluster_pservers(self):
+
+        if not self.current_cluster:
+            self.die("No current cluster defined - cannot get pservers.")
+            return
+
+        self.valid_pservers = {}
+
+        try:
+            pservers = self.api.pservers(cluster = self.current_cluster)
+        except RestApiError as e:
+            self.die(str(e))
+        except Exception as e:
+            self.die("%s: %s" % (e.__class__.__name__, e))
+
+        if self.verbose > 3:
+            log.debug("Info about pservers in current cluster %r from API:\n%s",
+                    self.current_cluster, pp(pservers))
+
+        key_name = 'name'
+        key_zone = 'zone'
+        if sys.version_info[0] <= 2:
+            key_name = key_name.decode('utf-8')
+            key_zone = key_zone.decode('utf-8')
+
+        for pserver in pservers:
+            """
+            {   u'alloc_cores': 22,
+                u'alloc_ram': 50465865728,
+                u'cluster': u'de-ka-cluster-01',
+                u'cores_per_die': 8,
+                u'cores_per_package': 16,
+                u'dedication': None,
+                u'ip': u'10.1.21.59',
+                u'liveboot_version': u'liveboot-20131207-1344',
+                u'name': u'pserver259',
+                u'region': u'europe',
+                u'total_cores': 62,
+                u'total_ram': 257698037760,
+                u'up': True,
+                u'uuid': u'C0899115-C3C4-4A0B-9C26-2513CAEEC71C',
+                u'vservers': 4,
+                u'zone': 2},
+            """
+
+            pserver_name = pserver[key_name]
+            if sys.version_info[0] <= 2:
+                pserver_name = pserver_name.encode('utf-8')
+
+            pserver_zone = pserver[key_zone]
+            try:
+                if pserver_zone:
+                    pserver_zone = int(pserver_zone)
+                else:
+                    pserver_zone = 0
+            except ValueError:
+                pserver_zone = -1
+
+            self.valid_pservers[pserver_name] = pserver_zone
+
+        if self.verbose > 2:
+            log.debug("Found Pservers in current cluster %r from API:\n%s",
+                    self.current_cluster, pp(self.valid_pservers))
+
+    #--------------------------------------------------------------------------
+    def check_exports(self):
+
+        for storage_export in self.storage_exports:
+            self.check_storage_export(storage_export)
+            if not storage_export['checked']:
+                self.count['missing'] += 1
+                log.info("Missing export of storage volume %s (%s) to %r.",
+                        storage_export['guid'], storage_export['uuid'],
+                        storage_export['pserver'])
+
+        for image_export in self.image_exports:
+            self.check_image_export(image_export)
+            if not image_export['checked']:
+                self.count['missing'] += 1
+                log.info("Missing export of image volume %s (%s) to %r.",
+                        image_export['guid'], image_export['uuid'],
+                        image_export['pserver'])
+
+        for devname in self.existing_exports:
+            export = self.existing_exports[devname]
+            if export['luns']:
+                for ini_group in export['luns']:
+                    if export['luns'][ini_group]['checked']:
+                        self.count['ok'] += 1
+                    else:
+                        self.count['needless'] += 1
+                        lun_id = export['luns'][ini_group]['id']
+                        log.info("Needless export of %r (%s) to %r (LUN %s).",
+                                export['volume'], devname, ini_group, lun_id)
+            else:
+                log.info("Found SCST device %r (%s) without exported LUNs.",
+                        devname, export['volume'])
+                self.count['needless'] += 1
+
+    #--------------------------------------------------------------------------
+    def check_storage_export(self, storage_export):
+
+        devname = storage_export['scst_devname']
+        if devname in self.existing_exports:
+            export = self.existing_exports[devname]
+            uuid = storage_export['uuid']
+            ini_group = storage_export['pserver']
+            if ini_group in export['luns']:
+                lun_id = export['luns'][ini_group]['id']
+                export['luns'][ini_group]['checked'] = True
+                storage_export['checked'] = True
+                if export['read_only']:
+                    self.count['error'] += 1
+                    log.info(("Export of storage volume %s (%s) " +
+                            "must not be read_only."), export['guid'], uuid)
+                if self.verbose > 2:
+                    log.debug(("Found export for storage volume %s (%s) " +
+                                "to %r (LUN %s)."), export['guid'], uuid,
+                                ini_group, lun_id)
+
+    #--------------------------------------------------------------------------
+    def check_image_export(self, image_export):
+
+        devname = image_export['scst_devname']
+        if devname in self.existing_exports:
+            export = self.existing_exports[devname]
+            uuid = image_export['uuid']
+            ini_group = image_export['pserver']
+            if ini_group in export['luns']:
+                lun_id = export['luns'][ini_group]['id']
+                export['luns'][ini_group]['checked'] = True
+                image_export['checked'] = True
+                if not export['read_only']:
+                    if not self.may_have_rw_img_exports:
+                        self.count['error'] += 1
+                    log.info(("Export of image volume %s (%s) " +
+                            "must be read_only."), export['guid'], uuid)
+                if self.verbose > 2:
+                    log.debug(("Found export for image volume %s (%s) " +
+                                "to %r (LUN %s)."), export['guid'], uuid,
+                                ini_group, lun_id)
 
     #--------------------------------------------------------------------------
     def get_api_storage_exports(self):
@@ -427,7 +683,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             if mapping[key_pstorage_name] != self.hostname:
                 continue
-            if mapping[key_pserver_name] is None:
+
+            pserver = mapping[key_pserver_name]
+            if pserver is None:
+                continue
+            if not pserver in self.valid_pservers:
+                log.debug("Storage export to %r not considered.", pserver)
                 continue
 
             vl = 4
@@ -445,9 +706,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
             guid = api_volumes[vol_uuid]['guid']
             scst_devname =  crc64_digest(str(guid))
-            pserver = mapping[key_pserver_name]
             if sys.version_info[0] <= 2:
-                pserver = pserver.decode('utf-8')
+                pserver = pserver.encode('utf-8')
 
             m = {
                 'uuid': vol_uuid,
@@ -455,6 +715,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 'scst_devname': scst_devname,
                 'replicated': api_volumes[vol_uuid]['replicated'],
                 'pserver': pserver,
+                'checked': False,
             }
             self.storage_exports.append(m)
 
@@ -480,6 +741,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         key_uuid = 'uuid'
         key_pstorage_name = 'pstorage_name'
         key_vstorage_uuid = 'vstorage_uuid'
+        key_image_uuid = 'image_uuid'
         key_pserver_name = 'pserver_name'
         if sys.version_info[0] <= 2:
             key_replicated = key_replicated.decode('utf-8')
@@ -489,6 +751,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             key_uuid = key_uuid.decode('utf-8')
             key_pstorage_name = key_pstorage_name.decode('utf-8')
             key_vstorage_uuid = key_vstorage_uuid.decode('utf-8')
+            key_image_uuid = key_image_uuid.decode('utf-8')
             key_pserver_name = key_pserver_name.decode('utf-8')
 
         log.debug("Retrieving image volumes from API ...")
@@ -594,6 +857,17 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 'vm_name': 'Win7Test',
                 'vm_uuid': 'c1b53ee7-66a7-4dc9-8240-e50432438582'}
             """
+
+            if mapping[key_pstorage_name] != self.hostname:
+                continue
+
+            pserver = mapping[key_pserver_name]
+            if pserver is None:
+                continue
+            if not pserver in self.valid_pservers:
+                log.debug("Image export to %r not considered.", pserver)
+                continue
+
             vl = 4
             if first:
                 vl = 2
@@ -604,9 +878,301 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             if first:
                 first = False
 
+            vol_uuid = uuid.UUID(mapping[key_image_uuid])
+
+            if not vol_uuid in api_volumes:
+                log.error("No volume for mapping of %r found.", vol_uuid)
+                continue
+
+            guid = api_volumes[vol_uuid]['guid']
+            scst_devname =  crc64_digest(str(guid))
+            if sys.version_info[0] <= 2:
+                pserver = pserver.encode('utf-8')
+
+            m = {
+                'uuid': vol_uuid,
+                'guid': guid,
+                'scst_devname': scst_devname,
+                'replicated': api_volumes[vol_uuid]['replicated'],
+                'pserver': pserver,
+                'checked': False,
+            }
+            self.image_exports.append(m)
+
+            if self.verbose > vl:
+                log.debug("Transformed storage mapping:\n%s",  pp(m))
+
         log.debug("Finished retrieving image mappings from API, found %d mappings.",
                 len(self.image_exports))
 
+    #--------------------------------------------------------------------------
+    def get_existing_exports(self):
+        """ Result of descovering - dict of dicts in the form:
+                {   'devicename': '5ce99e968d67ded2',
+                    'guid': UUID('600144f0-0001-8aa6-91a2-19f911e39d8f'),
+                    'has_errors': False,
+                    'luns': {   'pserver123': '26'},
+                    'read_only': False,
+                    'volume': '/dev/storage/0001-8aa6-91a2-19f911e39d8f'}
+
+            Keys of the upper dict are the SCST devicenames.
+
+        """
+
+        self.existing_exports = {}
+        first = True
+
+        pb_lv_pattern = (r'^' + os.sep + os.path.join('dev', self.storage_vg) +
+                os.sep + r'((?:[0-9a-f]{4}-){3}[0-9a-f]{12})$')
+        if self.verbose > 2:
+            log.debug("Search pattern for ProfiBricks volumes: %r", pb_lv_pattern)
+        pb_lv = re.compile(pb_lv_pattern)
+
+        pattern = os.path.join(SCST_DEV_DIR, '*')
+        log.debug("Searching for SCST devices in %r ...", pattern)
+        dev_dirs = glob.glob(pattern)
+        for dev_dir in dev_dirs:
+
+            vl = 4
+            if first:
+                vl = 2
+
+            filename_file = os.path.join(dev_dir, 'filename')
+            handler_link = os.path.join(dev_dir, 'handler')
+            has_errors = False
+            read_only = False
+
+            if not os.path.exists(filename_file):
+                continue
+            if not os.path.exists(handler_link):
+                continue
+
+            self.count['exported_devs'] += 1
+
+            exported_dir = os.path.join(dev_dir, 'exported')
+            luns = {}
+            if os.path.isdir(exported_dir):
+                exports = glob.glob(os.path.join(exported_dir, '*'))
+                nr_exports = 0
+                for export_link in exports:
+                    nr_exports += 1
+                    exp_name = os.path.basename(export_link)
+                    link_target = os.readlink(export_link)
+                    if os.path.isabs(link_target):
+                        lun_dir = os.path.realpath(lun_dir)
+                    else:
+                        lun_dir = os.path.realpath(os.path.relpath(link_target,
+                                os.path.dirname(export_link)))
+                    ini_group = os.path.basename(os.path.dirname(os.path.dirname(lun_dir)))
+                    lun_nr = os.path.basename(lun_dir)
+                    luns[ini_group] = {'id': lun_nr, 'checked': False}
+                    self.count['exported_luns'] += 1
+
+                #if nr_exports > 1:
+                #    vl = 2
+
+            devname = os.path.basename(dev_dir)
+            export_filename = self.get_scst_export_filename(filename_file)
+            if not export_filename:
+                log.info("No devicename found for export %r.", devname)
+                self.count['error'] += 1
+                continue
+
+            match = pb_lv.search(export_filename)
+            if not match:
+                if self.verbose > 2:
+                    log.debug(("Export %r for device %r is not a regular " +
+                            "ProfitBricks volume."), devname, export_filename)
+                self.count['alien'] += 1
+                continue
+            short_guid = match.group(1)
+            if short_guid == DUMMY_LV and devname == DUMMY_CRC:
+                if self.verbose > 1:
+                    log.debug("Found the exported notorious dummy device.")
+                self.count['dummy'] += 1
+                continue
+
+            guid = '600144f0-' + short_guid
+            digest = crc64_digest(guid)
+            if not digest == devname:
+                log.info(("Found mismatch between volume name %r and SCST " +
+                        "device name %r (should be %r)."), export_filename,
+                        devname, digest)
+                self.count['error'] += 1
+                continue
+
+            fc_ph_id_expected = guid.replace('-', '')
+            fc_ph_id_current = self.get_fc_ph_id(dev_dir)
+            if fc_ph_id_expected != fc_ph_id_current:
+                log.info("Export %r for device %r has wrong fc_ph_id %r.",
+                        devname, export_filename, fc_ph_id_current)
+                has_errors = True
+
+            read_only = self.get_read_only(dev_dir)
+            if read_only is None:
+                has_errors = True
+
+            export = {
+                'devicename': devname,
+                'volume': export_filename,
+                'guid': uuid.UUID(guid),
+                'read_only': read_only,
+                'has_errors': has_errors,
+                'luns': luns,
+                'checked': False,
+            }
+
+            self.existing_exports[devname] = export
+            if has_errors:
+                self.count['error'] += 1
+
+            if self.verbose > 2:
+                log.debug("Found export %r.", devname)
+
+            if self.verbose > vl:
+                log.debug("Got existing export:\n%s", pp(export))
+
+            if first:
+                first = False
+
+    #--------------------------------------------------------------------------
+    def check_ini_groups(self):
+
+        igroup_pattern = os.path.join(SCST_INI_GROUP_DIR, '*')
+        if self.verbose > 3:
+            log.debug("Get ini groups with pattern %r ...", igroup_pattern)
+        for ini_group_dir in glob.glob(igroup_pattern):
+            if not os.path.isdir(ini_group_dir):
+                continue
+            ini_group = os.path.basename(ini_group_dir)
+            if self.verbose > 3:
+                log.debug("Checking initiator group %r ...", ini_group)
+
+            if not ini_group in self.valid_pservers:
+                log.info("Initiator group %r is not a pserver from current cluster.",
+                        ini_group)
+                self.count['alien'] += 1
+                continue
+
+            luns_dir = os.path.join(ini_group_dir, 'luns')
+            luns_pattern = os.path.join(luns_dir, '*')
+            nr_luns = 0
+            has_lun_zero = False
+            for lun_dir in glob.glob(luns_pattern):
+                if not os.path.isdir(lun_dir):
+                    continue
+                nr_luns += 1
+                lun = os.path.basename(lun_dir)
+                if lun == '0':
+                    has_lun_zero = True
+            if nr_luns:
+                if not has_lun_zero:
+                    log.info("Initiator group %r has no LUN '0'.", ini_group)
+                    self.count['error'] += 1
+            else:
+                log.info("Initiator group %r has no LUNs.", ini_group)
+                self.count['error'] += 1
+
+    #--------------------------------------------------------------------------
+    def get_fc_ph_id(self, dev_dir):
+
+        fc_ph_id_filename = os.path.join(dev_dir, 'fc_ph_id')
+        if not os.path.exists(fc_ph_id_filename):
+            log.error("File for pc_ph_id %r doesn't exists.", fc_ph_id_filename)
+            return None
+
+        if not os.path.isfile(fc_ph_id_filename):
+            log.error("File for pc_ph_id %r is not a regular file.",
+                    fc_ph_id_filename)
+            return None
+
+        if not os.access(fc_ph_id_filename, os.R_OK):
+            log.error("No read access for file for pc_ph_id %r.",
+                    fc_ph_id_filename)
+            return None
+
+        fc_ph_id = None
+        fh = None
+        try:
+            fh = open(fc_ph_id_filename, 'r')
+            lines = fh.readlines()
+            if len(lines):
+                fc_ph_id = lines[0].strip()
+            else:
+                log.error("No pc_ph_id found in %r.", fc_ph_id_filename)
+        finally:
+            if fh:
+                fh.close()
+                fh = None
+
+        return fc_ph_id
+
+    #--------------------------------------------------------------------------
+    def get_read_only(self, dev_dir):
+
+        read_only_filename = os.path.join(dev_dir, 'read_only')
+        if not os.path.exists(read_only_filename):
+            log.error("File for read_only %r doesn't exists.", read_only_filename)
+            return None
+
+        if not os.path.isfile(read_only_filename):
+            log.error("File for read_only %r is not a regular file.",
+                    read_only_filename)
+            return None
+
+        if not os.access(read_only_filename, os.R_OK):
+            log.error("No read access for file for read_only %r.",
+                    read_only_filename)
+            return None
+
+        read_only = None
+        fh = None
+        try:
+            fh = open(read_only_filename, 'r')
+            lines = fh.readlines()
+            if len(lines):
+                read_only = bool(int(lines[0].strip()))
+            else:
+                log.error("No read_only info found in %r.", read_only_filename)
+        finally:
+            if fh:
+                fh.close()
+                fh = None
+
+        return read_only
+
+    #--------------------------------------------------------------------------
+    def get_scst_export_filename(self, filename_file):
+
+        if not os.path.exists(filename_file):
+            log.error("SCST export filename file %r doesn't exists.", filename_file)
+            return None
+
+        if not os.path.isfile(filename_file):
+            log.error("SCST export filename file %r is not a regular file.",
+                    filename_file)
+            return None
+
+        if not os.access(filename_file, os.R_OK):
+            log.error("No read access for SCST export filename file %r.",
+                    filename_file)
+            return None
+
+        export_filename = None
+        fh = None
+        try:
+            fh = open(filename_file, 'r')
+            lines = fh.readlines()
+            if len(lines):
+                export_filename = lines[0].strip()
+            else:
+                log.error("No devicename found in %r.", filename_file)
+        finally:
+            if fh:
+                fh.close()
+                fh = None
+
+        return export_filename
 
 #==============================================================================
 
@@ -616,4 +1182,4 @@ if __name__ == "__main__":
 
 #==============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4 et sw=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et sw=4 softtabstop=4
