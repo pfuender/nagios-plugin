@@ -47,7 +47,7 @@ Description: Base module for Nagios check plugins written in Python 3
 Package: pb-nagios-plugins
 Architecture: all
 Depends: libdbd-pg-perl,
-         nagios-plugins-basic,
+         nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
          python-pkg-resources,
