@@ -1,3 +1,15 @@
+python-nagios-plugin (1.6.13-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Declared for unstable
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 21 Jul 2014 11:32:37 +0200
+
+python-nagios-plugin (1.6.13-1) unstable; urgency=medium
+
+  * Version bump
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 21 Jul 2014 11:32:37 +0200
+
 python-nagios-plugin (1.6.12-2) wheezy; urgency=medium
 
   * Add monitoring-plugins-basic as alternative to nagios-plugins-basic
