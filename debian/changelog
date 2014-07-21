@@ -1,6 +1,6 @@
-python-nagios-plugin (1.6.13-1ubuntu1) UNRELEASED; urgency=medium
+python-nagios-plugin (1.6.13-2) wheezy; urgency=medium
 
-  * Declared for unstable
+  * Bugfixing on debian/changelog
 
  -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 21 Jul 2014 11:32:37 +0200
 
