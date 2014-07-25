@@ -280,10 +280,37 @@ class CheckIotopPlugin(ExtNagiosPlugin):
                 critical = ":%d" % (self.critical[0]),
         )
 
+        t_50 = NagiosThreshold(
+                warning = ":%d" % (self.warning[1]),
+                critical = ":%d" % (self.critical[1]),
+        )
+
+        t_10 = NagiosThreshold(
+                warning = ":%d" % (self.warning[2]),
+                critical = ":%d" % (self.critical[2]),
+        )
+
+        self.add_perfdata(
+                label = 'total_procs',
+                value = self.process_count['total'],
+        )
+
         self.add_perfdata(
                 label = 'iodelay_90',
                 value = self.process_count['90'],
                 threshold = t_90
+        )
+
+        self.add_perfdata(
+                label = 'iodelay_50',
+                value = self.process_count['50'],
+                threshold = t_50
+        )
+
+        self.add_perfdata(
+                label = 'iodelay_10',
+                value = self.process_count['10'],
+                threshold = t_10
         )
 
         msg = "Total %(total)d procs, %(90)d procs with i/o delay >= 90%%, "
