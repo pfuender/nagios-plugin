@@ -146,7 +146,7 @@ class CheckIotopPlugin(ExtNagiosPlugin):
                 usage = usage, blurb = blurb,
         )
 
-        self.warning = (0, 3, 5)
+        self.warning = (1, 3, 5)
         self.critical = (1, 5, 10)
         self.delay = 1.0
         self.iterations = 5
