@@ -46,7 +46,7 @@ from nagios.plugin.config import NagiosPluginConfig
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -274,6 +274,17 @@ class CheckIotopPlugin(ExtNagiosPlugin):
                 self.process_count['50'] >= self.warning[1] or
                 self.process_count['10'] >= self.warning[2]):
             state = nagios.state.warning
+
+        t_90 = NagiosThreshold(
+                warning = ":%d" % (self.warning[0]),
+                critical = ":%d" % (self.critical[0]),
+        )
+
+        self.add_perfdata(
+                label = 'iodelay_90',
+                value = self.process_count['90'],
+                threshold = t_90
+        )
 
         msg = "Total %(total)d procs, %(90)d procs with i/o delay >= 90%%, "
         msg += "%(50)d procs with i/o delay >= 50%% and %(10)d procs with "
