@@ -46,7 +46,7 @@ from nagios.plugin.config import NagiosPluginConfig
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -151,6 +151,18 @@ class CheckIotopPlugin(ExtNagiosPlugin):
         self.delay = 1.0
         self.iterations = 5
 
+        self.iotop_opts = None
+        self.connection = None
+        self.process_list = None
+        self.processes = []
+        self.process_count = {
+                '90': 0,
+                '50': 0,
+                '10': 0,
+                '0': 0,
+                'total': 0,
+        }
+
         self._add_args()
 
     #--------------------------------------------------------------------------
@@ -248,6 +260,76 @@ class CheckIotopPlugin(ExtNagiosPlugin):
 
         if os.geteuid():
             self.die("This plugin must be executed as root.")
+
+        self.get_proc_stats()
+        self.evaluate_proc_stats()
+
+        state = nagios.state.ok
+
+        if (self.process_count['90'] >= self.critical[0] or
+                self.process_count['50'] >= self.critical[1] or
+                self.process_count['10'] >= self.critical[2]):
+            state = nagios.state.critical
+        elif (self.process_count['90'] >= self.warning[0] or
+                self.process_count['50'] >= self.warning[1] or
+                self.process_count['10'] >= self.warning[2]):
+            state = nagios.state.warning
+
+        msg = "Total %(total)d procs, %(90)d procs with i/o delay >= 90%%, "
+        msg += "%(50)d procs with i/o delay >= 50%% and %(10)d procs with "
+        msg += "i/o delay >= 10%%."
+        out = msg % self.process_count
+
+        self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def get_proc_stats(self):
+
+        if self.verbose > 2:
+            log.debug("Init of iotop objects  ...")
+
+        self.iotop_opts = IotopOptions(only = True, batch = True,
+                processes = True, iterations = self.iterations, accumulated = True)
+
+        self.connection = TaskStatsNetlink(self.iotop_opts)
+        self.process_list = ProcessList(self.connection, self.iotop_opts)
+
+        for j in range(self.iterations):
+            time.sleep(self.delay)
+            if self.verbose > 1:
+                log.debug("Refreshing processlist %d ...", j)
+            total, actual = self.process_list.refresh_processes()
+
+    #--------------------------------------------------------------------------
+    def evaluate_proc_stats(self):
+
+        for proc in self.process_list.processes.values():
+            self.processes.append(proc)
+
+        i = 0
+        duration = self.process_list.duration
+        for proc in self.processes:
+            i += 1
+            blkio_delay = 0
+            proc_duration = duration
+            blkio_delay = proc.stats_accum.blkio_delay_total
+            proc_duration = time.time() - proc.stats_accum_timestamp
+            blkio_delay_percent = float(blkio_delay) / (proc_duration * 10000000.0)
+
+            self.process_count['total'] += 1
+            if blkio_delay_percent >= 90:
+                self.process_count['90'] += 1
+            elif blkio_delay_percent >= 50:
+                self.process_count['50'] += 1
+            elif blkio_delay_percent >= 10:
+                self.process_count['10'] += 1
+
+        self.process_count['0'] = (self.process_count['total'] -
+                self.process_count['90'] - self.process_count['50'] -
+                self.process_count['10'])
+
+        if self.verbose > 1:
+            log.debug("Got the following results:\n%s", pp(self.process_count))
 
 #==============================================================================
 
