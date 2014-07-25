@@ -246,6 +246,9 @@ class CheckIotopPlugin(ExtNagiosPlugin):
                     self.iterations, self.delay)
             log.debug("Initialisation complete.")
 
+        if os.geteuid():
+            self.die("This plugin must be executed as root.")
+
 #==============================================================================
 
 if __name__ == "__main__":
