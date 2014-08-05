@@ -825,14 +825,14 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             log.debug("Thresholds used percent:\n%s", pp(th_used_pc.as_dict()))
 
         self.add_perfdata(label = 'total_size', value = vg_state.size_mb,
-                uom = 'MiB')
+                uom = 'MB')
         self.add_perfdata(label = 'free_size', value = vg_state.free_mb,
-                uom = 'MiB', threshold = th_free_abs)
+                uom = 'MB', threshold = th_free_abs)
         self.add_perfdata(label = 'free_percent',
                 value = float("%0.2f" % (vg_state.percent_free)), uom = '%',
                 threshold = th_free_pc)
         self.add_perfdata(label = 'alloc_size', value = vg_state.used_mb,
-                uom = 'MiB', threshold = th_used_abs)
+                uom = 'MB', threshold = th_used_abs)
         self.add_perfdata(label = 'alloc_percent',
                 value = float("%0.2f" % (vg_state.percent_used)), uom = '%',
                 threshold = th_used_pc)
