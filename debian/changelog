@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.14-1) wheezy; urgency=medium
+
+  * Change uom from 'MiB' to 'MB' in check_lvm_vg.py (Fixes #7658)
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 05 Aug 2014 14:20:54 +0200
+
 python-nagios-plugin (1.6.13-5) wheezy; urgency=medium
 
   * Added FRA SRX NAT IP
