@@ -1,8 +1,14 @@
-python-nagios-plugin (1.6.14-1) stable; urgency=low
+python-nagios-plugin (1.6.15-1) stable; urgency=low
 
   * check_IPoIB.py: use dcmanager python module now
 
  -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 06 Aug 2014 14:52:30 +0200
+
+python-nagios-plugin (1.6.14-1) wheezy; urgency=medium
+
+  * Change uom from 'MiB' to 'MB' in check_lvm_vg.py (Fixes #7658)
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 05 Aug 2014 14:20:54 +0200
 
 python-nagios-plugin (1.6.13-5) wheezy; urgency=medium
 
