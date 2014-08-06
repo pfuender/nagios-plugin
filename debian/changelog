@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.15-2) wheezy; urgency=low
+
+  * build for wheezy
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 06 Aug 2014 15:07:22 +0200
+
 python-nagios-plugin (1.6.15-1) stable; urgency=low
 
   * check_IPoIB.py: use dcmanager python module now
