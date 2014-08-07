@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.16-1) stable; urgency=low
+
+  * etc/nrpe.d/10_pb-check.cfg: added --timeout option for check_IPoIB
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 07 Aug 2014 08:36:37 +0200
+
 python-nagios-plugin (1.6.15-2) wheezy; urgency=low
 
   * build for wheezy
