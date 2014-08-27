@@ -113,9 +113,12 @@ foreach my $l (@LINES) {
 				    #$syncstate =~ s/^\[.+\]\s+//;
 				    $syncstate =~ / =\s+(\d+\.\d+\%)/;
 				    $error_msg.=" - $dev is recovering ($1)";
-				} elsif ($current < $normal or $map ne "UU") {
+				} elsif ($current < $normal) {
 				    $STATE=2;
 				    $error_msg.=" - $dev is FAILED";
+				} elsif ($map ne "UU") {
+				    $STATE=2;
+				    $error_msg.=" - $dev has not 2 slaves";
 				}
 			} elsif ($level eq 5) {
 				if (length $syncstate) {
