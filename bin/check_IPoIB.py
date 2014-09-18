@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 
-import json
 import pprint
 import re
 import signal
@@ -10,9 +9,25 @@ import socket
 import subprocess
 import sys
 import threading
+import os
+import textwrap
+import argparse
 from string import split
-from urllib2 import HTTPError, Request, URLError, urlopen
 
+## install the newest version of dcmanager client
+try:
+    from dcmanagerclient.client import DEFAULT_CFG_FILES, DEFAULT_API_URL
+    from dcmanagerclient.client import RestApi
+except ImportError:
+    print("You need the dcmanagerclient installed!")
+    sys.exit(7)
+
+ON_POSIX = 'posix' in sys.builtin_module_names
+
+version = "1.1.0-1"
+
+appname = os.path.basename(sys.argv[0])
+DEFAULT_TIMEOUT_API = 10
 
 #############################################
 ############# BEGIN class ping6 #############
@@ -100,6 +115,48 @@ class ping6(threading.Thread):
 ############# END class ping6 ###############
 #############################################
 
+######################################################################
+######################################################################
+######################################################################
+#########################            #################################
+#######################   parse_args   ###############################
+#########################            #################################
+######################################################################
+######################################################################
+######################################################################
+def parse_args():
+
+    msg = """\
+    This program will ping6 all pservers and gateways in the same cluster
+    on both infiniband topologies to identify broken ib connectivity.
+
+    """
+    msg = textwrap.dedent(msg) % {'appname': appname}
+
+    # Init the parser
+    parser = argparse.ArgumentParser(
+            prog = appname,
+            description = 'detect broken infiniband connectivity',
+            formatter_class = argparse.RawDescriptionHelpFormatter,
+            epilog = msg,
+    )
+
+    # Some general options
+    parser.add_argument('--version', action='version', version=version)
+    parser.add_argument('--auth-token', type=str, help="extra ini-file storing the dcmanager auth token")
+
+    msg = "define the dcmanager url (default: %s)" % (DEFAULT_API_URL)
+    parser.add_argument('--url', type=str, help=msg)
+    parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT_API,
+            help="Timeout in communication with the REST API (default: %(default)s seconds)")
+
+    try:
+        args = parser.parse_args()
+    except IOError as msg:
+        parser.error(str(msg))
+
+    return args
+
 
 def pinghost(i, pinghost):
     ping6.lck.acquire()
@@ -126,24 +183,6 @@ def pinghost(i, pinghost):
     #ping6.newthread(i, pinghost.rstrip())
     i += 1
     return i
-
-
-### TODO: get also hosts that are down and handle them correctly
-def get_serverlist(type):
-    ## TODO: storages are not included yet
-    url = 'https://dcmanager.pb.local:443/dc/api/' + type + '/'
-    token = "604a3b5f6db67e5a3a48650313ddfb2e8bcf211b"
-
-    req = Request(url, None, {'Authorization': "Token " + token})
-    try:
-        response = urlopen(req, timeout=7)
-    except HTTPError as e:
-        print("UNKNOWN: The server couldn't fulfill the request. Error code: ", e.code)
-        sys.exit(state['UNKNOWN'])
-    except URLError as e:
-        print('UNKNOWN: Failed to reach DC Manager API. Reason: ', e.reason)
-        sys.exit(state['UNKNOWN'])
-    return json.loads(response.read())
 
 
 def get_bgp_neighbors():
@@ -210,51 +249,85 @@ def get_bgp_neighbors():
     return bgp_neighbors
 
 
-## TODO: replace static progname with some basename methode on ARG[0]
-progname = "check_IPoIB.py"
+######################################################################
+######################################################################
+######################################################################
+###########################        ###################################
+#########################    main    #################################
+###########################        ###################################
+######################################################################
+######################################################################
+######################################################################
 
-state = {"OK": 0, "WARNING": 1, "CRITICAL": 2, "UNKNOWN": 3}
-
-fqdn = socket.getfqdn(socket.gethostname())
-(hostname, domain) = split(fqdn, '.', 1)
-del fqdn
-
-pservers = get_serverlist("pservers")
-gateways = get_serverlist("pgateways")
-bgp_neighbors = get_bgp_neighbors()
-
-pattern = re.compile('\d+$')
-hosttype = pattern.sub('', hostname)
-#print("type: %s" % hosttype)
-if hosttype == "pserver":
-    serverlist = pservers
-elif hosttype == "gw":
-    serverlist = gateways
-else:
-    print("UNKNOWN: hosttype '%s' is not supported currently" % hosttype)
-    sys.exit(state['UNKNOWN'])
+if __name__ == '__main__':
 
 
-cluster = ""
-for ps in serverlist:
-    if ps["name"] == hostname:
-        if not ps["up"]:
-            print("OK: host %s is marked as down in dcmanager" % hostname)
-            sys.exit(state['OK'])
-        else:
-            cluster = ps["cluster"]
-            break
+    args = parse_args()
 
-del serverlist
+    state = {"OK": 0, "WARNING": 1, "CRITICAL": 2, "UNKNOWN": 3}
 
-if cluster == "":
-    print("UNKNOWN: %s is not part of any cluster in dcmanager result set" % hostname)
-    sys.exit(state['UNKNOWN'])
+    fqdn = socket.getfqdn(socket.gethostname())
+    (hostname, domain) = split(fqdn, '.', 1)
+    del fqdn
 
-dcmanager_offline = []
-n = 0
-for ps in pservers:
-    if ps["cluster"] == cluster:
+    url = args.url
+    efile = args.auth_token
+    timeout = args.timeout
+
+    pattern = re.compile('^(pserver|gw)\d+$')
+    if not pattern.match(hostname):
+        print("UNKNOWN: only pservers and gateways are supported")
+        sys.exit(state['UNKNOWN'])
+
+    api = RestApi.from_config(
+        extra_config_file = efile,
+        api_url = url,
+        timeout = timeout,
+    )
+
+    ## fetch the cluster name of current hostname
+    response = dict()
+    try:
+        response = api.pservers(name = hostname)
+    except Exception as e:
+        print("UNKNOWN: failed to fetch cluster name from dcmanager api for host %s: %s" % (hostname, str(e)) )
+        sys.exit(state['UNKNOWN'])
+
+    if len(response) == 1 and 'cluster' in response[0]:
+        cluster = response[0]['cluster']
+    else:
+        print("UNKNOWN: dcmanager api response for host %s does not contain any 'cluster' attribute" % hostname )
+        sys.exit(state['UNKNOWN'])
+
+    if not 'up' in response[0]:
+        print("UNKNOWN: dcmanager api response for host %s does not contain any 'up' attribute" % hostname )
+        sys.exit(state['UNKNOWN'])
+        
+    if response[0]['up'] == False:
+        print("OK: host %s is marked as down in dcmanager" % hostname)
+        sys.exit(state['OK'])
+
+    ## fetch all pservers in this cluster
+    try:
+        pservers = api.pservers(cluster = cluster)
+    except Exception as e:
+        print("UNKNOWN: failed to fetch pservers from cluster %s from dcmanager api: %s" % (cluster, str(e)) )
+        sys.exit(state['UNKNOWN'])
+
+    ## fetch all pateways in this cluster
+    try:
+        gateways = api.pgateways(cluster = cluster)
+    except Exception as e:
+        print("UNKNOWN: failed to fetch gateways from cluster %s from dcmanager api: %s" % (cluster, str(e)) )
+        sys.exit(state['UNKNOWN'])
+
+    ## fetch bgp neighbors
+    bgp_neighbors = get_bgp_neighbors()
+
+    ## check pservers in this cluster
+    dcmanager_offline = []
+    n = 0
+    for ps in pservers:
         if not ps["up"]:
             dcmanager_offline.append(ps["name"])
             continue
@@ -268,14 +341,14 @@ for ps in pservers:
             n = pinghost(n, ping_host)
 
 
-bgp_no_neighbor = []
-bgp_no_link = []
-bgp_ipv4_mismatch = []
-bgp_no_ipv6_address = []
-bgp_no_ipv4_address = []
+    bgp_no_neighbor = []
+    bgp_no_link = []
+    bgp_ipv4_mismatch = []
+    bgp_no_ipv6_address = []
+    bgp_no_ipv4_address = []
 
-for ps in gateways:
-    if ps["cluster"] == cluster:
+    ## check pgateways in this cluster
+    for ps in gateways:
         if not ps["up"]:
             dcmanager_offline.append(ps["name"])
             continue
@@ -308,58 +381,58 @@ for ps in gateways:
                 bgp_ipv4_mismatch.append(ping_hostname)
 
 
-while True:
-    num_threads = len(ping6.ping6list)
-    #print(num_threads)
-    if num_threads == 0:
-        break
+    while True:
+        num_threads = len(ping6.ping6list)
+        #print(num_threads)
+        if num_threads == 0:
+            break
 
-#print("Total Host Scanned : %d" % n)
-#print("not reachable      : %s" % (', '.join(ping6.notreached)))
+    #print("Total Host Scanned : %d" % n)
+    #print("not reachable      : %s" % (', '.join(ping6.notreached)))
 
 
-pattern = re.compile('.%s' % domain)
-##print("INFO: reached: %d, notreached: %d, failed: %d" % (len(ping6.reached), len(ping6.notreached), len(ping6.failed)))
-msg = []
-n += len(dcmanager_offline)
-cur_state = "OK"
-if len(ping6.notreached) > 0:
-    msg.append("%d/%d hosts are not reachable (%s)" % (len(ping6.notreached), n, pattern.sub('', ', '.join(sorted(ping6.notreached.keys())))))
-if len(ping6.failed) > 0:
-    msg.append("failed check for %d/%d hosts (%s)" % (len(ping6.failed), n, pattern.sub('', ', '.join(sorted(ping6.failed.keys())))))
-### TODO: enable this line as soon as the gateways in cluster 1-4 are reinstalled and are visible by all pservers
-#if len(bgp_no_neighbor) > 0:
-#    msg.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor),pattern.sub('',', '.join(sorted(bgp_no_neighbor)))))
-if len(bgp_no_link) > 0:
-    msg.append("%d/%d hosts in bird setup have no established BGP state (%s)" % (len(bgp_no_link), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_no_link)))))
-if len(bgp_no_ipv4_address) > 0:
-    msg.append("%d/%d hosts have no IPv4 address in bird setup (%s)" % (len(bgp_no_ipv4_address), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_no_ipv4_address)))))
-if len(bgp_ipv4_mismatch) > 0:
-    msg.append("IPv4 address differs for %d/%d hosts between bird setup and dcmanager (%s)" % (len(bgp_ipv4_mismatch), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_ipv4_mismatch)))))
-if len(bgp_no_ipv6_address) > 0:
-    msg.append("%d/%d hosts in bird setup have no IPv6 address (%s)" % (len(bgp_no_ipv6_address), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_no_ipv6_address)))))
+    pattern = re.compile('.%s' % domain)
+    ##print("INFO: reached: %d, notreached: %d, failed: %d" % (len(ping6.reached), len(ping6.notreached), len(ping6.failed)))
+    msg = []
+    n += len(dcmanager_offline)
+    cur_state = "OK"
+    if len(ping6.notreached) > 0:
+        msg.append("%d/%d hosts are not reachable (%s)" % (len(ping6.notreached), n, pattern.sub('', ', '.join(sorted(ping6.notreached.keys())))))
+    if len(ping6.failed) > 0:
+        msg.append("failed check for %d/%d hosts (%s)" % (len(ping6.failed), n, pattern.sub('', ', '.join(sorted(ping6.failed.keys())))))
+    ### TODO: enable this line as soon as the gateways in cluster 1-4 are reinstalled and are visible by all pservers
+    #if len(bgp_no_neighbor) > 0:
+    #    msg.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor),pattern.sub('',', '.join(sorted(bgp_no_neighbor)))))
+    if len(bgp_no_link) > 0:
+        msg.append("%d/%d hosts in bird setup have no established BGP state (%s)" % (len(bgp_no_link), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_no_link)))))
+    if len(bgp_no_ipv4_address) > 0:
+        msg.append("%d/%d hosts have no IPv4 address in bird setup (%s)" % (len(bgp_no_ipv4_address), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_no_ipv4_address)))))
+    if len(bgp_ipv4_mismatch) > 0:
+        msg.append("IPv4 address differs for %d/%d hosts between bird setup and dcmanager (%s)" % (len(bgp_ipv4_mismatch), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_ipv4_mismatch)))))
+    if len(bgp_no_ipv6_address) > 0:
+        msg.append("%d/%d hosts in bird setup have no IPv6 address (%s)" % (len(bgp_no_ipv6_address), len(bgp_neighbors), pattern.sub('', ', '.join(sorted(bgp_no_ipv6_address)))))
 
-if len(msg):
-    cur_state = "CRITICAL"
-elif len(ping6.reached) > 0:
-    msg.append("%d/%d hosts in cluster %s are reachable (%s)" % (len(ping6.reached), n, cluster, pattern.sub('', ', '.join(sorted(ping6.reached.keys())))))
+    if len(msg):
+        cur_state = "CRITICAL"
+    elif len(ping6.reached) > 0:
+        msg.append("%d/%d hosts in cluster %s are reachable (%s)" % (len(ping6.reached), n, cluster, pattern.sub('', ', '.join(sorted(ping6.reached.keys())))))
 
-info = []
+    info = []
 
-if len(dcmanager_offline) > 0:
-    info.append("%d/%d hosts are down in dcmanager (%s)" % (len(dcmanager_offline), n, pattern.sub('', ', '.join(sorted(dcmanager_offline)))))
-if len(ping6.offline) > 0:
-    info.append("%d/%d hosts are offline (%s)" % (len(ping6.offline), n, pattern.sub('', ', '.join(sorted(ping6.offline.keys())))))
-### TODO: remove the next 2 lines (regarding bgp_no_neighbor) as soon as the gateways in cluster 1-4 are reinstalled and are visible by all pservers
-if len(bgp_no_neighbor) > 0:
-    info.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor), pattern.sub('', ', '.join(sorted(bgp_no_neighbor)))))
-### TODO: end
+    if len(dcmanager_offline) > 0:
+        info.append("%d/%d hosts are down in dcmanager (%s)" % (len(dcmanager_offline), n, pattern.sub('', ', '.join(sorted(dcmanager_offline)))))
+    if len(ping6.offline) > 0:
+        info.append("%d/%d hosts are offline (%s)" % (len(ping6.offline), n, pattern.sub('', ', '.join(sorted(ping6.offline.keys())))))
+    ### TODO: remove the next 2 lines (regarding bgp_no_neighbor) as soon as the gateways in cluster 1-4 are reinstalled and are visible by all pservers
+    if len(bgp_no_neighbor) > 0:
+        info.append("%d hosts not found in bird setup (%s)" % (len(bgp_no_neighbor), pattern.sub('', ', '.join(sorted(bgp_no_neighbor)))))
+    ### TODO: end
 
-str = "%s: " % (cur_state) + ', '.join(msg)
-if len(info):
-    str += ", INFO: " + ', '.join(info)
+    str = "%s: " % (cur_state) + ', '.join(msg)
+    if len(info):
+        str += ", INFO: " + ', '.join(info)
 
-print(str)
-sys.exit(state[cur_state])
+    print(str)
+    sys.exit(state[cur_state])
 
 # vim: ts=4 sw=4 et filetype=python

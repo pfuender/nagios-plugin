@@ -66,6 +66,8 @@ def get_shortname(obj = None, plugin = None):
     shortname = os.path.basename(shortname).upper()
     # Remove any leading CHECK_[BY_]
     shortname = re.sub(r'^CHECK[-_](?:BY[-_])?', '', shortname)
+    # Substitute dashes by underscores
+    shortname = re.sub(r'-+', '_', shortname)
     # Remove any trailing suffix
     shortname = re.sub(r'\..*$', '', shortname)
 

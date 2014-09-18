@@ -1,3 +1,81 @@
+python-nagios-plugin (1.6.18-1) stable; urgency=low
+
+  * pb-check-softwareraid: show info when there are not 2 slaves in raid1
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 27 Aug 2014 09:38:00 +0200
+
+python-nagios-plugin (1.6.17-1) wheezy; urgency=medium
+
+  * Add 162.254.24.7 to allowed_hosts for monitoring vms in the us cloud.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Thu, 21 Aug 2014 07:30:14 +0200
+
+python-nagios-plugin (1.6.16-1) stable; urgency=low
+
+  * etc/nrpe.d/10_pb-check.cfg: added --timeout option for check_IPoIB
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 07 Aug 2014 08:36:37 +0200
+
+python-nagios-plugin (1.6.15-2) wheezy; urgency=low
+
+  * build for wheezy
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 06 Aug 2014 15:07:22 +0200
+
+python-nagios-plugin (1.6.15-1) stable; urgency=low
+
+  * check_IPoIB.py: use dcmanager python module now
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Wed, 06 Aug 2014 14:52:30 +0200
+
+python-nagios-plugin (1.6.14-1) wheezy; urgency=medium
+
+  * Change uom from 'MiB' to 'MB' in check_lvm_vg.py (Fixes #7658)
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 05 Aug 2014 14:20:54 +0200
+
+python-nagios-plugin (1.6.13-5) wheezy; urgency=medium
+
+  * Added FRA SRX NAT IP
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 25 Jul 2014 15:02:17 +0200
+
+python-nagios-plugin (1.6.13-4) stable; urgency=medium
+
+  * Added FRA SRX NAT IP
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 25 Jul 2014 15:02:17 +0200
+
+python-nagios-plugin (1.6.13-3) stable; urgency=medium
+
+  * Build for squeezy
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 21 Jul 2014 13:48:37 +0200
+
+python-nagios-plugin (1.6.13-2) wheezy; urgency=medium
+
+  * Bugfixing on debian/changelog
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 21 Jul 2014 11:32:37 +0200
+
+python-nagios-plugin (1.6.13-1) unstable; urgency=medium
+
+  * Version bump
+
+ -- Stephan Hohn <shohn@cptfuture.pb.local>  Mon, 21 Jul 2014 11:32:37 +0200
+
+python-nagios-plugin (1.6.12-2) wheezy; urgency=medium
+
+  * Add monitoring-plugins-basic as alternative to nagios-plugins-basic
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 18 Jul 2014 13:12:07 +0200
+
+python-nagios-plugin (1.6.12-1) wheezy; urgency=medium
+
+  * Changed ip address for fw1.las, see https://redmine.pb.local/issues/7095
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 15 Jul 2014 08:50:32 +0200
+
 python-nagios-plugin (1.6.11-2) wheezy; urgency=low
 
   * build for wheezy

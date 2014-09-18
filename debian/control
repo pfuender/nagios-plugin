@@ -7,7 +7,6 @@ Build-Depends: debhelper (>= 7.0.50~),
                help2man,
                python-all (>= 2.6.5-2~),
                python-argparse,
-               python-dcmanager-client,
                python-docutils,
                python-epydoc,
                python-pkg-resources,
@@ -47,7 +46,7 @@ Description: Base module for Nagios check plugins written in Python 3
 Package: pb-nagios-plugins
 Architecture: all
 Depends: libdbd-pg-perl,
-         nagios-plugins-basic,
+         nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
          python-pkg-resources,
