@@ -74,14 +74,26 @@ while [[ ${#} -ne 0 ]]; do
             shift
             ;;
         -m|--md-device)
+            if [[ -z ${2} ]]; then
+                echo "No md-device given."
+                exit 2
+            fi
             MD_DEVICES=${2}
             shift 2
             ;;
         -w|--warning)
+            if [[ -z ${2} ]]; then
+                echo "No warning threshold given."
+                exit 2
+            fi
             WARNING=check_integer ${2}
             shift 2
             ;;
         -c|--critical)
+            if [[ -z ${2} ]]; then
+                echo "No critical threshold given."
+                exit 2
+            fi
             CRITICAL=check_integer ${2}
             shift 2
             ;;
@@ -91,6 +103,8 @@ while [[ ${#} -ne 0 ]]; do
             ;;
     esac
 done
+
+exit 0
 
 # default return value
 # TODO: this is "sub-optimal"
