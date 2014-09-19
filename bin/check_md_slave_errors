@@ -1,0 +1,177 @@
+#!/bin/bash
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+#UTILS="${PROGPATH}/../utils.sh"
+UTILS=/usr/lib/nagios/plugins/utils.sh
+if ! [[ -e ${UTILS} ]]; then
+    echo "File '${UTILS}' does not exist, aborting!"
+    exit 1
+fi
+. /usr/lib/nagios/plugins/utils.sh
+
+VERBOSE=false
+MD_DEVICES=''
+WARNING=10
+CRITICAL=15
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} [-v|--verbose]"
+    echo ""
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks the slave devices of a given|all md-devices"
+    echo "for errors."
+    echo ""
+    echo "Arguments:"
+    echo " -w|--warning    Set warning threshold, default: ${WARNING}"
+    echo " -c|--critical   Set critical threshold, default: ${WARNING}"
+    echo " -m|--md-device  Specify md-device to check, default: check all"
+    echo " -v|--verbose    Show verbose messsages"
+    echo " -h|--help       Show (this) help"
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    if ${VERBOSE}; then
+        echo ${1}
+    fi
+}
+
+check_integer() {
+    if [[ ${1} =~ ^-?[0-9]+$ ]]; then
+        echo ${1}
+    else
+        echo "'${1}' is not an integer!"
+        exit 1
+    fi
+}
+
+# get arguments
+while [[ ${#} -ne 0 ]]; do
+    case "${1}" in
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -m|--md-device)
+            MD_DEVICES=${2}
+            shift 2
+            ;;
+        -w|--warning)
+            WARNING=check_integer ${2}
+            shift 2
+            ;;
+        -c|--critical)
+            CRITICAL=check_integer ${2}
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument '${1}', aborting!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+# default return value
+# TODO: this is "sub-optimal"
+return_state=${STATE_OK}
+# return messages
+ok_message=''
+warning_message=''
+critical_message=''
+# for performance data
+perfdata=''
+count=0
+count_ok=0
+count_warning=0
+count_critical=0
+
+# do we check one md-device or all?
+if [[ -z ${MD_DEVICES} ]]; then
+    print_verbose "Checking all md-devices."
+    MD_DEVICES="md*"
+fi
+for dir in /sys/block/${MD_DEVICES}; do
+    dev=${dir##*/}
+    [[ ${dev} == 'md400' ]] && continue
+    print_verbose "Checking '${dev}'."
+    for slave_dir in /sys/block/${dev}/md/dev*; do
+        errors=-1
+        slave=${slave_dir##*/}
+        slave=${slave/dev-/}
+        print_verbose "-n Checking slave '${slave}': "
+        ((count++))
+        if [[ -r ${slave_dir}/errors ]]; then
+            read errors < ${slave_dir}/errors
+        fi
+        print_verbose "-n ${errors}"
+        perfdata="${perfdata} ${slave}=${errors};${WARNING};${CRITICAL}"
+        if [[ ${errors} -eq -1 ]]; then
+            warning_message="${warning_message}; ${slave} has no 'errors' file"
+            [[ ${return_state} -lt ${STATE_CRITICAL} ]] && return_state=${STATE_WARNING}
+            ((count_warning++))
+            print_verbose ": WARNING (${return_state})"
+        elif [[ ${errors} -ge ${CRITICAL} ]]; then
+            critical_message="${critical_message}; ${slave}: ${errors} errors"
+            return_state=${STATE_CRITICAL}
+            ((count_critical++))
+            print_verbose ": CRITICAL (${return_state})"
+        elif [[ ${errors} -ge ${WARNING} ]]; then
+            warning_message="${warning_message}; ${slave}: ${errors} errors"
+            [[ ${return_state} -lt ${STATE_CRITICAL} ]] && return_state=${STATE_WARNING}
+            ((count_warning++))
+            print_verbose ": WARNING (${return_state})"
+        else
+            ok_message="${ok_message}; ${slave}: ${errors} errors"
+            ((count_ok++))
+            print_verbose ": OK (${return_state})"
+        fi
+    done
+done
+
+if [[ ${count} -eq ${count_ok} ]]; then
+    echo "OK: ${ok_message:2}|${perfdata}"
+    exit ${STATE_OK}
+elif [[ ${return_state} -eq ${STATE_WARNING} ]]; then
+    echo -n "WARNING: ${warn_message:2}"
+    if [[ -n ${ok_message} ]]; then
+        echo -n "  - OK: ${ok_message:2}"
+    fi
+    echo "|${perfdata}"
+    exit ${STATE_WARNING}
+elif [[ ${return_state} -eq ${STATE_CRITICAL} ]]; then
+    echo -n "CRITICAL: ${critical_message:2}"
+    if [[ -n ${warning_message} ]]; then
+        echo -n "  - WARNING: ${warning_message:2}"
+    fi
+    if [[ -n ${ok_message} ]]; then
+        echo -n "  - OK: ${ok_message:2}"
+    fi
+    echo "|${perfdata}"
+    exit ${STATE_CRITICAL}
+else
+    echo "UNKNOWN|${perfdata}"
+    exit ${STATE_UNKNOWN}
+fi
+
+# vim: ts=4 sw=4 et filetype=sh

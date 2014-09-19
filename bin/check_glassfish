@@ -1,0 +1,258 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
+import argparse
+import sys
+import json
+import requests
+
+# config
+RETVAL = {
+    'OK': 0,
+    'WARNING': 1,
+    'CRITICAL': 2,
+    'UNKNOWN': 3,
+}
+
+BASE_URL = 'http://localhost:4848/monitoring/domain/server'
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Check glassfish.')
+    subparsers = parser.add_subparsers(
+        dest='subparser_name',
+        help='sub-command help',
+    )
+
+    parser_jvm_memory = subparsers.add_parser('jvm-memory', help='jvm memory check')
+    parser_jvm_memory.add_argument(
+        '--warning-heapsize',
+        type=int,
+        default=90,
+        help='jvm heapsize warning threshold in %%, default: 90'
+    )
+    parser_jvm_memory.add_argument(
+        '--critical-heapsize',
+        type=int,
+        default=100,
+        help='jvm heapsize critical threshold in %%, default: 95'
+    )
+    parser_jvm_memory.add_argument(
+        '--warning-non-heapsize',
+        type=int,
+        default=90,
+        help='jvm non-heapsize warning threshold in %%, default: 90'
+    )
+    parser_jvm_memory.add_argument(
+        '--critical-non-heapsize',
+        type=int,
+        default=100,
+        help='jvm non-heapsize critical threshold in %%, default: 95'
+    )
+
+    parser_classes = subparsers.add_parser('classes', help='class loading system')
+
+    parser_garbage_collection = subparsers.add_parser('garbage-collection', help='garbage collectors')
+
+    return parser.parse_args()
+
+
+def print_json_dump(json_data=False):
+    print(
+        json.dumps(
+            json_data,
+            sort_keys=True,
+            indent=4,
+        )
+    )
+
+
+def get_json_data(url=None):
+    # set headers
+    headers = {
+        'Accept': 'application/json',
+    }
+    # no payload needed
+    payload = {}
+    # make the request
+    try:
+        r = requests.get(
+            url,
+            params=payload,
+            headers=headers,
+            verify=False,
+        )
+    except Exception as e:
+        state = 'UNKNOWN'
+        sys.stderr.write('{state}: Error retrieving "{url}": {error}\n'.format(
+            state=state,
+            url=url,
+            error=e,
+        ))
+        sys.exit(RETVAL[state])
+
+    # check for http response code
+    if not r.status_code == 200:
+        state = 'UNKONWN'
+        sys.stderr.write('{state}: HTTP response code for "{url}": {code}\n'.format(
+            state=state,
+            url=url,
+            code=r.status_code,
+        ))
+
+    # check if valid json data are returned
+    try:
+        json = r.json()
+    except Exception as error:
+        state = 'UNKNOWN'
+        sys.stderr.write('{state}: No json data found in "{url}": {error}\n'.format(
+            state=state,
+            url=url,
+            error=error,
+        ))
+        sys.exit(RETVAL[state])
+
+    return json
+
+
+def check_jvm_memory():
+    '''
+    check jvm memory
+    '''
+    url = BASE_URL + '/jvm/memory.json'
+    data = get_json_data(url)
+    # heapsize
+    committedheapsize = data['extraProperties']['entity']['committedheapsize-count']['count']
+    maxheapsize = data['extraProperties']['entity']['maxheapsize-count']['count']
+    chp = committedheapsize * 100 / maxheapsize
+    # non-heapsize
+    committednonheapsize = data['extraProperties']['entity']['committednonheapsize-count']['count']
+    maxnonheapsize = data['extraProperties']['entity']['maxnonheapsize-count']['count']
+    cnhp = committednonheapsize * 100 / maxnonheapsize
+
+    if chp > args.critical_heapsize or cnhp > args.critical_non_heapsize:
+        state = 'CRITICAL'
+    elif chp > args.warning_heapsize or cnhp > args.warning_non_heapsize:
+        state = 'WARNING'
+    else:
+        state = 'OK'
+
+    print('{s}: {v1} ({vp1}%) {m1} and {v2} ({vp2}%) {m2} used|\'{m1}\'={vp1}%,{w1},{c1} \'{m2}\'={vp2}%,{w2},{c2}'.format(
+        s=state,
+        v1=committedheapsize,
+        vp1=chp,
+        m1='jvm_heapsize',
+        w1=args.warning_heapsize,
+        c1=args.critical_heapsize,
+        v2=committednonheapsize,
+        vp2=cnhp,
+        m2='jvm_nonheapsize',
+        w2=args.warning_non_heapsize,
+        c2=args.critical_non_heapsize,
+    ))
+    sys.exit(RETVAL[state])
+
+
+def check_classes():
+    '''
+    check classes
+    '''
+    url = BASE_URL + '/jvm/class-loading-system.json'
+    data = get_json_data(url)
+    # heapsize
+    loaded_classes = data['extraProperties']['entity']['loadedclass-count']['count']
+    total_loaded_classes = data['extraProperties']['entity']['totalloadedclass-count']['count']
+    unloaded_classes = data['extraProperties']['entity']['unloadedclass-count']['count']
+
+    state = 'OK'
+
+    print('{s} - loaded classes: {v1}, total loaded classes: {v2}, unloaded classes: {v3}|\'{m1}\'={v1} \'{m2}\'={v2} \'{m3}\'={v3}'.format(
+        s=state,
+        v1=loaded_classes,
+        v2=total_loaded_classes,
+        v3=unloaded_classes,
+        m1='loaded_classes',
+        m2='total_loaded_classes',
+        m3='unloaded_classes',
+    ))
+    sys.exit(RETVAL[state])
+
+
+def check_garbage_collection():
+    '''
+    check garbage collection
+    '''
+    base_url = BASE_URL + '/jvm/garbage-collectors'
+    # PS MarkSweep
+    url = base_url + '/PS%20MarkSweep'
+    data = get_json_data(url)
+    psmw_collection_count = data['extraProperties']['entity']['collectioncount-count']['count']
+    psmw_collection_time = data['extraProperties']['entity']['collectiontime-count']['count']
+    # PS Scavenge
+    url = base_url + '/PS%20Scavenge'
+    data = get_json_data(url)
+    pss_collection_count = data['extraProperties']['entity']['collectioncount-count']['count']
+    pss_collection_time = data['extraProperties']['entity']['collectiontime-count']['count']
+
+    state = 'OK'
+
+    print('{s} - PS MarkSweep: {v1} in {v2}ms, PS Scavenge: {v3} in {v4}ms|\'{m1}\'={v1} \'{m2}\'={v2} \'{m3}\'={v3} \'{m4}\'={v4}'.format(
+        s=state,
+        v1=psmw_collection_count,
+        v2=psmw_collection_time,
+        v3=pss_collection_count,
+        v4=pss_collection_time,
+        m1='ps_marksweep_collection_count',
+        m2='ps_marksweep_collection_time',
+        m3='ps_scavenge_collection_count',
+        m4='ps_scavenge_collection_time',
+    ))
+    sys.exit(RETVAL[state])
+
+
+def process_data(metric=None, value=None, value_prcnt=None, warning=None, critical=None, process_prcnt=False):
+    '''
+    process data
+    '''
+    # default return
+    state = 'UNKNOWN'
+    unit = ''
+    if process_prcnt:
+        unit = '%'
+        check_val = value_prcnt
+    else:
+        check_val = value
+
+    if check_val > critical:
+        state = 'CRITICAL'
+    elif check_val > warning:
+        state = 'WARNING'
+    else:
+        state = 'OK'
+
+    print('{s} - {v} ({vp}%) {m} used|\'{m}\'={cv}{u},{w},{c}'.format(
+        s=state,
+        v=value,
+        vp=value_prcnt,
+        m=metric,
+        cv=check_val,
+        u=unit,
+        w=warning,
+        c=critical,
+    ))
+    sys.exit(RETVAL[state])
+
+
+if __name__ == '__main__':
+    args = get_args()
+    # for debugging
+    #print_json_dump(request.json())
+    if args.subparser_name == 'jvm-memory':
+        check_jvm_memory()
+    elif args.subparser_name == 'classes':
+        check_classes()
+    elif args.subparser_name == 'garbage-collection':
+        check_garbage_collection()
+
+
+# vim: fileencoding=utf-8 filetype=python ts=4 et
