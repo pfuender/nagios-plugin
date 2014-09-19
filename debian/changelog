@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.19-2) wheezy; urgency=low
+
+  * Release for wheezy and gentoo
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 19 Sep 2014 11:51:02 +0200
+
 python-nagios-plugin (1.6.19-1) stable; urgency=medium
 
   * Add script check_md_slave_errors
