@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.20-1) stable; urgency=medium
+
+  * check_md_slave_errors: add check if a threshold was specified
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 19 Sep 2014 13:37:30 +0200
+
 python-nagios-plugin (1.6.19-1) stable; urgency=medium
 
   * Add script check_md_slave_errors
