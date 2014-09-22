@@ -86,7 +86,7 @@ while [[ ${#} -ne 0 ]]; do
                 echo "No warning threshold given."
                 exit 2
             fi
-            WARNING=check_integer ${2}
+            WARNING=$(check_integer ${2})
             shift 2
             ;;
         -c|--critical)
@@ -94,7 +94,7 @@ while [[ ${#} -ne 0 ]]; do
                 echo "No critical threshold given."
                 exit 2
             fi
-            CRITICAL=check_integer ${2}
+            CRITICAL=$(check_integer ${2})
             shift 2
             ;;
         *)
