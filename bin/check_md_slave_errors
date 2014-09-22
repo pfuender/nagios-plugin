@@ -2,7 +2,7 @@
 
 PROGNAME="${0##*/}"
 PROGPATH="${0%/*}"
-REVISION="0.1.0"
+REVISION="0.1.2"
 
 # ProfitBricks checks are in /usr/lib/nagios/plugins/pb
 #UTILS="${PROGPATH}/../utils.sh"
@@ -74,14 +74,26 @@ while [[ ${#} -ne 0 ]]; do
             shift
             ;;
         -m|--md-device)
+            if [[ -z ${2} ]]; then
+                echo "No md-device given."
+                exit 2
+            fi
             MD_DEVICES=${2}
             shift 2
             ;;
         -w|--warning)
+            if [[ -z ${2} ]]; then
+                echo "No warning threshold given."
+                exit 2
+            fi
             WARNING=check_integer ${2}
             shift 2
             ;;
         -c|--critical)
+            if [[ -z ${2} ]]; then
+                echo "No critical threshold given."
+                exit 2
+            fi
             CRITICAL=check_integer ${2}
             shift 2
             ;;
@@ -173,5 +185,7 @@ else
     echo "UNKNOWN|${perfdata}"
     exit ${STATE_UNKNOWN}
 fi
+
+exit ${STATE_UNKNOWN}
 
 # vim: ts=4 sw=4 et filetype=sh
