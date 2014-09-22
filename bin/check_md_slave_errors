@@ -2,7 +2,7 @@
 
 PROGNAME="${0##*/}"
 PROGPATH="${0%/*}"
-REVISION="0.1.0"
+REVISION="0.1.2"
 
 # ProfitBricks checks are in /usr/lib/nagios/plugins/pb
 #UTILS="${PROGPATH}/../utils.sh"
@@ -104,8 +104,6 @@ while [[ ${#} -ne 0 ]]; do
     esac
 done
 
-exit 0
-
 # default return value
 # TODO: this is "sub-optimal"
 return_state=${STATE_OK}
@@ -187,5 +185,7 @@ else
     echo "UNKNOWN|${perfdata}"
     exit ${STATE_UNKNOWN}
 fi
+
+exit ${STATE_UNKNOWN}
 
 # vim: ts=4 sw=4 et filetype=sh
