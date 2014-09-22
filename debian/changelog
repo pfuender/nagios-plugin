@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.21-2) wheezy; urgency=low
+
+  * Release for wheezy and gentoo
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Mon, 22 Sep 2014 12:17:42 +0200
+
 python-nagios-plugin (1.6.21-1) stable; urgency=low
 
   * check_md_slave_errors: fixed syntax error
