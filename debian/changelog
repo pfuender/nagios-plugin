@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.22-1) stable; urgency=medium
+
+  * Add new las-icinga1-* instances (Ref. #8544)
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Thu, 25 Sep 2014 11:27:28 +0200
+
 python-nagios-plugin (1.6.21-2) wheezy; urgency=low
 
   * Release for wheezy and gentoo
