@@ -1,1 +1,1 @@
-usr/lib/nagios/plugins/pb/clean-reboot usr/bin/clean-reboot
+usr/lib/nagios/plugins/pb/clean-reboot-flag usr/bin/clean-reboot-flag
