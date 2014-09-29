@@ -1,3 +1,10 @@
+python-nagios-plugin (1.6.23-1) stable; urgency=low
+
+  * dsa-check-uptime: added flag file /tmp/clean_reboot which signals that the
+    system boot was intended
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 29 Sep 2014 12:13:18 +0200
+
 python-nagios-plugin (1.6.22-1) stable; urgency=medium
 
   * Add new las-icinga1-* instances (Ref. #8544)
