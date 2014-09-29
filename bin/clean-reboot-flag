@@ -1,3 +1,8 @@
 #!/bin/bash
 
-touch /tmp/clean_reboot
+if [[ $(id --user) -eq 0 ]];then
+    echo "don't run as root" >&2
+    exit 1
+fi
+
+echo $(whoami) | sudo tee /tmp/clean_reboot >/dev/null

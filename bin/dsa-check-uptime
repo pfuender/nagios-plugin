@@ -59,14 +59,14 @@ if [ -f $clean_reboot_flag ] ; then
     fi
 fi
 
-
+read -r rebooter < $clean_reboot_flag
 
 
 if [ "$totalMinutes" -lt $max_minutes ]
 then
     if [ $clean_reboot -eq 1 ]
     then
-        echo "Uptime OK: (clean reboot) Currently $days days, $hours hours and $minutes minutes|mins=$totalMinutes";
+        echo "Uptime OK: (clean reboot by $rebooter) Currently $days days, $hours hours and $minutes minutes|mins=$totalMinutes";
         exit 0;
     else
         echo "Uptime CRITICAL: Uptime less than $max_minutes minutes (currently $totalMinutes minutes)|mins=$totalMinutes";
