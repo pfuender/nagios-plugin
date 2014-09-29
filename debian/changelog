@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.25-3) stable; urgency=low
+
+  * dsa-check-uptime: add fix when flag file does not exists
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 29 Sep 2014 18:23:52 +0200
+
 python-nagios-plugin (1.6.25-2) stable; urgency=low
 
   * Declared for stable
