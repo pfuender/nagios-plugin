@@ -1,9 +1,15 @@
-python-nagios-plugin (1.6.23-1) stable; urgency=low
+python-nagios-plugin (1.6.24-1) stable; urgency=low
 
   * dsa-check-uptime: added flag file /tmp/clean_reboot which signals that the
     system boot was intended
 
  -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 29 Sep 2014 12:13:18 +0200
+
+python-nagios-plugin (1.6.23-1) stable; urgency=medium
+
+  * Correct hostnames of icinga 2 hosts in nrpe config
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Thu, 25 Sep 2014 13:47:34 +0200
 
 python-nagios-plugin (1.6.22-1) stable; urgency=medium
 
