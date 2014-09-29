@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.25-2) stable; urgency=low
+
+  * Declared for stable
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 29 Sep 2014 16:27:44 +0200
+
 python-nagios-plugin (1.6.25-1) unstable; urgency=low
 
   * added script "clean-reboot-flag" to set/update flag file /tmp/clean_reboot
