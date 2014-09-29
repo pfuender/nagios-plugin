@@ -9,6 +9,11 @@ export PATH;
 
 max_minutes=$1
 
+if [[ -z $max_minutes ]] || [[ $max_minutes =~ [^0-9] ]];then
+    echo "Uptime UNKOWN: arg1 expected in uint format|mins=0";
+    exit 3;
+fi
+
 clean_reboot_flag=/tmp/clean_reboot
 
 

@@ -4,6 +4,12 @@ python-nagios-plugin (1.6.25-1) unstable; urgency=low
 
  -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 29 Sep 2014 14:20:30 +0200
 
+python-nagios-plugin (1.6.24-2) stable; urgency=low
+
+  * dsa-check-uptime: checking for valid arg1
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Mon, 29 Sep 2014 12:40:50 +0200
+
 python-nagios-plugin (1.6.24-1) stable; urgency=low
 
   * dsa-check-uptime: added flag file /tmp/clean_reboot which signals that the
