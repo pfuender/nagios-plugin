@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Need to cover this also:
 #  4:13pm  up 29 day(s), 3 min(s),  3 users,  load average: 1.59, 2.54, 2.58
@@ -9,6 +9,7 @@ export PATH;
 
 max_minutes=$1
 
+clean_reboot_flag=/tmp/clean_reboot
 
 
 days=`echo $uptimeOutput | /bin/sed 's/^.* up.* \([0-9][0-9]*\) *day[\(s\)]*.*$/\1/'`;
@@ -47,12 +48,30 @@ hourMinutes=`expr $hours \* 60`;
 totalMinutes=`expr $dayMinutes \+ $hourMinutes`;
 totalMinutes=`expr $totalMinutes \+ $minutes`;
 
-# Has it been rebooted in the last hour?
+clean_reboot=0
+if [ -f $clean_reboot_flag ] ; then
+    clean_reboot_time=$(stat -c "%Y" $clean_reboot_flag)
+    uptime_in_sec=$(cat /proc/uptime |awk '{print $1}'|cut -f 1 -d '.')
+    now=$(date +%s)
+    let "clean_reboot_age=$now-$clean_reboot_time"
+    if [ $clean_reboot_age -lt $uptime_in_sec ] ;then
+        clean_reboot=1
+    fi
+fi
+
+
+
+
 if [ "$totalMinutes" -lt $max_minutes ]
 then
-	# exit with a warning
-	echo "Uptime CRITICAL: Uptime less than $max_minutes minutes (currently $totalMinutes minutes)|mins=$totalMinutes";
-	exit 2;
+    if [ $clean_reboot -eq 1 ]
+    then
+        echo "Uptime OK: (clean reboot) Currently $days days, $hours hours and $minutes minutes|mins=$totalMinutes";
+        exit 0;
+    else
+        echo "Uptime CRITICAL: Uptime less than $max_minutes minutes (currently $totalMinutes minutes)|mins=$totalMinutes";
+        exit 2;
+    fi
 else
 	# everything's okay!
 	echo "Uptime OK: Currently $days days, $hours hours and $minutes minutes|mins=$totalMinutes";
