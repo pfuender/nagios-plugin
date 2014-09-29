@@ -54,7 +54,9 @@ totalMinutes=`expr $dayMinutes \+ $hourMinutes`;
 totalMinutes=`expr $totalMinutes \+ $minutes`;
 
 clean_reboot=0
+rebooter=
 if [ -f $clean_reboot_flag ] ; then
+    read -r rebooter < $clean_reboot_flag
     clean_reboot_time=$(stat -c "%Y" $clean_reboot_flag)
     uptime_in_sec=$(cat /proc/uptime |awk '{print $1}'|cut -f 1 -d '.')
     now=$(date +%s)
@@ -64,7 +66,6 @@ if [ -f $clean_reboot_flag ] ; then
     fi
 fi
 
-read -r rebooter < $clean_reboot_flag
 
 
 if [ "$totalMinutes" -lt $max_minutes ]
