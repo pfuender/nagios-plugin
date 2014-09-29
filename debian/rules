@@ -41,6 +41,8 @@ override_dh_auto_install:
 	mkdir -p debian/$(CFG_PKGNAME)/etc/sudoers.d
 	cp $(CURDIR)/etc/sudoers.d/* debian/$(CFG_PKGNAME)/etc/sudoers.d/
 	chmod 0440 debian/$(CFG_PKGNAME)/etc/sudoers.d/*
+	mkdir -p debian/$(CFG_PKGNAME)/usr/bin
+	ln -fs /usr/lib/nagios/plugins/pb/clean-reboot debian/$(CFG_PKGNAME)/usr/bin/clean-reboot
 
 override_dh_auto_clean:
 	dh_auto_clean
