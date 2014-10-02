@@ -1,0 +1,112 @@
+#!/bin/bash
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+#UTILS="${PROGPATH}/../utils.sh"
+UTILS=/usr/lib/nagios/plugins/utils.sh
+if ! [[ -e ${UTILS} ]]; then
+    echo "File '${UTILS}' does not exist, aborting!"
+    exit 1
+fi
+. /usr/lib/nagios/plugins/utils.sh
+
+TSD='tsdb-write'
+TSD_PORT=4242
+METRIC='monitoring.check'
+TIMEOUT=10
+VERBOSE=0
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} [-H|--host TSD] [-p|--port PORT]"
+    echo "                 [-t|--timeout TIMEOUT]"
+    echo "                 [-v|--verbose]"
+    echo ""
+    echo "  -H|--host      connect to host TSD, default: ${TSD}"
+    echo "  -p|--port      connect to port PORTS, default: ${TSD_PORT}"
+    echo "  -t|--timeout   connection timout, default: ${TIMEOUT}"
+    echo ""
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks if tsd is accepting data."
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    if [[ ${VERBOSE} -eq 1 ]]; then
+        echo $1
+    fi
+}
+
+# get arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        -H|--host)
+            TSD=$2
+            shift 2
+            ;;
+        -p|--port)
+            TSD_PORT=$2
+            shift 2
+            ;;
+        -t|--timeout)
+            TIMEOUT=$2
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument '$1', aborting!"
+            exit ${STATE_UNKNOWN}
+            ;;
+    esac
+done
+
+# checks
+if ! [[ ${TSD_PORT} =~ ^[0-9]+$ ]]; then
+    echo "Port '${TSD_PORT}' is invalid!"
+    exit ${STATE_UNKNOWN}
+fi
+if ! [[ ${TIMEOUT} =~ ^[0-9]+$ ]]; then
+    echo "Timeout '${TIMEOUT}' is invalid!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# try to put data
+return_message=$(echo "put ${METRIC} $(date +%s) 1 host=$(hostname -s)" | nc -w ${TIMEOUT} ${TSD} ${TSD_PORT})
+rc=$?
+
+if [[ ${rc} -eq 0 ]]; then
+    if [[ -z ${return_message} ]]; then
+        echo "OK: tsdb accepts data"
+        exit ${STATE_OK}
+    else
+        echo "CRITICAL: tsdb does not accept data, returns '${return_message}'"
+        exit ${STATE_CRITICAL}
+    fi
+else
+    echo "CRITICAL: could not send data to tsd, rc=${rc}"
+    exit ${STATE_CRITICAL}
+fi
+
+# vim: ts=4 sw=4 et filetype=sh
