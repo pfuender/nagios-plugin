@@ -1,3 +1,10 @@
+python-nagios-plugin (1.6.26-2) stable; urgency=low
+
+  * etc/nrpe.d/00_allowed_hosts.cfg: added ips of new icinga backends in
+    karlsruhe
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Tue, 07 Oct 2014 16:09:46 +0200
+
 python-nagios-plugin (1.6.26-1) stable; urgency=low
 
   * 10_pb-check.cfg: changed number of lock retries of find_orphans to 1
