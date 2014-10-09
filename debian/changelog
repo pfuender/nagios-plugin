@@ -1,3 +1,10 @@
+python-nagios-plugin (1.6.26-3) stable; urgency=medium
+
+  * etc/nrpe.d/00_allowed_hosts.cfg: added new icinga backends in FRA and LAS
+    and removed unused IPs
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 09 Oct 2014 08:56:14 +0200
+
 python-nagios-plugin (1.6.26-2) stable; urgency=low
 
   * etc/nrpe.d/00_allowed_hosts.cfg: added ips of new icinga backends in
