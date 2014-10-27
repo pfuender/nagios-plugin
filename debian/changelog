@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.26-4) wheezy; urgency=medium
+
+  * No-change rebuild for wheezy.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 27 Oct 2014 11:53:31 +0100
+
 python-nagios-plugin (1.6.26-1) wheezy; urgency=medium
 
   * No-change rebuild for wheezy.
