@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.26-1) wheezy; urgency=medium
+
+  * No-change rebuild for wheezy.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 27 Oct 2014 11:38:22 +0100
+
 python-nagios-plugin (1.6.26-3) stable; urgency=medium
 
   * etc/nrpe.d/00_allowed_hosts.cfg: added new icinga backends in FRA and LAS
