@@ -1,3 +1,9 @@
+python-nagios-plugin (1.6.27-1) stable; urgency=medium
+
+  * bin/clean-reboot-flag: script has to run with su permissions now
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Tue, 28 Oct 2014 15:03:34 +0100
+
 python-nagios-plugin (1.6.26-4) wheezy; urgency=medium
 
   * No-change rebuild for wheezy.
