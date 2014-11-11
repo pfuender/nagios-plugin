@@ -14,9 +14,9 @@ Build-Depends: debhelper (>= 7.0.50~),
                texlive-latex-base,
                texlive-latex-extra
 Standards-Version: 3.9.5
-Homepage: http://git.pb.local/gitweb/?p=python/nagios-plugin.git
-Vcs-Browser: http://git.pb.local/gitweb/?p=python/nagios-plugin.git
-Vcs-Git: git+ssh://git.pb.local/srv/git/python/nagios-plugin.git
+Homepage: https://gitlab.pb.local/dcops/pb-monitoring-plugins
+Vcs-Browser: https://gitlab.pb.local/dcops/pb-monitoring-plugins
+Vcs-Git: git@gitlab.pb.local:dcops/pb-monitoring-plugins.git
 X-Python-Version: >= 2.6
 X-Python3-Version: >= 3.2
 
