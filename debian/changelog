@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.0) UNRELEASED; urgency=medium
+
+  * Rename source package to pb-monitoring-plugins
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Tue, 11 Nov 2014 15:06:23 +0100
+
 python-nagios-plugin (1.6.27-2) wheezy; urgency=medium
 
   * build for wheezy

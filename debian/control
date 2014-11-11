@@ -1,4 +1,4 @@
-Source: python-nagios-plugin
+Source: pb-monitoring-plugins
 Section: python
 Priority: extra
 Maintainer: Frank Brehm <frank.brehm@profitbricks.com>
