@@ -5,10 +5,8 @@
 #export DH_VERBOSE=1
 
 DOC_PKGNAME := python-nagios-plugin-doc
-CFG_PKGNAME := pb-config-nagios-nrpe-server
 
 DOC_DIR := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
-CFG_DIR := $(CURDIR)/debian/$(CFG_PKGNAME)/usr/share/$(CFG_PKGNAME)/
 BIN_DIR := $(CURDIR)/debian/$(BIN_PKGNAME)/usr/share/$(BIN_PKGNAME)/
 
 PYTHON2S := $(shell pyversions -vr || true)
@@ -35,13 +33,6 @@ override_dh_auto_install:
 	mkdir -p $(DOC_DIR)/pdf
 	epydoc --html -v -o $(DOC_DIR)/html $(CURDIR)/nagios
 	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/nagios
-	@echo "Configuration ..."
-	mkdir -p $(CFG_DIR)/nrpe.d
-	cp $(CURDIR)/etc/nrpe.cfg $(CFG_DIR)/
-	cp $(CURDIR)/etc/nrpe.d/*.cfg $(CFG_DIR)/nrpe.d/
-	mkdir -p debian/$(CFG_PKGNAME)/etc/sudoers.d
-	cp $(CURDIR)/etc/sudoers.d/* debian/$(CFG_PKGNAME)/etc/sudoers.d/
-	chmod 0440 debian/$(CFG_PKGNAME)/etc/sudoers.d/*
 
 override_dh_auto_clean:
 	dh_auto_clean
