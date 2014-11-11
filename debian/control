@@ -1,6 +1,6 @@
 Source: pb-monitoring-plugins
 Section: python
-Priority: extra
+Priority: optional
 Maintainer: Frank Brehm <frank.brehm@profitbricks.com>
 Build-Depends: debhelper (>= 7.0.50~),
                ghostscript,
