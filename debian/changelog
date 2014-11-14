@@ -1,8 +1,19 @@
-pb-monitoring-plugins (1.7.0) UNRELEASED; urgency=medium
+pb-monitoring-plugins (1.7.0) squeeze wheezy jessie; urgency=medium
 
   * Rename source package to pb-monitoring-plugins
+  * Switch to dpkg-source 3.0 (native) format
+  * Update homepage and Vcs link to point to Gitlab
+  * Raise priority to optional
+  * Bump Standards-Version to 3.9.6
+  * Remove obsolete pb-config-nagios-nrpe-server package
+  * Move sudoers file from pb-config-nagios-nrpe-server to pb-nagios-plugins.
+    Therefore pb-nagios-plugins conflict with pb-config-nagios-nrpe-server.
+  * Rename pb-nagios-plugins to pb-monitoring-plugins (redmine #7975)
+  * check_glassfish: Change shebang line to make lintian dependency check happy
+  * Build depend on iotop, python-dcmanager-client, and python-pb-base
+    to have them available for building the documentation.
 
- -- Benjamin Drung <benjamin.drung@profitbricks.com>  Tue, 11 Nov 2014 15:06:23 +0100
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Fri, 14 Nov 2014 18:07:21 +0100
 
 python-nagios-plugin (1.6.27-2) wheezy; urgency=medium
 
