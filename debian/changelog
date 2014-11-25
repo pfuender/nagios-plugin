@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.7.0.1) squeeze wheezy jessie; urgency=medium
+
+  * Make libdbd-pg-perl a recommendation (and not a dependency).
+  * Change Section (from python) to net - same as monitoring-plugins.
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Tue, 25 Nov 2014 15:43:31 +0100
+
 pb-monitoring-plugins (1.7.0) squeeze wheezy jessie; urgency=medium
 
   * Rename source package to pb-monitoring-plugins
