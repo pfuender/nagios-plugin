@@ -48,8 +48,7 @@ Description: Base module for Nagios check plugins written in Python 3
 
 Package: pb-monitoring-plugins
 Architecture: all
-Depends: libdbd-pg-perl,
-         nagios-plugins-basic | monitoring-plugins-basic,
+Depends: nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
          python-pkg-resources,
@@ -60,7 +59,8 @@ Recommends: freeipmi-tools,
             ipmitool,
             libipc-run-perl,
             python-dcmanager-client (>= 0.9.2),
-            smartmontools
+            smartmontools,
+            libdbd-pg-perl
 Breaks: pb-nagios-plugins (<< 1.7.0~)
 Conflicts: pb-config-nagios-nrpe-server
 Replaces: pb-config-nagios-nrpe-server, pb-nagios-plugins (<< 1.7.0~)
