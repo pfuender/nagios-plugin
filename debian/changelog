@@ -1,3 +1,12 @@
+pb-monitoring-plugins (1.7.1) squeeze wheezy jessie; urgency=medium
+
+  * validating /sys/block/<dev>/md/sync_action and exit with WARNING state if
+    needed; renamed some vars for better readability and replaced all tabs
+    with spaces
+  * remove increase-version.sh
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 04 Dec 2014 11:54:27 +0100
+
 pb-monitoring-plugins (1.7.0.1) squeeze wheezy jessie; urgency=medium
 
   * Make libdbd-pg-perl a recommendation (and not a dependency).
