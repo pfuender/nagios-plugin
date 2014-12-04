@@ -1,1 +1,2 @@
+etc/sudoers.d
 usr/lib/nagios/plugins/pb
