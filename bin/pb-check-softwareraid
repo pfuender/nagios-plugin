@@ -19,29 +19,29 @@ our $host;
 our $STATCMD;
 $STATCMD="cat /proc/mdstat";
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 
 my @LINES;
 open(FH,"$STATCMD |");
 my $buffer="";
 while (<FH>) {
-	chomp($_);
-	next if (!$_);
-	next if ($_=~/^Personalities/);
-	next if ($_=~/^unused devices:/);
-	next if ($_=~/^\s*$/);
+    chomp($_);
+    next if (!$_);
+    next if ($_=~/^Personalities/);
+    next if ($_=~/^unused devices:/);
+    next if ($_=~/^\s*$/);
 
-	if ($_=~/^md\d+ :/) {
-		if ($buffer ne "") {
-			push @LINES,$buffer;
-			$buffer="";
-		}
-	}
-	$buffer.=$_;
+    if ($_=~/^md\d+ :/) {
+        if ($buffer ne "") {
+            push @LINES,$buffer;
+            $buffer="";
+        }
+    }
+    $buffer.=$_;
 }
 if ($buffer ne "") {
-	push @LINES,$buffer;
-	$buffer="";
+    push @LINES,$buffer;
+    $buffer="";
 }
 close(FH);
 
@@ -49,112 +49,119 @@ close(FH);
 my $last="";
 
 foreach my $l (@LINES) {
-	print "DEBUG: $l\n" if $DEBUG;
-	$l=~s/\t/ /g;
+    print "DEBUG: $l\n" if $DEBUG;
+    $l=~s/\t/ /g;
 # md39 : inactive dm-58[1](S) dm-46[0](S)      1572864000 blocks super 1.2
-	if ($l=~/^(md\d+) : inactive .*$/) {
-		my $dev=$1;
-		$STATE=2;
-		$error_msg.=" - $dev is INACTIVE";
-		$OVERSTATE=$STATE if ($STATE > $OVERSTATE);
-	} elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s*(\[[=>.]+\].+\/sec)?.*$/) {
+    if ($l=~/^(md\d+) : inactive .*$/) {
+        my $md_dev=$1;
+        $STATE=2;
+        $error_msg.=" - $md_dev is INACTIVE";
+        $OVERSTATE=$STATE if ($STATE > $OVERSTATE);
+    } elsif ($l=~/^(md\d+) : (\w+)( \(.*\))? raid(\d+) (.*) (\d+) blocks .*\[(\d+)\/(\d+)\] \[([U_]+)\]\s*(\[[=>.]+\].+\/sec)?.*$/) {
 
-		$STATE=0;
-		my $dev=$1;
-		my $state=$2;
-		my $read=$3;
-		my $level=$4;
-		my $devices=$5;
-		my $blocks=$6;
-		my $normal=$7;
-		my $current=$8;
-		my $map=$9;
-                my $syncstate = $10;
-		my @devs;
-		my @fdevs;
-		undef(@devs);
-		undef(@fdevs);
-		if ($DEBUG) {
-			print "DEBUG:   dev = $dev\n";
-			print "DEBUG:   state = $state\n";
-			print "DEBUG:   read = $read\n";
-			print "DEBUG:   level = $level\n";
-			print "DEBUG:   devices = $devices\n";
-			print "DEBUG:   blocks = $blocks\n";
-			print "DEBUG:   normal = $normal\n";
-			print "DEBUG:   current = $current\n";
-			print "DEBUG:   map = $map\n";
-			print "DEBUG:   syncstate = $syncstate\n";
-			print "\n"
-		}
-		foreach my $dev (split(/ /,$devices)) {
+        $STATE=0;
+        my $md_dev=$1;
+        my $state=$2;
+        my $read=$3;
+        my $level=$4;
+        my $dm_devices=$5;
+        my $blocks=$6;
+        my $normal=$7;
+        my $current=$8;
+        my $map=$9;
+        my $syncstate = $10;
+        my @devs;
+        my @fdevs;
+        undef(@devs);
+        undef(@fdevs);
+        open(FH,"/sys/block/$md_dev/md/sync_action") or die("cannot read file /sys/block/$md_dev/md/sync_action: $!");
+        chomp(my $sync_action = <FH>);
+        close FH;
+        if ($DEBUG) {
+            print "DEBUG:   md-device = $md_dev\n";
+            print "DEBUG:   state = $state\n";
+            print "DEBUG:   read = $read\n";
+            print "DEBUG:   level = $level\n";
+            print "DEBUG:   dm-devices = $dm_devices\n";
+            print "DEBUG:   blocks = $blocks\n";
+            print "DEBUG:   normal = $normal\n";
+            print "DEBUG:   current = $current\n";
+            print "DEBUG:   map = $map\n";
+            print "DEBUG:   syncstate = $syncstate\n";
+            print "DEBUG:   syncaction = $sync_action\n";
+            print "\n";
+        }
+        foreach my $dm_dev (split(/ /,$dm_devices)) {
 
-			if ($dev=~/^(.*)\[(\d+)\](\(\w+\))?$/) {
-				my $t=[];
-				my $device=$1;
-				push @$t,$device;
-				push @$t,$2;
-				my $failed=$3;
-				$failed=~s/[()W]//g;
-				if ($failed ne "") {
-					push @$t,$failed;
-					push @fdevs,$device."($failed)";
-				}
-			} else {
-				print "Storage CRITICAL - Error Parsing mdstat device: $dev\n";
-				exit 2;
-			}
-		}
-
-		if ($state eq "active") {
-			if ($level eq 1) {
-				if (length $syncstate) {
-				    $STATE=1;
-				    #$syncstate =~ s/^\[.+\]\s+//;
-				    $syncstate =~ / =\s+(\d+\.\d+\%)/;
-				    $error_msg.=" - $dev is recovering ($1)";
-				} elsif ($current < $normal) {
-				    $STATE=2;
-				    $error_msg.=" - $dev is FAILED";
-				} elsif ($map ne "UU") {
-				    $STATE=2;
-				    $error_msg.=" - $dev has not 2 slaves";
-				}
-			} elsif ($level eq 5) {
-				if (length $syncstate) {
-			            $STATE=1;
-				    #$syncstate =~ s/^\[.+\]\s+//;
-				    $syncstate =~ / =\s+(\d+\.\d+\%)/;
-				    $error_msg.=" - $dev is recovering ($1)";
-				} elsif ($current < $normal or $map !~ /^U+$/) {
-				    $STATE=2;
-				    $error_msg.=" - $dev is FAILED";
-				}
-			} else {
-                                $STATE=3;
-                                $error_msg.=" - raid level $level is unsupported for $dev";
-			}
-		} else {
-			$STATE=2;
-			$error_msg.=" - $dev is in UNKNOWN state: $state";
-		}
-		if (@fdevs > 0) {
-			if (!$STATE) {
-				$STATE=2;
-				$error_msg.=" - $dev has failed devices:";
-			} else {
-				$error_msg.=" failed devices:";
-			}
-			foreach my $dev (@fdevs) {
-				$error_msg.=" $dev";
-			}
-		}
-		$okay_msg.=" - $dev okay";
-		$OVERSTATE=$STATE if ($STATE > $OVERSTATE);
-	} else {
-		print "Storage CRITICAL - Error Parsing mdstat: $l\n";
-		exit 2;
-	}
+            if ($dm_dev=~/^(.*)\[(\d+)\](\(\w+\))?$/) {
+                my $t=[];
+                my $dm_device=$1;
+                push @$t,$dm_device;
+                push @$t,$2;
+                my $failed=$3;
+                $failed=~s/[()W]//g;
+                if ($failed ne "") {
+                    push @$t,$failed;
+                    push @fdevs,$dm_device."($failed)";
+                }
+            } else {
+                print "Storage CRITICAL - Error Parsing mdstat dm device: $dm_dev\n";
+                exit 2;
+            }
+        }
+        if ($state eq "active") {
+            if ($level eq 1) {
+                if (length $syncstate) {
+                    $STATE=1;
+                    #$syncstate =~ s/^\[.+\]\s+//;
+                    $syncstate =~ / =\s+(\d+\.\d+\%)/;
+                    $error_msg.=" - $md_dev is recovering ($1)";
+                } elsif ($current < $normal) {
+                    $STATE=2;
+                    $error_msg.=" - $md_dev is FAILED";
+                } elsif ($map ne "UU") {
+                    $STATE=2;
+                    $error_msg.=" - $md_dev has not 2 slaves";
+                }
+            } elsif ($level eq 5) {
+                if (length $syncstate) {
+                        $STATE=1;
+                    #$syncstate =~ s/^\[.+\]\s+//;
+                    $syncstate =~ / =\s+(\d+\.\d+\%)/;
+                    $error_msg.=" - $md_dev is recovering ($1)";
+                } elsif ($current < $normal or $map !~ /^U+$/) {
+                    $STATE=2;
+                    $error_msg.=" - $md_dev is FAILED";
+                }
+            } else {
+                $STATE=3;
+                $error_msg.=" - raid level $level is unsupported for $md_dev";
+            }
+        } else {
+            $STATE=2;
+            $error_msg.=" - $md_dev is in UNKNOWN state: $state";
+        }
+        if ($STATE == 0 and $sync_action ne "idle") {
+            $STATE=1;
+            $error_msg.=" - $md_dev is in sync_action '$sync_action'";
+        }
+        if (@fdevs > 0) {
+            if (!$STATE) {
+                $STATE=2;
+                $error_msg.=" - $md_dev has failed devices:";
+            } else {
+                $error_msg.=" failed devices:";
+            }
+            foreach my $fdev (@fdevs) {
+                $error_msg.=" $fdev";
+            }
+        }
+        $okay_msg.=" - $md_dev okay";
+        $OVERSTATE=$STATE if ($STATE > $OVERSTATE);
+    } else {
+        print "Storage CRITICAL - Error Parsing mdstat: $l\n";
+        exit 2;
+    }
 
 }
 
@@ -167,6 +174,6 @@ if ($OVERSTATE == 0)
     print "Storage ".(($OVERSTATE == 1)?"WARNING":"CRITICAL")." -$error_msg\n";
     exit $OVERSTATE;
 } else {
-	print "Storage OK - /proc/mdstat does not exists\n";
+    print "Storage OK - /proc/mdstat does not exists\n";
         exit 0;
 }
