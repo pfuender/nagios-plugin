@@ -19,7 +19,7 @@ our $host;
 our $STATCMD;
 $STATCMD="cat /proc/mdstat";
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 
 my @LINES;
 open(FH,"$STATCMD |");
