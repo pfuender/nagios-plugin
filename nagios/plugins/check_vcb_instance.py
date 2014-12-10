@@ -45,7 +45,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 log = logging.getLogger(__name__)
 
@@ -503,6 +503,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         try:
             result = self.send(xml)
+            result = re.sub(r'\x00', '', result)
             result = result.strip()
             do_parse = True
             result_rcvd = True
@@ -545,7 +546,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             log.debug("Got a version of: %r", got_version)
             if got_version is None:
                 state = self.max_state(state, nagios.state.warning)
-                result += ' - no version found.'
+                result += ', no version found.'
             elif self.min_version is not None:
                 parsed_version_expected = parse_version(self.min_version)
                 if self.verbose > 1:
@@ -555,7 +556,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                     log.debug("Got parsed version %r.", parsed_version_got)
                 if parsed_version_got < parsed_version_expected:
                     state = self.max_state(state, nagios.state.warning)
-                    result += ' - version is less than %r.' % (self.min_version)
+                    result += ', version is less than %r.' % (self.min_version)
 
         out = result
 
