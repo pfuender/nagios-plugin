@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.7.2) squeeze wheezy jessie; urgency=low
+
+  * Removed binary zeroes in output of VCB to eliminate strange effects
+    in displaying results in nagios/plugins/check_vcb_instance.py.
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 10 Dec 2014 16:42:16 +0100
+
 pb-monitoring-plugins (1.7.1) squeeze wheezy jessie; urgency=medium
 
   * validating /sys/block/<dev>/md/sync_action and exit with WARNING state if
