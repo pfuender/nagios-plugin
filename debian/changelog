@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.2) trusty utopic; urgency=medium
+
+  * No-change rebuild for Ubuntu
+
+ -- Marcelo Grebois <marcelo.grebois@profitbricks.com>  Mon, 22 Dec 2014 11:15:07 +0100
+
 pb-monitoring-plugins (1.7.2) squeeze wheezy jessie; urgency=low
 
   * Removed binary zeroes in output of VCB to eliminate strange effects
