@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2014 by Frank Brehm, Berlin
+@copyright: © 2010 - 2015 by Frank Brehm, Berlin
 @summary: Nagios plugin ≡ check script to check the state
           of a running instance of a VCB on a ProfitBricks Pserver.
 """
