@@ -4,7 +4,7 @@
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
 @organization: Profitbricks GmbH
-@copyright: © 2010 - 2014 by Profitbricks GmbH
+@copyright: © 2010 - 2015 by Profitbricks GmbH
 @license: GPL3
 @summary: module for a colored formatter for syslog
           plugin framework
@@ -189,4 +189,4 @@ if __name__ == '__main__':
 
 #==============================================================================
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 nu
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

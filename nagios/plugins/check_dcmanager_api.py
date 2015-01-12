@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2014 by Frank Brehm, Berlin
+@copyright: © 2010 - 2015 by Frank Brehm, Berlin
 @summary: Module for CheckDcmanagerApiPlugin class for checking
           ability of the DcManager API
 """
@@ -49,7 +49,7 @@ from dcmanagerclient.client import RestApiError
 # Some module variables
 
 __version__ = '0.2.0'
-__copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
+__copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
 

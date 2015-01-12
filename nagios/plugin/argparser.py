@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2014 by Frank Brehm, Berlin
+@copyright: © 2010 - 2015 by Frank Brehm, Berlin
 @summary: Module for a NagiosPluginArgparse class, a class providing a
           standardised argument processing for Nagios plugins
 """

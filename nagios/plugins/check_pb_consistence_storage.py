@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2014 by Frank Brehm, Berlin
+@copyright: © 2010 - 2015 by Frank Brehm, Berlin
 @summary: Module for CheckPbConsistenceStoragePlugin class for checking
           consistence of storage volumes against the target state
           of the provisioning database
@@ -64,7 +64,7 @@ from dcmanagerclient.client import RestApiError
 # Some module variables
 
 __version__ = '0.8.3'
-__copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
+__copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_VOL_ERRORS = 0
 DEFAULT_CRIT_VOL_ERRORS = 2

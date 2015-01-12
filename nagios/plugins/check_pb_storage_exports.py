@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2014 by Frank Brehm, Berlin
+@copyright: © 2010 - 2015 by Frank Brehm, Berlin
 @summary: Module for CheckPbStorageExportsPlugin class for checking
           correctness of exported and/or not exported volumes
           on ProfitBricks storage servers
@@ -67,7 +67,7 @@ from dcmanagerclient.client import RestApiError
 # Some module variables
 
 __version__ = '0.3.0'
-__copyright__ = 'Copyright (c) 2014 Frank Brehm, Berlin.'
+__copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_ERRORS = 0
 DEFAULT_CRIT_ERRORS = 2
