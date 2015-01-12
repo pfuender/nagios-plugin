@@ -158,6 +158,7 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
         )
         warn_fw_states = (
             r'Rebuild',
+            r'Copyback',
         )
         good_fw_pattern = r'^\s*(?:' + r'|'.join(good_fw_states) + r')\s*$'
         warn_fw_pattern = r'^\s*(?:' + r'|'.join(warn_fw_states) + r')\s*$'
