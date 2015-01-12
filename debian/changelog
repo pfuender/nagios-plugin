@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.3) squeeze wheezy jessie; urgency=medium
+
+  * Make disk firmware state "Copyback" a warning
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 12 Jan 2015 11:42:11 +0100
+
 pb-monitoring-plugins (1.7.2) trusty utopic; urgency=medium
 
   * No-change rebuild for Ubuntu
