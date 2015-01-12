@@ -8,9 +8,9 @@
 """
 
 __author__ = 'Frank Brehm <frank.brehm@profitbricks.com>'
-__copyright__ = '© 2010 - 2014 by profitbricks.com'
+__copyright__ = '© 2010 - 2015 by profitbricks.com'
 __contact__ = 'frank.brehm@profitbricks.com'
-__version__ = '1.7.2'
+__version__ = '1.7.4'
 __license__ = 'GPL3'
 
 #==============================================================================
