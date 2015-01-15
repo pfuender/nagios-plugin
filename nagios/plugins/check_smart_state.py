@@ -587,7 +587,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         state = nagios.state.ok
         out = "All seems to be ok."
 
-        re_is_sas = re.compile(r'^\s*Transport\s+protocol\s*:\s*SAS\s*$',
+        re_is_sas = re.compile(r'^\s*Transport\s+protocol\s*:\s*SAS.*$',
                 (re.IGNORECASE | re.MULTILINE))
 
         no_smart_patterns = (
