@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.5) all; urgency=medium
+
+  * Modify regex to match SAS disks in check_smart_state.py
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Thu, 15 Jan 2015 07:58:05 +0100
+
 pb-monitoring-plugins (1.7.4) all; urgency=low
 
   * No-change rebuild for all distributions
