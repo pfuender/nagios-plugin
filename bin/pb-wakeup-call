@@ -1,0 +1,72 @@
+#!/bin/bash
+
+HOST=""
+USER="wakeup"
+PBX_HOST="pbx.profitbricks.com"
+
+print_usage() {
+    echo "Usage: $0 -H|--Host HOST -p|--phone-number PHONE_NR"
+    echo
+    echo "  HOST        Host which is down"
+    echo "  PHONE_NR    Phone number to call, default: ${PHONE_NR}"
+}
+
+print_help() {
+    echo "Call support (or a given phone number) if given host is a pserver"
+    echo ""
+    print_usage
+}
+
+print_verbose() {
+    if [[ ${VERBOSE} -eq 1 ]]; then
+        echo $1
+    fi
+}
+
+
+# get arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        -H|--Host)
+            HOST=$1
+            shift 2
+            ;;
+        -p|--phone-number)
+            PHONE_NR=$1
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument '$1', aborting!"
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z ${HOST} ]]; then
+    echo "No HOSTNAME given!"
+    echo ""
+    print_usage
+    exit 1
+fi
+
+if ! [[ ${HOST} =~ ^pserver.*$ ]]; then
+    echo "No P-Server"
+    exit 0
+fi
+
+if [[ -z ${PHONE_NR} ]]; then
+    echo "No PHONE_NR given!"
+    echo ""
+    print_usage
+    exit 1
+fi
+
+ssh ${USER}@${PBX_HOST} screen -d -m pb-wakeupcall ${PHONE_NR} "P-Server ${HOST} is down."
