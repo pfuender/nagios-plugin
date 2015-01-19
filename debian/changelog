@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.6) all; urgency=medium
+
+  * Add script pb-wakeup-call
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 19 Jan 2015 11:40:09 +0100
+
 pb-monitoring-plugins (1.7.5) all; urgency=medium
 
   * Modify regex to match SAS disks in check_smart_state.py
