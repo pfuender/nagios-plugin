@@ -69,4 +69,9 @@ if [[ -z ${PHONE_NR} ]]; then
     exit 1
 fi
 
-ssh ${USER}@${PBX_HOST} screen -d -m pb-wakeupcall ${PHONE_NR} "P-Server ${HOST} is down."
+# manipulate HOST for better understanding of the phone call
+if [[ ${HOST} =~ ^pserver.*$ ]]; then
+    HOST="${HOST/p/p-}"
+fi
+
+ssh ${USER}@${PBX_HOST} screen -d -m pb-wakeupcall ${PHONE_NR} "Host ${HOST} is down."
