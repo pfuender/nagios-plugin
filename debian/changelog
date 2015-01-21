@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.8) all; urgency=medium
+
+  * Correct pb-wakeup-call
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 21 Jan 2015 14:54:03 +0100
+
 pb-monitoring-plugins (1.7.7) all; urgency=medium
 
   * Added mangling of nagios/__init__.py for correct version in
