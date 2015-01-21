@@ -6,6 +6,8 @@
 
 DOC_PKGNAME := python-nagios-plugin-doc
 
+VERSION := $(shell dpkg-parsechangelog | sed -n "s/^Version: *//p")
+
 DOC_DIR := $(CURDIR)/debian/$(DOC_PKGNAME)/usr/share/doc/$(DOC_PKGNAME)
 BIN_DIR := $(CURDIR)/debian/$(BIN_PKGNAME)/usr/share/$(BIN_PKGNAME)/
 
@@ -15,13 +17,30 @@ PYTHON3S := $(shell py3versions -vr || true)
 %:
 	dh $@ --with python2,python3
 
+override_dh_auto_configure:
+	$(info )
+	$(info ########################)
+	$(info Configuring ...)
+	$(info )
+	dh_auto_configure
+	test -f nagios/__init__.py.debian_backup || cp -v nagios/__init__.py nagios/__init__.py.debian_backup
+	sed -i "s/^\(__version__ =\).*$$/\1 '$(VERSION)'/" nagios/__init__.py
+
 override_dh_auto_build:
+	$(info )
+	$(info ########################)
+	$(info Building ...)
+	$(info )
 	@echo "Building Python 2 stuff ..."
 	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py build; done
 	@echo "Building Python 3 stuff ..."
 	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py build; done
 
 override_dh_auto_install:
+	$(info )
+	$(info ########################)
+	$(info Installing ...)
+	$(info )
 	@echo "Installing Python 2 stuff ..."
 	set -e && for pyvers in $(PYTHON2S); do python$$pyvers setup.py install --root=debian/tmp --install-layout=deb; done
 	@echo "Workaround for Debian Squeeze"
@@ -35,8 +54,13 @@ override_dh_auto_install:
 	epydoc --pdf -o $(DOC_DIR)/pdf $(CURDIR)/nagios
 
 override_dh_auto_clean:
+	$(info )
+	$(info ########################)
+	$(info Cleaning ...)
+	$(info )
 	dh_auto_clean
 	rm -rf $(CURDIR)/build
+	test ! -f nagios/__init__.py.debian_backup || mv -v nagios/__init__.py.debian_backup nagios/__init__.py
 
 override_dh_install:
 	dh_install --fail-missing

@@ -4,6 +4,7 @@
 *.egg
 *-stamp
 *.bak
+*.debian_backup
 build
 /*.cfg.default
 /man
