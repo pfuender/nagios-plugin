@@ -3,12 +3,15 @@
 HOST=""
 USER="wakeup"
 PBX_HOST="pbx.profitbricks.com"
+NOTIFICATION_TYPE=""
 
 print_usage() {
     echo "Usage: $0 -H|--Host HOST -p|--phone-number PHONE_NR"
+    echo "          -t|--type NOTIFICATION_TYPE"
     echo
-    echo "  HOST        Host which is down"
-    echo "  PHONE_NR    Phone number to call, default: ${PHONE_NR}"
+    echo "  HOST               Host which is down"
+    echo "  PHONE_NR           Phone number to call, default: ${PHONE_NR}"
+    echo "  NOTIFICATION_TYPE  type of notification (see Icinga documentation)"
 }
 
 print_help() {
@@ -43,6 +46,10 @@ while [[ $# -ne 0 ]]; do
             PHONE_NR=$2
             shift 2
             ;;
+        -t|--type)
+            NOTIFICATION_TYPE=$2
+            shift 2
+            ;;
         *)
             echo "Unknown argument '$1', aborting!"
             exit 1
@@ -50,6 +57,13 @@ while [[ $# -ne 0 ]]; do
     esac
 done
 
+# only alert on problem (not on acknowledgements)
+if ! [[ ${NOTIFICATION_TYPE} == PROBLEM ]]; then
+    echo "Notification type is not 'PROBLEM', don't alert."
+    exit 0
+fi
+
+# check if hostname is given
 if [[ -z ${HOST} ]]; then
     echo "No HOSTNAME given!"
     echo ""
@@ -62,6 +76,7 @@ fi
 #    exit 0
 #fi
 
+# check if phone number is given
 if [[ -z ${PHONE_NR} ]]; then
     echo "No PHONE_NR given!"
     echo ""
