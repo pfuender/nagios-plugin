@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.10) all; urgency=medium
+
+  * Add NOTIFICATION_TYPE to pb-wakeup-call script
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 09 Feb 2015 15:12:36 +0100
+
 pb-monitoring-plugins (1.7.9) all; urgency=medium
 
   * Modify pb-wakeup-call message
