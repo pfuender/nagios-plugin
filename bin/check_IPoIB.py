@@ -27,7 +27,7 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 version = "1.1.0-1"
 
 appname = os.path.basename(sys.argv[0])
-DEFAULT_TIMEOUT_API = 10
+DEFAULT_TIMEOUT_API = 20
 
 #############################################
 ############# BEGIN class ping6 #############
@@ -299,12 +299,12 @@ if __name__ == '__main__':
         print("UNKNOWN: dcmanager api response for host %s does not contain any 'cluster' attribute" % hostname )
         sys.exit(state['UNKNOWN'])
 
-    if not 'up' in response[0]:
-        print("UNKNOWN: dcmanager api response for host %s does not contain any 'up' attribute" % hostname )
+    if not 'state' in response[0]:
+        print("UNKNOWN: dcmanager api response for host %s does not contain any 'state' attribute" % hostname )
         sys.exit(state['UNKNOWN'])
         
-    if response[0]['up'] == False:
-        print("OK: host %s is marked as down in dcmanager" % hostname)
+    if response[0]['state'] != 'UP':
+        print("OK: host %s is not marked as 'UP' in dcmanager" % hostname)
         sys.exit(state['OK'])
 
     ## fetch all pservers in this cluster
@@ -328,7 +328,7 @@ if __name__ == '__main__':
     dcmanager_offline = []
     n = 0
     for ps in pservers:
-        if not ps["up"]:
+        if ps["state"] != 'UP':
             dcmanager_offline.append(ps["name"])
             continue
         for i in range(2):
@@ -349,7 +349,7 @@ if __name__ == '__main__':
 
     ## check pgateways in this cluster
     for ps in gateways:
-        if not ps["up"]:
+        if ps["state"] != 'UP':
             dcmanager_offline.append(ps["name"])
             continue
         ping_hostname = ps["name"]
