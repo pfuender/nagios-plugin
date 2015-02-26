@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.12) all; urgency=medium
+
+  * modifies check_IPoIB.py to match new database table schema
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Tue, 24 Feb 2015 09:32:43 +0100
+
 pb-monitoring-plugins (1.7.11) all; urgency=medium
 
   * Add script check_graylog2_system_notifications
