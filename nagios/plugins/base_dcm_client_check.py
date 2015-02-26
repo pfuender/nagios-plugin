@@ -56,7 +56,7 @@ from dcmanagerclient.client import RestApi, RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.2.4'
+__version__ = '0.3.1'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -64,6 +64,7 @@ DEFAULT_PB_VG = 'storage'
 STORAGE_CONFIG_DIR = os.sep + os.path.join('storage', 'config')
 DUMMY_LV = 'ed00-0b07-71ed-000c0ffee000'
 DUMMY_CRC = '4bf5f4063c838835'
+BACKUP_LV = 'zzz_backup'
 
 log = logging.getLogger(__name__)
 
@@ -291,24 +292,36 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         Method to call the plugin directly.
         """
 
-        self.parse_args()
-        self.init_root_logger()
+        try:
 
-        self._read_config()
-        self.parse_args_second()
+            self.parse_args()
+            self.init_root_logger()
 
-        log.debug("Creating REST API client object ...")
-        self.api = RestApi.from_config(
-                extra_config_file = self.argparser.args.extra_config_file,
-                api_url = self.argparser.args.api_url,
-                timeout = self.timeout,
-        )
+            self._read_config()
+            self.parse_args_second()
 
-        if self.verbose > 2:
-            log.debug("Current object:\n%s", pp(self.as_dict()))
+            log.debug("Creating REST API client object ...")
+            self.api = RestApi.from_config(
+                    extra_config_file = self.argparser.args.extra_config_file,
+                    api_url = self.argparser.args.api_url,
+                    timeout = self.timeout,
+            )
 
-        self.pre_run()
-        self.run()
+            if self.verbose > 2:
+                log.debug("Current object:\n%s", pp(self.as_dict()))
+
+            self.pre_run()
+            self.run()
+
+        except Exception as e:
+            state = nagios.state.unknown
+            ename = e.__class__.__name__
+            appname = os.path.basename(sys.argv[0])
+            out = "%s on executing %r: %s" % (ename, appname,  e)
+            if self.verbose:
+                self.handle_error(str(e), ename, do_traceback=True)
+
+            self.exit(state, out)
 
     #--------------------------------------------------------------------------
     def pre_run(self):

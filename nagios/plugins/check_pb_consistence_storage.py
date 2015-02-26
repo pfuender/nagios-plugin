@@ -55,7 +55,7 @@ from nagios.plugin.config import NagiosPluginConfig
 
 from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
 from nagios.plugins.base_dcm_client_check import DEFAULT_TIMEOUT, DEFAULT_PB_VG
-from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR, DUMMY_LV
+from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR, DUMMY_LV, BACKUP_LV
 from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
 from dcmanagerclient.client import RestApiError
@@ -63,7 +63,7 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_VOL_ERRORS = 0
@@ -354,21 +354,6 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         self.all_api_volumes = {}
 
-        try:
-            return self.do_check()
-        except Exception as e:
-            state = nagios.state.unknown
-            ename = e.__class__.__name__
-            out = "%s on checking storage consistency: %s" % (ename, e)
-            if self.verbose:
-                self.handle_error(str(e), ename, do_traceback=True)
-
-            self.exit(state, out)
-
-    #--------------------------------------------------------------------------
-    def do_check(self):
-        """The underlying check execution."""
-
         self.get_api_storage_volumes()
         for vol in self.api_volumes:
             guid = str(vol['guid'])
@@ -450,6 +435,12 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             if self.verbose > 3:
                 log.debug("Checking LV %s/%s ...", lv['vgname'], lv['lvname'])
             self.count['total'] += 1
+
+            # the Backup volume
+            if lv['lvname'] == BACKUP_LV:
+                self.count['dummy'] += 1
+                log.debug("LV %s/%s is the backup volume.", lv['vgname'], lv['lvname'])
+                continue
 
             # volume group not 'storage' or volume name not a shortened GUID
             if not lv['is_pb_vol']:
@@ -608,10 +599,12 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         except Exception as e:
             self.die("%s: %s" % (e.__class__.__name__, e))
 
+        first_volume = True
         for stor in storages:
 
-            if self.verbose > 4:
+            if self.verbose > 2 and (first_volume or self.verbose > 4):
                 log.debug("Got Storage volume from API:\n%s", pp(stor))
+            first_volume = False
 
             replicated = stor[key_replicated]
             size = stor[key_size]
@@ -685,10 +678,12 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         except Exception as e:
             self.die("%s: %s" % (e.__class__.__name__, e))
 
+        first_volume = True
         for stor in images:
 
-            if self.verbose > 4:
+            if self.verbose > 2 and (first_volume or self.verbose > 4):
                 log.debug("Got Image volume from API:\n%s", pp(stor))
+            first_volume = False
 
             state = None
             if key_virtual_state in stor:
@@ -775,10 +770,12 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         except Exception as e:
             self.die("%s: %s" % (e.__class__.__name__, e))
 
+        first_volume = True
         for stor in snapshots:
 
-            if self.verbose > 4:
+            if self.verbose > 2 and (first_volume or self.verbose > 4):
                 log.debug("Got Snapshot volume from API:\n%s", pp(stor))
+            first_volume = False
 
             size = stor[key_size]
             guid = stor[key_guid]
@@ -812,8 +809,12 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         self.lvm_lvs = []
 
-        re_pb_vol = re.compile(r'^(?:[\da-f]{4}-){3}[\da-f]{12}(-snap)?$',
-                re.IGNORECASE)
+        pat_pb_vol = r'^(?:[\da-f]{4}-){3}[\da-f]{12}'
+        pat_pb_vol += r'(-snap)?'
+        pat_pb_vol += r'(-del-\d{4}[-_]?\d{2}[-_]?\d{2}[-_]?\d{2}[-_:]?\d{2}(?:[-_:]?\d{2}))?$'
+        if self.verbose > 3:
+            log.debug("Regex for a PB Volume: %r", pat_pb_vol)
+        re_pb_vol = re.compile(pat_pb_vol, re.IGNORECASE)
 
         cmd = [
                 self.lvm_command,
