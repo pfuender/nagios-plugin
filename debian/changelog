@@ -1,3 +1,14 @@
+pb-monitoring-plugins (1.7.13) all; urgency=medium
+
+  * Added catch-all exception handling in
+    nagios/plugins/base_dcm_client_check.py and
+    nagios/plugin/__init__.py for ensuring consistent output for
+    Nagios/Icinga
+  * Some debugging changes in
+    nagios/plugins/check_pb_consistence_storage.py
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Thu, 26 Feb 2015 15:29:15 +0100
+
 pb-monitoring-plugins (1.7.12) all; urgency=medium
 
   * modifies check_IPoIB.py to match new database table schema
