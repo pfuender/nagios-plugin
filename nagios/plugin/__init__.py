@@ -13,6 +13,8 @@ import sys
 import logging
 import signal
 import errno
+import traceback
+import datetime
 
 from numbers import Number
 
@@ -40,7 +42,7 @@ from nagios.plugin.performance import NagiosPerformance
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 log = logging.getLogger(__name__)
 
@@ -601,6 +603,53 @@ class NagiosPlugin(object):
 
         return content
 
+    #--------------------------------------------------------------------------
+    def handle_error(
+        self, error_message=None, exception_name=None, do_traceback=False):
+        """
+        Handle an error gracefully.
+
+        Print a traceback and continue.
+
+        @param error_message: the error message to display
+        @type error_message: str
+        @param exception_name: name of the exception class
+        @type exception_name: str
+        @param do_traceback: allways show a traceback
+        @type do_traceback: bool
+
+        """
+
+        msg = 'Exception happened: '
+        if exception_name is not None:
+            exception_name = exception_name.strip()
+            if exception_name:
+                msg = exception_name + ': '
+            else:
+                msg = ''
+        if error_message:
+            msg += str(error_message)
+        else:
+            msg += 'undefined error.'
+
+        root_log = logging.getLogger()
+        has_handlers = False
+        if root_log.handlers:
+            has_handlers = True
+
+        if has_handlers:
+            log.error(msg)
+            if do_traceback:
+                log.error(traceback.format_exc())
+        else:
+            curdate = datetime.datetime.now()
+            curdate_str = "[" + curdate.isoformat(' ') + "]: "
+            msg = curdate_str + msg + "\n"
+            sys.stderr.write(msg)
+            if do_traceback:
+                traceback.print_exc()
+
+        return
 
 #==============================================================================
 

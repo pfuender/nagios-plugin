@@ -63,7 +63,7 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.8.3'
+__version__ = '0.9.0'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_VOL_ERRORS = 0
@@ -353,6 +353,21 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                 self.hostname)
 
         self.all_api_volumes = {}
+
+        try:
+            return self.do_check()
+        except Exception as e:
+            state = nagios.state.unknown
+            ename = e.__class__.__name__
+            out = "%s on checking storage consistency: %s" % (ename, e)
+            if self.verbose:
+                self.handle_error(str(e), ename, do_traceback=True)
+
+            self.exit(state, out)
+
+    #--------------------------------------------------------------------------
+    def do_check(self):
+        """The underlying check execution."""
 
         self.get_api_storage_volumes()
         for vol in self.api_volumes:
