@@ -30,35 +30,35 @@ from nagios.common import pp
 import nagios.plugin.functions
 from nagios.plugin.functions import get_shortname
 
-from nagios.plugin.argparser import NagiosPluginArgparseError
 from nagios.plugin.argparser import NagiosPluginArgparse
 from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
 
 from nagios.plugin.threshold import NagiosThreshold
 
-from nagios.plugin.performance import NagiosPerformanceError
 from nagios.plugin.performance import NagiosPerformance
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPluginError(BaseNagiosError):
     """Special exceptions, which are raised in this module."""
 
     pass
 
-#==============================================================================
+
+# =============================================================================
 class NPReadTimeoutError(NagiosPluginError, IOError):
     """
     Special error class indicating a timout error on reading of a file.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, timeout, filename):
         """
         Constructor.
@@ -82,13 +82,12 @@ class NPReadTimeoutError(NagiosPluginError, IOError):
             strerror += " (timeout after %0.1f secs)" % (t_o)
 
         if filename is None:
-            super(NPReadTimeoutError, self).__init__(
-                    errno.ETIMEDOUT, strerror)
+            super(NPReadTimeoutError, self).__init__(errno.ETIMEDOUT, strerror)
         else:
-            super(NPReadTimeoutError, self).__init__(
-                    errno.ETIMEDOUT, strerror, filename)
+            super(NPReadTimeoutError, self).__init__(errno.ETIMEDOUT, strerror, filename)
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPlugin(object):
     """
     A encapsulating class for a Nagios plugin.
@@ -96,11 +95,11 @@ class NagiosPlugin(object):
 
     pass
 
-    #--------------------------------------------------------------------------
-    def __init__(self, usage = None, shortname = None,
-            version = nagios.__version__, url = None, blurb = None,
-            licence = lgpl3_licence_text, extra = None, plugin = None,
-            timeout = default_timeout):
+    # -------------------------------------------------------------------------
+    def __init__(
+        self, usage=None, shortname=None, version=nagios.__version__, url=None,
+            blurb=None, licence=lgpl3_licence_text, extra=None, plugin=None,
+            timeout=default_timeout):
         """
         Constructor of the NagiosPlugin class.
 
@@ -156,32 +155,32 @@ class NagiosPlugin(object):
         if self._shortname:
             self._shortname = self._shortname.strip()
         if not self._shortname:
-            self._shortname = get_shortname(plugin = plugin)
+            self._shortname = get_shortname(plugin=plugin)
 
         self.argparser = None
         if usage:
             self.argparser = NagiosPluginArgparse(
-                    usage = usage,
-                    version = version,
-                    url = url,
-                    blurb = blurb,
-                    licence = licence,
-                    extra = extra,
-                    plugin = plugin,
-                    timeout = timeout,
+                usage=usage,
+                version=version,
+                url=url,
+                blurb=blurb,
+                licence=licence,
+                extra=extra,
+                plugin=plugin,
+                timeout=timeout,
             )
 
         self.perfdata = []
 
         self.messages = {
-                'warning': [],
-                'critical': [],
-                'ok': [],
+            'warning': [],
+            'critical': [],
+            'ok': [],
         }
 
         self.threshold = None
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def shortname(self):
         """The shortname of the plugin."""
@@ -196,7 +195,7 @@ class NagiosPlugin(object):
             raise NagiosPluginError(msg % (value))
         self._shortname = new_name
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -207,12 +206,12 @@ class NagiosPlugin(object):
         """
 
         d = {
-                '__class__': self.__class__.__name__,
-                'shortname': self.shortname,
-                'argparser': None,
-                'perfdata': [],
-                'messages': self.messages,
-                'threshold': None,
+            '__class__': self.__class__.__name__,
+            'shortname': self.shortname,
+            'argparser': None,
+            'perfdata': [],
+            'messages': self.messages,
+            'threshold': None,
         }
 
         if self.argparser:
@@ -226,7 +225,7 @@ class NagiosPlugin(object):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting function for translating object structure into a string.
@@ -238,7 +237,7 @@ class NagiosPlugin(object):
 
         return pp(self.as_dict())
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
@@ -254,9 +253,10 @@ class NagiosPlugin(object):
         out += ", ".join(fields) + ")>"
         return out
 
-    #--------------------------------------------------------------------------
-    def add_perfdata(self, label, value, uom = None, threshold = None,
-            warning = None, critical = None, min_data = None, max_data = None):
+    # -------------------------------------------------------------------------
+    def add_perfdata(
+        self, label, value, uom=None, threshold=None, warning=None, critical=None,
+            min_data=None, max_data=None):
         """
         Adding a NagiosPerformance object to self.perfdata.
 
@@ -283,30 +283,29 @@ class NagiosPlugin(object):
         """
 
         pdata = NagiosPerformance(
-                label = label,
-                value = value,
-                uom = uom,
-                threshold = threshold,
-                warning = warning,
-                critical = critical,
-                min_data = min_data,
-                max_data = max_data
+            label=label,
+            value=value,
+            uom=uom,
+            threshold=threshold,
+            warning=warning,
+            critical=critical,
+            min_data=min_data,
+            max_data=max_data
         )
 
         self.perfdata.append(pdata)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def add_arg(self, *names, **kwargs):
         """top level interface to my NagiosPluginArgparse object."""
 
         if self.argparser:
             self.argparser.add_arg(*names, **kwargs)
         else:
-            log.warn("Called add_arg() without a valid " +
-                    "NagiosPluginArgparse object.")
+            log.warn("Called add_arg() without a valid NagiosPluginArgparse object.")
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -323,11 +322,10 @@ class NagiosPlugin(object):
             log.debug("Parsing commandline arguments: %r", args)
             self.argparser.parse_args(args)
         else:
-            log.warn("Called parse_args() without a valid " +
-                    "NagiosPluginArgparse object.")
+            log.warn("Called parse_args() without a valid NagiosPluginArgparse object.")
 
-    #--------------------------------------------------------------------------
-    def getopts(self, args = None):
+    # -------------------------------------------------------------------------
+    def getopts(self, args=None):
         """
         Wrapper for self.parse_args().
 
@@ -338,14 +336,14 @@ class NagiosPlugin(object):
 
         self.parse_args(args)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def all_perfoutput(self):
         """Generates a string with all formatted performance data."""
 
         return ' '.join([x.perfoutput() for x in self.perfdata])
 
-    #--------------------------------------------------------------------------
-    def set_thresholds(self, warning = None, critical = None):
+    # -------------------------------------------------------------------------
+    def set_thresholds(self, warning=None, critical=None):
         """
         Initialisation of self.threshold as a the NagiosThreshold object.
 
@@ -360,12 +358,12 @@ class NagiosPlugin(object):
         """
 
         self.threshold = NagiosThreshold(
-                warning = warning, critical = critical)
+            warning=warning, critical=critical)
 
         return self.threshold
 
-    #--------------------------------------------------------------------------
-    def check_threshold(self, value, warning = None, critical = None):
+    # -------------------------------------------------------------------------
+    def check_threshold(self, value, warning=None, critical=None):
         """
         Evaluates value against the thresholds and returns nagios.state.ok,
         nagios.state.warning or nagios.state.critical.
@@ -402,65 +400,65 @@ class NagiosPlugin(object):
 
         if warning is not None or critical is not None:
             self.set_thresholds(
-                    warning = warning,
-                    critical = critical,
+                warning=warning,
+                critical=critical,
             )
         elif self.threshold:
             pass
         elif self.argparser is not None and self.argparser.has_parsed:
             self.set_thresholds(
-                    warning = getattr(self.argparser.args, 'warning', None),
-                    critical = getattr(self.argparser.args, 'critical', None),
+                warning=getattr(self.argparser.args, 'warning', None),
+                critical=getattr(self.argparser.args, 'critical', None),
             )
         else:
             return nagios.state.unknown
 
         return self.threshold.get_status(value)
 
-    #--------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     def nagios_exit(self, code, message):
         """Wrapper method for nagios.plugin.functions.nagios_exit()."""
 
         return nagios.plugin.functions.nagios_exit(code, message, self)
 
-    #--------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     def nagios_die(self, message):
         """Wrapper method for nagios.plugin.functions.nagios_die()."""
 
         return nagios.plugin.functions.nagios_die(message, self)
 
-    #--------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     def exit(self, code, message):
         """Wrapper method for nagios.plugin.functions.nagios_exit()."""
 
         return nagios.plugin.functions.nagios_exit(code, message, self)
 
-    #--------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     def die(self, message):
         """Wrapper method for nagios.plugin.functions.nagios_die()."""
 
         return nagios.plugin.functions.nagios_die(message, self)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def max_state(self, *args):
         """Wrapper method for nagios.plugin.functions.max_state()."""
 
         return nagios.plugin.functions.max_state(*args)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def max_state_alt(self, *args):
         """Wrapper method for nagios.plugin.functions.max_state_alt()."""
 
         return nagios.plugin.functions.max_state_alt(*args)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def add_message(self, code, *messages):
         """Adds one ore more messages to self.messages under the appropriate
            subkey, which is defined by the code."""
 
         key = str(code).upper()
-        if (not key in nagios.plugin.functions.ERRORS and
-                not code in nagios.plugin.functions.STATUS_TEXT):
+        if (key not in nagios.plugin.functions.ERRORS and
+                code not in nagios.plugin.functions.STATUS_TEXT):
             msg = "Invalid error code %r on calling add_message()." % (code)
             raise NagiosPluginError(msg)
 
@@ -472,14 +470,14 @@ class NagiosPlugin(object):
             key = nagios.plugin.functions.STATUS_TEXT[code]
         key = key.lower()
 
-        if not key in self.messages:
+        if key not in self.messages:
             self.messages[key] = []
         for msg in messages:
             self.messages[key].append(msg)
 
-    #--------------------------------------------------------------------------
-    def check_messages(self, critical = None, warning = None, ok = None,
-            join = ' ', join_all = False):
+    # -------------------------------------------------------------------------
+    def check_messages(
+            self, critical=None, warning=None, ok=None, join=' ', join_all=False):
         """
         Method to check the given messages and the messages under self.messages
         and to returning an appropriate return code and/or result message.
@@ -542,13 +540,13 @@ class NagiosPlugin(object):
         if ok:
             args['ok'] = ok
 
-        log.debug("Arguments for nagios.plugin.functions.check_messages():\n%r",
-                args)
+        log.debug(
+            "Arguments for nagios.plugin.functions.check_messages():\n%r", args)
 
         return nagios.plugin.functions.check_messages(**args)
 
-    #--------------------------------------------------------------------------
-    def read_file(self, filename, timeout = 2, quiet = False):
+    # -------------------------------------------------------------------------
+    def read_file(self, filename, timeout=2, quiet=False):
         """
         Reads the content of the given filename.
 
@@ -603,9 +601,9 @@ class NagiosPlugin(object):
 
         return content
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def handle_error(
-        self, error_message=None, exception_name=None, do_traceback=False):
+            self, error_message=None, exception_name=None, do_traceback=False):
         """
         Handle an error gracefully.
 
@@ -651,12 +649,12 @@ class NagiosPlugin(object):
 
         return
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 expandtab
