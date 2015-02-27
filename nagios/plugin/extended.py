@@ -19,9 +19,8 @@ import signal
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
+from nagios.common import caller_search_path
 
 from nagios.color_syslog import ColoredFormatter
 
@@ -30,27 +29,29 @@ from nagios.plugin import NagiosPlugin
 
 from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class ExtNagiosPluginError(NagiosPluginError):
     """Special exceptions, which are raised in this module."""
 
     pass
 
-#-------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 class CommandNotFoundError(ExtNagiosPluginError):
     """
     Special exception, if one ore more OS commands were not found.
 
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, cmd_list):
         """
         Constructor.
@@ -71,7 +72,7 @@ class CommandNotFoundError(ExtNagiosPluginError):
         if len(self.cmd_list) < 1:
             raise ValueError("Empty command list given.")
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting into a string for error output.
@@ -84,13 +85,14 @@ class CommandNotFoundError(ExtNagiosPluginError):
         msg += ": " + cmds
         return msg
 
-#-------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
     """
     Special error class indicating a timout error on executing an operation
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, timeout, command):
         """
         Constructor.
@@ -106,13 +108,13 @@ class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
         t_o = None
         try:
             t_o = int(timeout)
-        except ValueError as e:
+        except ValueError:
             log.error("Timeout %r was not an int value.", timeout)
         self.timeout = t_o
 
         self.command = command
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """Typecasting into a string."""
 
@@ -120,26 +122,27 @@ class ExecutionTimeoutError(ExtNagiosPluginError, IOError):
 
         if self.timeout is None:
             msg = "Timeout after an unknown time on execution of %r." % (
-                    self.command)
+                self.command)
         else:
             msg = "Error executing: %s (timeout after %d secs)" % (
-                    self.command, self.timeout)
+                self.command, self.timeout)
 
         return msg
 
-#==============================================================================
+
+# =============================================================================
 class ExtNagiosPlugin(NagiosPlugin):
     """
     An extended Nagios plugin class.
 
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, usage = None, shortname = None,
-            version = nagios.__version__, url = None, blurb = None,
-            licence = lgpl3_licence_text, extra = None, plugin = None,
-            timeout = default_timeout, verbose = 0, prepend_searchpath = None,
-            append_searchpath = None,):
+    # -------------------------------------------------------------------------
+    def __init__(
+        self, usage=None, shortname=None, version=nagios.__version__, url=None,
+            blurb=None, licence=lgpl3_licence_text, extra=None, plugin=None,
+            timeout=default_timeout, verbose=0, prepend_searchpath=None,
+            append_searchpath=None,):
         """
         Constructor of the ExtNagiosPlugin class.
 
@@ -198,15 +201,15 @@ class ExtNagiosPlugin(NagiosPlugin):
             self.verbose = verbose
 
         super(ExtNagiosPlugin, self).__init__(
-                usage = usage,
-                shortname = shortname,
-                version = version,
-                url = url,
-                blurb = blurb,
-                licence = licence,
-                extra = extra,
-                plugin = plugin,
-                timeout = timeout
+            usage=usage,
+            shortname=shortname,
+            version=version,
+            url=url,
+            blurb=blurb,
+            licence=licence,
+            extra=extra,
+            plugin=plugin,
+            timeout=timeout
         )
 
         self._timeout = default_timeout
@@ -230,13 +233,13 @@ class ExtNagiosPlugin(NagiosPlugin):
                 post = tuple(append_searchpath[:])
 
         self._search_path = caller_search_path(
-                prepend = pre, append = post)
+            prepend=pre, append=post)
         """
         @ivar: a list of existing paths to search for executables
         @type: list of str
         """
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def verbose(self):
         """The verbosity level inside the module."""
@@ -250,19 +253,19 @@ class ExtNagiosPlugin(NagiosPlugin):
         else:
             self._verbose = val
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def search_path(self):
         """A list of existing paths to search for executables."""
         return self._search_path[:]
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def timeout(self):
         """The timeout on execution of commands in seconds."""
         return self._timeout
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -280,8 +283,8 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
-    def get_command(self, cmd, quiet = False):
+    # -------------------------------------------------------------------------
+    def get_command(self, cmd, quiet=False):
         """
         Searches the OS search path for the given command and gives back the
         normalized position of this command.
@@ -333,16 +336,10 @@ class ExtNagiosPlugin(NagiosPlugin):
             log.warning("Command %r not found." % (cmd))
         return None
 
-    #--------------------------------------------------------------------------
-    def exec_cmd(self,
-            cmd,
-            shell = False,
-            stdout = None,
-            stderr = None,
-            bufsize = 0,
-            drop_stderr = False,
-            close_fds = False,
-            **kwargs ):
+    # -------------------------------------------------------------------------
+    def exec_cmd(
+        self, cmd, shell=False, stdout=None, stderr=None, bufsize=0,
+            drop_stderr=False, close_fds=False, **kwargs):
         """
         Executing a OS command.
 
@@ -421,13 +418,13 @@ class ExtNagiosPlugin(NagiosPlugin):
         # And execute it ...
         try:
             cmd_obj = subprocess.Popen(
-                    cmd_list,
-                    shell = use_shell,
-                    close_fds = close_fds,
-                    stderr = used_stderr,
-                    stdout = used_stdout,
-                    bufsize = bufsize,
-                    **kwargs
+                cmd_list,
+                shell=use_shell,
+                close_fds=close_fds,
+                stderr=used_stderr,
+                stdout=used_stdout,
+                bufsize=bufsize,
+                **kwargs
             )
 
             (stdoutdata, stderrdata) = cmd_obj.communicate()
@@ -454,8 +451,8 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         return (ret, stdoutdata, stderrdata)
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -472,7 +469,7 @@ class ExtNagiosPlugin(NagiosPlugin):
         if self.argparser.args.timeout:
             self._timeout = self.argparser.args.timeout
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def out(self, msg):
         """Printing the message formatted to STDERR."""
 
@@ -480,7 +477,7 @@ class ExtNagiosPlugin(NagiosPlugin):
         msg = "  " + self.shortname + ': ' + msg + '\n'
         sys.stderr.write(msg)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def init_root_logger(self):
         """
         Initiialize the root logger.
@@ -513,12 +510,12 @@ class ExtNagiosPlugin(NagiosPlugin):
 
         root_log.addHandler(lh_console)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 expandtab shiftwidth=4 softtabstop=4
