@@ -134,7 +134,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         super(CheckPbConsistenceStoragePlugin, self).__init__(
                 shortname = 'PB_CONSIST_STORAGE',
                 usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
+                timeout = DEFAULT_TIMEOUT,
         )
 
         self._pb_vg = None

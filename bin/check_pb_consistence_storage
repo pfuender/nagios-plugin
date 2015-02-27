@@ -27,7 +27,6 @@ del base_module
 # Own modules
 
 try:
-    import nagios.plugins
     from nagios.plugins.check_pb_consistence_storage import CheckPbConsistenceStoragePlugin
 except ImportError as e:
     sys.stderr.write("Import error.\n")
@@ -38,6 +37,6 @@ except ImportError as e:
 plugin = CheckPbConsistenceStoragePlugin()
 plugin()
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
