@@ -15,18 +15,16 @@ libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 ndir = os.path.join(libdir, 'nagios')
 base_module = os.path.join(ndir, '__init__.py')
 if os.path.isdir(ndir) and os.path.isfile(base_module):
-	sys.path.insert(0, libdir)
+    sys.path.insert(0, libdir)
 del libdir
 del ndir
 del base_module
-
-import nagios
 
 from nagios.plugins.check_softwareraid import CheckSoftwareRaidPlugin
 
 plugin = CheckSoftwareRaidPlugin()
 plugin()
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 expandtab shiftwidth=4 softtabstop=4
