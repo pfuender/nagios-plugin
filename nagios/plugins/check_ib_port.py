@@ -93,7 +93,7 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         super(CheckIbStatusPlugin, self).__init__(
                 shortname = 'IB_PORT',
                 usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
+                timeout = DEFAULT_TIMEOUT,
         )
 
         self._hca_name = None
