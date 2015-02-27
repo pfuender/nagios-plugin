@@ -19,7 +19,7 @@ libdir = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 ndir = os.path.join(libdir, 'nagios')
 base_module = os.path.join(ndir, '__init__.py')
 if os.path.isdir(ndir) and os.path.isfile(base_module):
-	sys.path.insert(0, libdir)
+    sys.path.insert(0, libdir)
 del libdir
 del ndir
 del base_module
@@ -27,7 +27,6 @@ del base_module
 # Own modules
 
 try:
-    import nagios.plugins
     from nagios.plugins.check_megaraid_pd import CheckMegaRaidPdPlugin
 except ImportError as e:
     sys.stderr.write("Import error.\n")
@@ -37,6 +36,6 @@ except ImportError as e:
 plugin = CheckMegaRaidPdPlugin()
 plugin()
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
