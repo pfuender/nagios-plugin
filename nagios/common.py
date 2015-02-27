@@ -11,7 +11,6 @@
 '''
 
 # Standard modules
-import sys
 import os
 import logging
 import pprint
@@ -24,11 +23,11 @@ __license__ = 'GPL3'
 
 log = logging.getLogger(__name__)
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Module variables
 
-#==============================================================================
 
+# =============================================================================
 # Currently the only function
 def pp(value):
     """
@@ -41,8 +40,9 @@ def pp(value):
     pretty_printer = pprint.PrettyPrinter(indent=4)
     return pretty_printer.pformat(value)
 
-#==============================================================================
-def caller_search_path(prepend = None, append = None):
+
+# =============================================================================
+def caller_search_path(prepend=None, append=None):
     """
     Builds a search path for executables from environment $PATH
     including some standard paths.
@@ -102,16 +102,16 @@ def caller_search_path(prepend = None, append = None):
         if not os.path.isdir(d):
             continue
         d_abs = os.path.realpath(d)
-        if not d_abs in path_list:
+        if d_abs not in path_list:
             path_list.append(d_abs)
 
     return path_list
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
