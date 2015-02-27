@@ -13,38 +13,38 @@ import sys
 import logging
 
 try:
-	import configparser as cfgparser
+    import configparser as cfgparser
 except ImportError:
-	import ConfigParser as cfgparser
+    import ConfigParser as cfgparser
 
 # Third party modules
 
 # Own modules
 
-import nagios
 from nagios import BaseNagiosError
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 cfgfile_basenames = ('plugins.ini', 'nagios-plugins.ini')
 nagios_cfgdirs = (
-        '/etc/nagios',
-        '/usr/local/nagios/etc',
-        '/usr/local/etc/nagios',
-        '/etc/opt/nagios',
+    '/etc/nagios',
+    '/usr/local/nagios/etc',
+    '/usr/local/etc/nagios',
+    '/etc/opt/nagios',
 )
 general_cfgdirs = (
-        '/etc',
-        '/usr/local/etc',
-        '/etc/opt',
+    '/etc',
+    '/usr/local/etc',
+    '/etc/opt',
 )
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class NoConfigfileFound(BaseNagiosError):
     """
     Exception class indicating, that no config files are given and no
@@ -54,17 +54,19 @@ class NoConfigfileFound(BaseNagiosError):
     def __str__(self):
         """Typecasting into str with a default message."""
 
-        return ("No configuration files given and no configuration files " +
-                "found on standard locations.")
+        return (
+            "No configuration files given and no configuration files "
+            "found on standard locations.")
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPluginConfig(cfgparser.ConfigParser, object):
     """
     Subclass of ConfigParser with a changed read() method.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, defaults = None, dict_type = None, allow_no_value = False):
+    # -------------------------------------------------------------------------
+    def __init__(self, defaults=None, dict_type=None, allow_no_value=False):
         """
         Constructor
         """
@@ -93,8 +95,8 @@ class NagiosPluginConfig(cfgparser.ConfigParser, object):
         # Note: ConfigParser is an old-style class!! super() doesn't work.
         return cfgparser.ConfigParser.__init__(self, **kwords)
 
-    #--------------------------------------------------------------------------
-    def read(self, filenames = None):
+    # -------------------------------------------------------------------------
+    def read(self, filenames=None):
         """
         Overridden read method of ConfigParser class to search for default
         configuration files, if no filenames are given.
@@ -153,18 +155,18 @@ class NagiosPluginConfig(cfgparser.ConfigParser, object):
         # Note: ConfigParser is an old-style class!! super() doesn't work.
         return cfgparser.ConfigParser.read(self, filenames)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def write(self, fileobject):
         """Wrapper to disallow write operations to configfile."""
 
         raise NotImplementedError("Write access not permitted.")
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
