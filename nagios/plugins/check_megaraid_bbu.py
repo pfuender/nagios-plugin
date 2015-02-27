@@ -114,7 +114,6 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
         super(CheckMegaRaidBBUPlugin, self).__init__(
                 shortname = 'MEGARAID_BBU',
                 usage = usage, blurb = blurb,
-                version = __version__,
         )
 
         self._add_args()

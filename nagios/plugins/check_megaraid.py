@@ -85,13 +85,8 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
         """
 
-        used_version = __version__
-        if version:
-            used_version = str(version) + (' (%s)' % (__version__))
-
         super(CheckMegaRaidPlugin, self).__init__(
                 usage = usage, blurb = blurb, shortname = shortname,
-                version = used_version,
         )
 
         self._adapter_nr = 0
