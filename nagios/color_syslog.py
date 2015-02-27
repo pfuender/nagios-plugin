@@ -10,12 +10,11 @@
           plugin framework
 """
 
-import os
-import sys
 import logging
 import copy
 
-#==============================================================================
+
+# =============================================================================
 # module variables and helper functions
 
 COLOR_CODE = {
@@ -61,12 +60,14 @@ COLOR_CODE = {
     'BLACK':            30,
 }
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def termcode(num):
 
     return '\033[%sm' % (num)
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def colorstr(message, color):
     """
     Wrapper function to colorize the message.
@@ -90,8 +91,8 @@ def colorstr(message, color):
 
     return tcode + message + termcode(COLOR_CODE['ENDC'])
 
-#==============================================================================
 
+# =============================================================================
 class ColoredFormatter(logging.Formatter):
     # A variant of code found at:
     #  http://stackoverflow.com/questions/384076/how-can-i-make-the-python-logging-output-to-be-colored
@@ -104,12 +105,12 @@ class ColoredFormatter(logging.Formatter):
         'CRITICAL': 'RED_BG',
     }
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, msg):
 
         logging.Formatter.__init__(self, msg)
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def color_debug(self):
         """The color used to output debug messages."""
@@ -119,7 +120,7 @@ class ColoredFormatter(logging.Formatter):
     def color_debug(self, value):
         self.LEVEL_COLOR['DEBUG'] = value
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def color_info(self):
         """The color used to output info messages."""
@@ -129,7 +130,7 @@ class ColoredFormatter(logging.Formatter):
     def color_info(self, value):
         self.LEVEL_COLOR['INFO'] = value
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def color_warning(self):
         """The color used to output warning messages."""
@@ -139,7 +140,7 @@ class ColoredFormatter(logging.Formatter):
     def color_warning(self, value):
         self.LEVEL_COLOR['WARNING'] = value
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def color_error(self):
         """The color used to output error messages."""
@@ -149,7 +150,7 @@ class ColoredFormatter(logging.Formatter):
     def color_error(self, value):
         self.LEVEL_COLOR['ERROR'] = value
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def color_critical(self):
         """The color used to output critical messages."""
@@ -159,7 +160,7 @@ class ColoredFormatter(logging.Formatter):
     def color_critical(self, value):
         self.LEVEL_COLOR['CRITICAL'] = value
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def format(self, record):
 
         record = copy.copy(record)
@@ -181,12 +182,12 @@ class ColoredFormatter(logging.Formatter):
 
         return logging.Formatter.format(self, record)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == '__main__':
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
