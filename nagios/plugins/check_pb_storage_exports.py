@@ -122,7 +122,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         super(CheckPbStorageExportsPlugin, self).__init__(
                 shortname = 'PB_STORAGE_EXPORTS',
                 usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
+                timeout = DEFAULT_TIMEOUT,
         )
 
         self._warning = NagiosRange(DEFAULT_WARN_ERRORS)
