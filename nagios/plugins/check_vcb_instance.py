@@ -240,7 +240,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         super(CheckVcbInstancePlugin, self).__init__(
                 shortname = 'VCB_INSTANCE',
                 usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
+                timeout = DEFAULT_TIMEOUT,
         )
 
         self._host_address = None
