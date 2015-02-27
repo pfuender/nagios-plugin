@@ -234,7 +234,7 @@ class CheckPpdInstancePlugin(ExtNagiosPlugin):
         super(CheckPpdInstancePlugin, self).__init__(
                 shortname = 'PPD_INSTANCE',
                 usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
+                timeout = DEFAULT_TIMEOUT,
         )
 
         self._host_address = None
