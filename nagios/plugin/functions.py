@@ -21,9 +21,9 @@ import nagios
 from nagios import FakeExitError
 import collections
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
 ERRORS = {
@@ -45,8 +45,9 @@ _fake_exit = False
 # _use_die flag and accessor/mutator, so exceptions can be raised correctly
 _use_die = False
 
-#------------------------------------------------------------------------------
-def get_shortname(obj = None, plugin = None):
+
+# -----------------------------------------------------------------------------
+def get_shortname(obj=None, plugin=None):
 
     shortname = None
 
@@ -73,7 +74,8 @@ def get_shortname(obj = None, plugin = None):
 
     return shortname
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def max_state(*args):
 
     if nagios.state.critical in args:
@@ -89,7 +91,8 @@ def max_state(*args):
 
     return nagios.state.unknown
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def max_state_alt(*args):
 
     if nagios.state.critical in args:
@@ -105,8 +108,9 @@ def max_state_alt(*args):
 
     return nagios.state.unknown
 
-#------------------------------------------------------------------------------
-def nagios_exit(code, message, plugin_object = None, no_status_line = False):
+
+# -----------------------------------------------------------------------------
+def nagios_exit(code, message, plugin_object=None, no_status_line=False):
 
     # Handle string codes
     if code is not None and code in ERRORS:
@@ -152,21 +156,24 @@ def nagios_exit(code, message, plugin_object = None, no_status_line = False):
 
     return _nagios_exit(code, output)
 
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def _nagios_exit(code, output):
 
     if output:
         print(output)
     sys.exit(code)
 
-#------------------------------------------------------------------------------
-def nagios_die(message, plugin_object = None, no_status_line = False):
 
-    return nagios_exit(nagios.state.unknown, message,
-            plugin_object, no_status_line)
+# -----------------------------------------------------------------------------
+def nagios_die(message, plugin_object=None, no_status_line=False):
 
-#------------------------------------------------------------------------------
-def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
+    return nagios_exit(
+        nagios.state.unknown, message, plugin_object, no_status_line)
+
+
+# -----------------------------------------------------------------------------
+def check_messages(critical, warning, ok=None, join=' ', join_all=False):
     """
     Method to check the given messages and the messages under self.messages
     and to returning an appropriate return code and/or result message.
@@ -244,12 +251,12 @@ def check_messages(critical, warning, ok = None, join = ' ', join_all = False):
 
     return (code, message)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 expandtab
