@@ -84,7 +84,7 @@ class CheckDcmanagerApiPlugin(BaseDcmClientPlugin):
         super(CheckDcmanagerApiPlugin, self).__init__(
                 shortname = 'PB_DCM_API',
                 usage = usage, blurb = blurb,
-                version = __version__, timeout = DEFAULT_TIMEOUT,
+                timeout = DEFAULT_TIMEOUT,
         )
 
         self._warning = NagiosRange(start = 0.0, end = DEFAULT_WARN_TIME)
