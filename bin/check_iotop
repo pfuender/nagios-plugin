@@ -20,13 +20,11 @@ del libdir
 del ndir
 del base_module
 
-import nagios
-
 from nagios.plugins.check_iotop import CheckIotopPlugin
 
 plugin = CheckIotopPlugin()
 plugin()
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
