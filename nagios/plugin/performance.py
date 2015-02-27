@@ -8,11 +8,8 @@
 """
 
 # Standard modules
-import os
-import sys
 import re
 import logging
-import numbers
 
 from numbers import Number
 
@@ -20,20 +17,16 @@ from numbers import Number
 
 # Own modules
 
-import nagios
 from nagios import BaseNagiosError
 
-from nagios.plugin.range import NagiosRangeError
-from nagios.plugin.range import InvalidRangeError
-from nagios.plugin.range import InvalidRangeValueError
 from nagios.plugin.range import NagiosRange
 
 from nagios.plugin.threshold import NagiosThreshold
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 log = logging.getLogger(__name__)
 
@@ -53,14 +46,15 @@ pat_value_neg_inf = pat_value + r'|~'
 pat_perfstring = r"^'?([^'=]+)'?=(" + pat_value + r')([\w%]*);?'
 pat_perfstring += r'(' + pat_value_neg_inf + r'\:?' + pat_value + r'?)?;?'
 pat_perfstring += r'(' + pat_value_neg_inf + r'\:?' + pat_value + r'?)?;?'
-pat_perfstring += r'(' +  pat_value + r'?)?;?'
-pat_perfstring += r'(' +  pat_value + r'?)?'
+pat_perfstring += r'(' + pat_value + r'?)?;?'
+pat_perfstring += r'(' + pat_value + r'?)?'
 
 re_perfstring = re.compile(pat_perfstring)
 
 re_perfoutput = re.compile(r'^(.*?=.*?)\s+')
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPerformanceError(BaseNagiosError):
     """
     Base class for all exception classes and object, raised in this module.
@@ -68,15 +62,17 @@ class NagiosPerformanceError(BaseNagiosError):
 
     pass
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPerformance(object):
     """
     A class for handling nagios.plugin performance data.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, label, value, uom = None, threshold = None,
-            warning = None, critical = None, min_data = None, max_data = None):
+    # -------------------------------------------------------------------------
+    def __init__(
+        self, label, value, uom=None, threshold=None, warning=None, critical=None,
+            min_data=None, max_data=None):
         """
         Initialisation of the NagiosPerformance object.
 
@@ -108,8 +104,8 @@ class NagiosPerformance(object):
         @type: str
         """
         if label is None or self._label == '':
-            raise NagiosPerformanceError(("Empty label %r for " +
-                    "NagiosPerformance given.") % (label))
+            raise NagiosPerformanceError(
+                "Empty label %r for NagiosPerformance given." % (label))
 
         self._value = value
         """
@@ -117,8 +113,8 @@ class NagiosPerformance(object):
         @type: Number
         """
         if not isinstance(value, Number):
-            raise NagiosPerformanceError(("Wrong value %r for " +
-                    "NagiosPerformance given.") % (value))
+            raise NagiosPerformanceError(
+                "Wrong value %r for NagiosPerformance given." % (value))
 
         self._uom = ''
         """
@@ -146,13 +142,13 @@ class NagiosPerformance(object):
         if isinstance(threshold, NagiosThreshold):
             self._threshold = threshold
         elif threshold is not None:
-            raise NagiosPerformanceError(("The given threshold %r " +
-                    "is neither None nor a NagiosThreshold object.") %
-                    (threshold))
+            raise NagiosPerformanceError(
+                "The given threshold %r is neither None nor a NagiosThreshold object." % (
+                    threshold))
         else:
             self._threshold = NagiosThreshold(
-                    warning = warn_range,
-                    critical = crit_range
+                warning=warn_range,
+                critical=crit_range
             )
 
         self._min_data = None
@@ -162,8 +158,8 @@ class NagiosPerformance(object):
         """
         if min_data is not None:
             if not isinstance(min_data, Number):
-                raise NagiosPerformanceError(("The given min_data %r " +
-                        "is not None and not a Number.") % (min_data))
+                raise NagiosPerformanceError(
+                    "The given min_data %r is not None and not a Number." % (min_data))
             else:
                 self._min_data = min_data
 
@@ -174,18 +170,18 @@ class NagiosPerformance(object):
         """
         if max_data is not None:
             if not isinstance(max_data, Number):
-                raise NagiosPerformanceError(("The given max_data %r " +
-                        "is not None and not a Number.") % (max_data))
+                raise NagiosPerformanceError(
+                    "The given max_data %r is not None and not a Number." % (max_data))
             else:
                 self._max_data = max_data
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def label(self):
         """The label of the performance data."""
         return self._label
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def clean_label(self):
         """Returns a "clean" label for use as a dataset name in RRD, ie, it
@@ -201,7 +197,7 @@ class NagiosPerformance(object):
         name = re_not_word.sub('_', name)
         return name
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def rrdlabel(self):
         """Returns a string based on 'label' that is suitable for use as
@@ -210,59 +206,60 @@ class NagiosPerformance(object):
 
         return self.clean_label[0:19]
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def value(self):
         """The value of the performance data."""
         return self._value
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def uom(self):
         """The unit of measure."""
         return self._uom
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def threshold(self):
         """The threshold object containing the warning and the critical threshold."""
         return self._threshold
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def warning(self):
         """The warning threshold for performance data."""
         return self._threshold.warning
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold for performance data."""
         return self._threshold.critical
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def min_data(self):
         """The minimum data for performance output."""
         return self._min_data
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def max_data(self):
         """The maximum data for performance output."""
         return self._max_data
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
-        out = (('<NagiosPerformance(label=%r, value=%r, uom=%r, threshold=%r, ' +
-                'min_data=%r, max_data=%r)>') % (self.label, self.value, self.uom,
-                self.threshold, self.min_data, self.max_data))
+        out = (
+            '<NagiosPerformance(label=%r, value=%r, uom=%r, threshold=%r, '
+            'min_data=%r, max_data=%r)>' % (
+                self.label, self.value, self.uom, self.threshold, self.min_data, self.max_data))
 
         return out
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -273,19 +270,19 @@ class NagiosPerformance(object):
         """
 
         d = {
-                '__class__': self.__class__.__name__,
-                'label': self.label,
-                'value': self.value,
-                'uom': self.uom,
-                'threshold': self.threshold.as_dict(),
-                'min_data': self.min_data,
-                'max_data': self.max_data,
-                'status': self.status(),
+            '__class__': self.__class__.__name__,
+            'label': self.label,
+            'value': self.value,
+            'uom': self.uom,
+            'threshold': self.threshold.as_dict(),
+            'min_data': self.min_data,
+            'max_data': self.max_data,
+            'status': self.status(),
         }
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def status(self):
         """
         Returns the Nagios state of the current value against the thresholds
@@ -297,7 +294,7 @@ class NagiosPerformance(object):
 
         return self.threshold.get_status([self.value])
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     @staticmethod
     def _nvl(value):
         """Map None to ''."""
@@ -306,7 +303,7 @@ class NagiosPerformance(object):
             return ''
         return str(value)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def perfoutput(self):
         """
         Outputs the data in NagiosPlugin perfdata format i.e.
@@ -320,13 +317,13 @@ class NagiosPerformance(object):
             label = "'" + self.label + "'"
 
         out = "%s=%s%s;%s;%s;%s;%s" % (
-                label,
-                self.value,
-                self._nvl(self.uom),
-                self._nvl(self.warning),
-                self._nvl(self.critical),
-                self._nvl(self.min_data),
-                self._nvl(self.max_data),
+            label,
+            self.value,
+            self._nvl(self.uom),
+            self._nvl(self.warning),
+            self._nvl(self.critical),
+            self._nvl(self.min_data),
+            self._nvl(self.max_data),
         )
 
         # omit trailing ;;
@@ -334,7 +331,7 @@ class NagiosPerformance(object):
 
         return out
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     @classmethod
     def _parse(cls, string):
 
@@ -347,13 +344,13 @@ class NagiosPerformance(object):
         log.debug("Found parsed performance output: %r", match.groups())
 
         if match.group(1) is None or match.group(1) == '':
-            log.warn("String %r was not a valid performance output, no label found.",
-                    string)
+            log.warn(
+                "String %r was not a valid performance output, no label found.", string)
             return None
 
         if match.group(2) is None or match.group(2) == '':
-            log.warn("String %r was not a valid performance output, no value found.",
-                    string)
+            log.warn(
+                "String %r was not a valid performance output, no value found.", string)
             return None
 
         info = []
@@ -370,21 +367,21 @@ class NagiosPerformance(object):
                     else:
                         val = int(field)
                 except ValueError as e:
-                    log.warn("Invalid performance value %r found: %s",
-                            field, str(e))
+                    log.warn(
+                        "Invalid performance value %r found: %s", field, str(e))
                     return None
             info.append(val)
             i += 1
 
         log.debug("Found parfdata fields: %r", info)
 
-        obj = cls(label = info[0], value = info[1], uom = info[2],
-                warning = info[3], critical = info[4],
-                min_data = info[5], max_data = info[6])
+        obj = cls(
+            label=info[0], value=info[1], uom=info[2], warning=info[3],
+            critical=info[4], min_data=info[5], max_data=info[6])
 
         return obj
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     @classmethod
     def parse_perfstring(cls, perfstring):
         """
@@ -443,12 +440,12 @@ class NagiosPerformance(object):
         return perfs
 
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et
