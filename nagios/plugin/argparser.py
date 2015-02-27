@@ -32,10 +32,10 @@ from nagios.plugin.functions import nagios_die, nagios_exit
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 log = logging.getLogger(__name__)
 
@@ -49,18 +49,20 @@ http://www.gnu.org/licenses/lgpl).
 default_timeout = 15
 default_verbose = 0
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPluginArgparseError(BaseNagiosError):
     """Special exceptions, which are raised in this module."""
 
     pass
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPluginArgparseAction(argparse.Action):
     """Base class for self defined argparse actions."""
 
-    #--------------------------------------------------------------------------
-    def np_exit(self, parser, messages, state = nagios.state.ok):
+    # -------------------------------------------------------------------------
+    def np_exit(self, parser, messages, state=nagios.state.ok):
         """
         Method to exit as a result of the actions.
 
@@ -75,42 +77,45 @@ class NagiosPluginArgparseAction(argparse.Action):
         if isinstance(messages, str):
             msgs = [msgs]
         msg = "\n".join(msgs)
-        log.debug("Exiting with return value %d and a message %r.",
-                state, msg)
+        log.debug(
+            "Exiting with return value %d and a message %r.", state, msg)
         parser.exit(state, msg)
 
-#==============================================================================
+
+# =============================================================================
 class NpUsageAction(NagiosPluginArgparseAction):
     """Action class to react on the --usage parameter"""
 
-    #--------------------------------------------------------------------------
-    def __call__(self, parser, namespace, values, option_string = None):
+    # -------------------------------------------------------------------------
+    def __call__(self, parser, namespace, values, option_string=None):
 
-        #log.debug('Namespace: %r,  Values: %r, Option string: %r' % (
+        # log.debug('Namespace: %r,  Values: %r, Option string: %r' % (
         #        namespace, values, option_string))
 
         self.np_exit(parser, parser.format_usage())
 
-#==============================================================================
+
+# =============================================================================
 class NpHelpAction(NagiosPluginArgparseAction):
     """Action class to react on the --help parameter"""
 
-    #--------------------------------------------------------------------------
-    def __call__(self, parser, namespace, values, option_string = None):
+    # -------------------------------------------------------------------------
+    def __call__(self, parser, namespace, values, option_string=None):
 
-        #log.debug('Namespace: %r,  Values: %r, Option string: %r' % (
+        # log.debug('Namespace: %r,  Values: %r, Option string: %r' % (
         #        namespace, values, option_string))
 
         self.np_exit(parser, parser.format_help())
 
-#==============================================================================
+
+# =============================================================================
 class NpArgParser(argparse.ArgumentParser):
     """
     Wrapper class to argparse.ArgumentParser to modify the error() and
     the exit() method.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def error(self, message):
         """
         Prints a usage message incorporating the message to stderr and exits.
@@ -123,10 +128,10 @@ class NpArgParser(argparse.ArgumentParser):
         try:
             super(NpArgParser, self).error(message)
         except SystemExit:
-            nagios_die('', no_status_line = True)
+            nagios_die('', no_status_line=True)
 
-    #--------------------------------------------------------------------------
-    def exit(self, status = 0, message = None):
+    # -------------------------------------------------------------------------
+    def exit(self, status=0, message=None):
         """
         Prints a usage message incorporating the message to stderr
         and exits with the given return value.
@@ -142,9 +147,10 @@ class NpArgParser(argparse.ArgumentParser):
         try:
             super(NpArgParser, self).exit(status, message)
         except SystemExit:
-            nagios_exit(status, '', no_status_line = True)
+            nagios_exit(status, '', no_status_line=True)
 
-#==============================================================================
+
+# =============================================================================
 class NagiosPluginArgparse(object):
     """
     A class providing a standardised argument processing for Nagios plugins.
@@ -152,10 +158,11 @@ class NagiosPluginArgparse(object):
 
     pass
 
-    #--------------------------------------------------------------------------
-    def __init__(self, usage, version = nagios.__version__, url = None,
-            blurb = None, licence = lgpl3_licence_text, extra = None,
-            plugin = None, timeout = default_timeout):
+    # -------------------------------------------------------------------------
+    def __init__(
+        self, usage, version=nagios.__version__, url=None,
+            blurb=None, licence=lgpl3_licence_text, extra=None,
+            plugin=None, timeout=default_timeout):
         """
         Constructor of the NagiosPluginArgparse class.
 
@@ -271,8 +278,8 @@ class NagiosPluginArgparse(object):
             if to > 0:
                 self._timeout = to
             else:
-                raise ValueError("Wrong timout %r given, must be > 0." % (
-                        timeout))
+                raise ValueError(
+                    "Wrong timout %r given, must be > 0." % (timeout))
 
         self.args = Namespace()
         """
@@ -287,7 +294,7 @@ class NagiosPluginArgparse(object):
         """
 
         self._used_arg_dests = [
-                'usage', 'help', 'version', 'extra_opts', 'timeout', 'verbose'
+            'usage', 'help', 'version', 'extra_opts', 'timeout', 'verbose'
         ]
         """
         @ivar: all currently used argument destinations.
@@ -300,84 +307,84 @@ class NagiosPluginArgparse(object):
         @type: bool
         """
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def usage(self):
         """Short usage message."""
         return self._usage
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def version(self):
         """Plugin version number."""
         return self._version
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def url(self):
         """URL for info about this plugin."""
         return self._url
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def blurb(self):
         """Short plugin description."""
         return self._blurb
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def licence(self):
         """The licence text."""
         return self._licence
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def extra(self):
         """Extra text to be appended at the end of the --help output."""
         return self._extra
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def plugin(self):
         """The name of the plugin."""
         return self._plugin
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def timeout(self):
         """The timeout period in seconds."""
         return self._timeout
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def has_parsed(self):
         """A flag indicating, that the method parse_args() was even called."""
         return self._has_parsed
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _exit(self, status, messages):
 
         msgs = messages
         if isinstance(messages, str):
             msgs = [msgs]
         msg = "\n".join(msgs)
-        nagios_exit(status, msg, no_status_line = True)
+        nagios_exit(status, msg, no_status_line=True)
 
-    #--------------------------------------------------------------------------
-    def _die(self, messages = None):
+    # -------------------------------------------------------------------------
+    def _die(self, messages=None):
 
         if not messages:
             messages = []
         self._exit(nagios.state.unknown, messages)
 
-    #--------------------------------------------------------------------------
-    def _finish(self, messages = None):
+    # -------------------------------------------------------------------------
+    def _finish(self, messages=None):
 
         if not messages:
             messages = []
         self._exit(nagios.state.ok, messages)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -388,24 +395,24 @@ class NagiosPluginArgparse(object):
         """
 
         d = {
-                '__class__': self.__class__.__name__,
-                'usage': self.usage,
-                'version': self.version,
-                'url': self.url,
-                'blurb': self.blurb,
-                'licence': self.licence,
-                'extra': self.extra,
-                'plugin': self.plugin,
-                'timeout': self.timeout,
-                'args': self.args,
-                'arguments': self.arguments,
-                'has_parsed': self.has_parsed,
-                '_used_arg_dests': self._used_arg_dests,
+            '__class__': self.__class__.__name__,
+            'usage': self.usage,
+            'version': self.version,
+            'url': self.url,
+            'blurb': self.blurb,
+            'licence': self.licence,
+            'extra': self.extra,
+            'plugin': self.plugin,
+            'timeout': self.timeout,
+            'args': self.args,
+            'arguments': self.arguments,
+            'has_parsed': self.has_parsed,
+            '_used_arg_dests': self._used_arg_dests,
         }
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting function for translating object structure into a string.
@@ -415,10 +422,10 @@ class NagiosPluginArgparse(object):
 
         """
 
-        pretty_printer = pprint.PrettyPrinter(indent = 4)
+        pretty_printer = pprint.PrettyPrinter(indent=4)
         return pretty_printer.pformat(self.as_dict())
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _get_version_str(self):
 
         out = "%s %s" % (self.plugin, self.version)
@@ -426,7 +433,7 @@ class NagiosPluginArgparse(object):
             out += " [%s]" % (self.url)
         return out
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
@@ -449,8 +456,8 @@ class NagiosPluginArgparse(object):
         out += ", ".join(fields) + ")>"
         return out
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Provides the main parsing functionality. Convert argument strings to
         objects and assign them as attributes of self.args.
@@ -468,10 +475,10 @@ class NagiosPluginArgparse(object):
         width -= 2
 
         wrapper = textwrap.TextWrapper(
-                width = width,
-                replace_whitespace = False,
-                fix_sentence_endings = False,
-                break_long_words = False,
+            width=width,
+            replace_whitespace=False,
+            fix_sentence_endings=False,
+            break_long_words=False,
         )
         re_ws = re.compile(r'\s+')
 
@@ -484,12 +491,12 @@ class NagiosPluginArgparse(object):
             epilog += wrapper.fill(re_ws.sub(' ', self.licence))
 
         parser = NpArgParser(
-                prog = self.plugin,
-                usage = self.usage,
-                description = desc,
-                epilog = epilog,
-                add_help = False,
-                formatter_class = argparse.RawDescriptionHelpFormatter,
+            prog=self.plugin,
+            usage=self.usage,
+            description=desc,
+            epilog=epilog,
+            add_help=False,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
         )
 
         self._add_plugin_args(parser)
@@ -518,8 +525,8 @@ class NagiosPluginArgparse(object):
                 required = arg['kwargs']['required']
                 if required:
                     val = getattr(self.args, dest, None)
-                    log.debug("Checking for required argument %r, current value is %r.",
-                            dest, val)
+                    log.debug(
+                        "Checking for required argument %r, current value is %r.", dest, val)
                     if not hasattr(self.args, dest) or getattr(self.args, dest, None) is None:
                         arg_str = '/'.join(arg['names'])
                         msg = "Argument %r is a required argument." % (arg_str)
@@ -528,7 +535,7 @@ class NagiosPluginArgparse(object):
 
         self._has_parsed = True
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _process_extra_opts(self, args, extra_opts):
         """
         Process and load extra-opts sections.
@@ -571,7 +578,7 @@ class NagiosPluginArgparse(object):
 
         return s_args + nargs
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _cmdline(self, ini_opts):
         """
         Helper method to format key/values in ini_opts in a quasi-commandline format
@@ -580,8 +587,8 @@ class NagiosPluginArgparse(object):
         args = []
         re_underscore = re.compile(r'^_')
         re_any_us = re.compile(r'_')
-        re_valid_key = re.compile(r'^[a-z0-9](?:[a-z0-9\-_]*[a-z0-9_])?$',
-                re.IGNORECASE)
+        re_valid_key = re.compile(
+            r'^[a-z0-9](?:[a-z0-9\-_]*[a-z0-9_])?$', re.IGNORECASE)
 
         for key in ini_opts:
 
@@ -589,7 +596,8 @@ class NagiosPluginArgparse(object):
             if re_underscore.search(key):
                 continue
 
-            if lkey in ('usage', '?', 'help', 'h', 'version', 'v', 'extra-opts',
+            if lkey in (
+                    'usage', '?', 'help', 'h', 'version', 'v', 'extra-opts',
                     'timeout', 't', 'verbose'):
                 continue
 
@@ -598,8 +606,8 @@ class NagiosPluginArgparse(object):
                 continue
 
             if not re_valid_key.search(key):
-                log.warn("Invalid key %r for usage as commandline parameter found.",
-                        key)
+                log.warn(
+                    "Invalid key %r for usage as commandline parameter found.", key)
                 continue
 
             if len(key) > 1:
@@ -611,16 +619,16 @@ class NagiosPluginArgparse(object):
 
         return args
 
-    #--------------------------------------------------------------------------
-    def _load_config_section(self, section, cfg_file = None):
+    # -------------------------------------------------------------------------
+    def _load_config_section(self, section, cfg_file=None):
         """Loads the given section from the given ini-file or from the first
             found default ini-file."""
 
         if not section:
             section = self.plugin
 
-        log.debug("Trying to load extra options from section %r of file %r.",
-                section, cfg_file)
+        log.debug(
+            "Trying to load extra options from section %r of file %r.", section, cfg_file)
 
         cfg = NagiosPluginConfig()
         configs = []
@@ -636,9 +644,9 @@ class NagiosPluginArgparse(object):
         else:
             configs_str = '<None>'
 
-        if not section in cfg.sections():
-            log.debug("Section %r not found in ini-files %s.",
-                     section, configs_str)
+        if section not in cfg.sections():
+            log.debug(
+                "Section %r not found in ini-files %s.", section, configs_str)
             return {}
 
         ini_opts = {}
@@ -649,7 +657,7 @@ class NagiosPluginArgparse(object):
 
         return ini_opts
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def add_arg(self, *names, **kwargs):
         """
         Adds a new plugin argument to the parser.
@@ -671,13 +679,13 @@ class NagiosPluginArgparse(object):
             raise NagiosPluginArgparseError(msg)
 
         valid_kwargs = (
-                'action', 'nargs', 'const', 'default', 'type', 'choices', 'required',
-                'help', 'metavar', 'dest',
+            'action', 'nargs', 'const', 'default', 'type', 'choices', 'required',
+            'help', 'metavar', 'dest',
         )
 
-        if not 'dest' in kwargs:
-            msg = ("The keyword 'dest' is a required argument in " +
-                    "calling add_arg().")
+        if 'dest' not in kwargs:
+            msg = (
+                "The keyword 'dest' is a required argument in calling add_arg().")
             raise NagiosPluginArgparseError(msg)
 
         dest = kwargs['dest']
@@ -690,9 +698,9 @@ class NagiosPluginArgparse(object):
             del kwargs['dest']
 
         for kword in kwargs:
-            if not kword in valid_kwargs:
-                msg = ("Invalid keyword argument %r on calling add_arg() " +
-                        "used.") % (kword)
+            if kword not in valid_kwargs:
+                msg = (
+                    "Invalid keyword argument %r on calling add_arg() used.") % (kword)
                 raise NagiosPluginArgparseError(msg)
 
         arg = {}
@@ -701,7 +709,7 @@ class NagiosPluginArgparse(object):
 
         self.arguments.append(arg)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_plugin_args(self, parser):
 
         for arg in self.arguments:
@@ -719,64 +727,63 @@ class NagiosPluginArgparse(object):
             if o_req is not None:
                 kwargs['required'] = o_req
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_std_args(self, parser):
 
         std_group = parser.add_argument_group('General options')
 
         std_group.add_argument(
-                '--usage', '-?',
-                action = NpUsageAction,
-                nargs = '?',
-                dest = 'usage',
-                help = 'Print usage information',
+            '--usage', '-?',
+            action=NpUsageAction,
+            nargs='?',
+            dest='usage',
+            help='Print usage information',
         )
 
         std_group.add_argument(
-                '--help', '-h',
-                action = NpHelpAction,
-                nargs = '?',
-                dest = 'help',
-                help = 'Print detailed help screen',
+            '--help', '-h',
+            action=NpHelpAction,
+            nargs='?',
+            dest='help',
+            help='Print detailed help screen',
         )
 
         std_group.add_argument(
-                '--version', '-V',
-                action = 'version',
-                version = self._get_version_str(),
-                dest = 'version',
-                help = 'Print version information',
+            '--version', '-V',
+            action='version',
+            version=self._get_version_str(),
+            dest='version',
+            help='Print version information',
         )
 
         std_group.add_argument(
-                '--extra-opts',
-                action = 'append',
-                dest = 'extra_opts',
-                nargs = '?',
-                metavar = '[section][@file]',
-                help = ('Read options from an ini file. See ' +
-                        'http://nagiosplugins.org/extra-opts for ' +
-                        'usage and examples.')
+            '--extra-opts',
+            action='append',
+            dest='extra_opts',
+            nargs='?',
+            metavar='[section][@file]',
+            help=(
+                'Read options from an ini file. See http://nagiosplugins.org/extra-opts '
+                'for usage and examples.')
         )
 
         std_group.add_argument(
-                '--timeout', '-t',
-                type = int,
-                dest = 'timeout',
-                default = self.timeout,
-                help = 'Seconds before plugin times out (default: %(default)s)',
+            '--timeout', '-t',
+            type=int,
+            dest='timeout',
+            default=self.timeout,
+            help='Seconds before plugin times out (default: %(default)s)',
         )
 
         std_group.add_argument(
-                '--verbose', '-v',
-                action = 'count',
-                dest = 'verbose',
-                default = default_verbose,
-                help = ('Show details for command-line debugging ' +
-                        '(can repeat up to 3 times)'),
+            '--verbose', '-v',
+            action='count',
+            dest='verbose',
+            default=default_verbose,
+            help=('Show details for command-line debugging (can repeat up to 3 times)'),
         )
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
@@ -819,14 +826,15 @@ if __name__ == "__main__":
     root_log.addHandler(lh_console)
 
     na = NagiosPluginArgparse(
-            usage = '%(prog)s --hello',
-            url = 'http://www.profitbricks.com',
-            blurb = 'Senseless sample Nagios plugin.',
-            extra = 'Bla blub',
+        usage='%(prog)s --hello',
+        url='http://www.profitbricks.com',
+        blurb='Senseless sample Nagios plugin.',
+        extra='Bla blub',
     )
 
-    na.add_arg('-H', '--hello', action = 'store_true',
-            dest = 'hello', help = "Prints out 'Hello world!'")
+    na.add_arg(
+        '-H', '--hello', action='store_true',
+        dest='hello', help="Prints out 'Hello world!'")
 
     log.debug("NagiosPluginArgparse object: %r", na)
     log.debug("NagiosPluginArgparse object: %s", str(na))
@@ -836,6 +844,6 @@ if __name__ == "__main__":
         print("Hello world!")
     sys.exit(0)
 
-#==============================================================================
+# =============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et
