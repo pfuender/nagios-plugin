@@ -11,52 +11,32 @@
 # Standard modules
 import os
 import sys
-import re
 import logging
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
-
-try:
-    import configparser as cfgparser
-except ImportError:
-    import ConfigParser as cfgparser
-
 
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
+from nagios.common import pp
 
 from nagios.plugin import NagiosPluginError
 
 from nagios.plugin.argparser import lgpl3_licence_text, default_timeout
 
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
 from nagios.plugin.config import NoConfigfileFound
 from nagios.plugin.config import NagiosPluginConfig
 
 from dcmanagerclient.client import DEFAULT_CFG_FILES, DEFAULT_API_URL
-from dcmanagerclient.client import RestApi, RestApiError
+from dcmanagerclient.client import RestApi
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_TIMEOUT = 60
@@ -68,13 +48,14 @@ BACKUP_LV = 'zzz_backup'
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class FunctionNotImplementedError(NagiosPluginError, NotImplementedError):
     """
     Error class for not implemented functions.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, function_name, class_name):
         """
         Constructor.
@@ -94,7 +75,7 @@ class FunctionNotImplementedError(NagiosPluginError, NotImplementedError):
         if not class_name:
             self.class_name = '__unkown_class__'
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting into a string for error output.
@@ -104,19 +85,19 @@ class FunctionNotImplementedError(NagiosPluginError, NotImplementedError):
         return msg % {'func': self.function_name, 'cls': self.class_name}
 
 
-#==============================================================================
+# =============================================================================
 class BaseDcmClientPlugin(ExtNagiosPlugin):
     """
     A base Nagios/Icinga plugin class for checks in conjunction
     with the DcManager-Client.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, usage = None, shortname = None,
-            version = nagios.__version__, url = None, blurb = None,
-            licence = lgpl3_licence_text, extra = None, plugin = None,
-            timeout = default_timeout, verbose = 0, prepend_searchpath = None,
-            append_searchpath = None):
+    # -------------------------------------------------------------------------
+    def __init__(
+        self, usage=None, shortname=None, version=nagios.__version__, url=None,
+            blurb=None, licence=lgpl3_licence_text, extra=None, plugin=None,
+            timeout=default_timeout, verbose=0, prepend_searchpath=None,
+            append_searchpath=None):
         """
         Constructor of the BaseDcmClientPlugin class.
 
@@ -167,18 +148,18 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         """
 
         super(BaseDcmClientPlugin, self).__init__(
-                usage = usage,
-                shortname = shortname,
-                version = version,
-                url = url,
-                blurb = blurb,
-                licence = licence,
-                extra = extra,
-                plugin = plugin,
-                timeout = timeout,
-                verbose = verbose,
-                prepend_searchpath = prepend_searchpath,
-                append_searchpath = append_searchpath,
+            usage=usage,
+            shortname=shortname,
+            version=version,
+            url=url,
+            blurb=blurb,
+            licence=licence,
+            extra=extra,
+            plugin=plugin,
+            timeout=timeout,
+            verbose=verbose,
+            prepend_searchpath=prepend_searchpath,
+            append_searchpath=append_searchpath,
         )
 
         self.api = None
@@ -189,7 +170,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         self.add_args()
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -207,31 +188,32 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                '-E', '--extra-config-file', '--dcm-conf',
-                dest = 'extra_config_file',
-                metavar = 'FILE',
-                help = (("An extra configuration file, which overrides the " +
-                        "settings from the standard configuration files %r and " +
-                        "from environment.") % (DEFAULT_CFG_FILES,)),
+            '-E', '--extra-config-file', '--dcm-conf',
+            dest='extra_config_file',
+            metavar='FILE',
+            help=(
+                ("An extra configuration file, which overrides the settings from "
+                    "the standard configuration files %r and from environment.") % (
+                    DEFAULT_CFG_FILES,)),
         )
 
         self.add_arg(
-                '--api-url',
-                dest = "api_url",
-                metavar = 'URL',
-                help = ("The URL of the REST API (Default: %(default)r)." % {
-                        'default': DEFAULT_API_URL}),
+            '--api-url',
+            dest="api_url",
+            metavar='URL',
+            help=("The URL of the REST API (Default: %(default)r)." % {
+                'default': DEFAULT_API_URL}),
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -243,7 +225,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         super(BaseDcmClientPlugin, self).parse_args(args)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def parse_args_second(self):
         """
         Dummy function to evaluate command line parameters after evaluating
@@ -255,7 +237,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         return
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _read_config(self):
         """
         Read configuration from an optional configuration file.
@@ -273,7 +255,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
             log.debug("Read configuration:\n%s", pp(cfg.__dict__))
         self.read_config(cfg)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def read_config(self, cfg):
         """
         Read configuration from an already read in configuration file.
@@ -286,7 +268,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
         return
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -302,9 +284,9 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
             log.debug("Creating REST API client object ...")
             self.api = RestApi.from_config(
-                    extra_config_file = self.argparser.args.extra_config_file,
-                    api_url = self.argparser.args.api_url,
-                    timeout = self.timeout,
+                extra_config_file=self.argparser.args.extra_config_file,
+                api_url=self.argparser.args.api_url,
+                timeout=self.timeout,
             )
 
             if self.verbose > 2:
@@ -323,7 +305,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
 
             self.exit(state, out)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def pre_run(self):
         """
         Dummy function to run before the main routine.
@@ -334,7 +316,7 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("executing pre_run() ...")
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def run(self):
         """
         Dummy function as main routine.
@@ -346,12 +328,12 @@ class BaseDcmClientPlugin(ExtNagiosPlugin):
         raise FunctionNotImplementedError('_run()', self.__class__.__name__)
 
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et sw=4
