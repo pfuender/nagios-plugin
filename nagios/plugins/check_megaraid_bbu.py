@@ -9,43 +9,25 @@
 """
 
 # Standard modules
-import os
-import sys
 import re
 import logging
 import textwrap
-
-from numbers import Number
 
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
-
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
 
 from nagios.plugin.functions import max_state
-
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
-from nagios.plugin.extended import ExtNagiosPlugin
 
 import nagios.plugins.check_megaraid
 from nagios.plugins.check_megaraid import CheckMegaRaidPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 log = logging.getLogger(__name__)
 
@@ -88,14 +70,15 @@ Exit Code: 0x00
 
 '''
 
-#==============================================================================
+
+# =============================================================================
 class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
     """
     A special NagiosPlugin class for checking the state of the BBU of a
     LSI MegaRaid adapter.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckMegaRaidBBUPlugin class.
@@ -112,13 +95,13 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
         blurb += "Checks the state of the BBU of a LSI MegaRaid adapter."
 
         super(CheckMegaRaidBBUPlugin, self).__init__(
-                shortname = 'MEGARAID_BBU',
-                usage = usage, blurb = blurb,
+            shortname='MEGARAID_BBU',
+            usage=usage, blurb=blurb,
         )
 
         self._add_args()
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -130,11 +113,11 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
 
         d = super(CheckMegaRaidBBUPlugin, self).as_dict()
 
-        #d['adapter_nr'] = self.adapter_nr
+        # d['adapter_nr'] = self.adapter_nr
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def call(self):
         """
         Method to call the plugin directly.
@@ -153,13 +136,20 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
         re_lc_tout = re.compile(r'^\s*Learn\s+Cycle\s+Timeout\s*:\s+(\S+)', re.IGNORECASE)
         re_i2c_err = re.compile(r'^\s*I2c\s+Errors\s+Detected\s*:\s+(\S+)', re.IGNORECASE)
         re_bbu_miss = re.compile(r'^\s*Battery\s+Pack\s+Missing\s*:\s+(\S+)', re.IGNORECASE)
-        re_bbu_replace = re.compile(r'^\s*Battery\s+Replacement\s+required\s*:\s+(\S+)', re.IGNORECASE)
-        re_capac_low = re.compile(r'^\s*Remaining\s+Capacity\s+Low\s*:\s+(\S+)', re.IGNORECASE)
-        re_per_learn = re.compile(r'^\s*Periodic\s+Learn\s+Required\s*:\s+(\S+)', re.IGNORECASE)
-        re_trans_learn = re.compile(r'^\s*Transparent\s+Learn\s*:\s+(\S+)', re.IGNORECASE)
-        re_no_space = re.compile(r'^\s*No\s+space\s+to\s+cache\s+offload\s*:\s+(\S+)', re.IGNORECASE)
-        re_pack_fail = re.compile(r'^\s*Pack\s+is\s+about\s+to\s+fail\s+.*:\s+(\S+)', re.IGNORECASE)
-        re_micro_upd = re.compile(r'^\s*Module\s+microcode\s+update\s+required\s*:\s+(\S+)', re.IGNORECASE)
+        re_bbu_replace = re.compile(
+            r'^\s*Battery\s+Replacement\s+required\s*:\s+(\S+)', re.IGNORECASE)
+        re_capac_low = re.compile(
+            r'^\s*Remaining\s+Capacity\s+Low\s*:\s+(\S+)', re.IGNORECASE)
+        re_per_learn = re.compile(
+            r'^\s*Periodic\s+Learn\s+Required\s*:\s+(\S+)', re.IGNORECASE)
+        re_trans_learn = re.compile(
+            r'^\s*Transparent\s+Learn\s*:\s+(\S+)', re.IGNORECASE)
+        re_no_space = re.compile(
+            r'^\s*No\s+space\s+to\s+cache\s+offload\s*:\s+(\S+)', re.IGNORECASE)
+        re_pack_fail = re.compile(
+            r'^\s*Pack\s+is\s+about\s+to\s+fail\s+.*:\s+(\S+)', re.IGNORECASE)
+        re_micro_upd = re.compile(
+            r'^\s*Module\s+microcode\s+update\s+required\s*:\s+(\S+)', re.IGNORECASE)
 
         args = ('-AdpBbuCmd', '-GetBbuStatus')
         (stdoutdata, stderrdata, ret, exit_code) = self.megacli(args)
@@ -187,7 +177,7 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
         for line in stdoutdata.splitlines():
 
             line = line.strip()
-            
+
             match = re_batt_type.search(line)
             if match:
                 batt_type = match.group(1)
@@ -345,17 +335,17 @@ class CheckMegaRaidBBUPlugin(CheckMegaRaidPlugin):
             add_info = '; ' + ', '.join(add_infos)
 
         out = "State of BBU of MegaRaid adapter %d (type %s): %s%s" % (
-                self.adapter_nr, batt_type, batt_state, add_info)
+            self.adapter_nr, batt_type, batt_state, add_info)
 
         self.exit(state, out)
 
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
