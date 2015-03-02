@@ -8,9 +8,6 @@
 """
 
 # Standard modules
-import os
-import sys
-import re
 import logging
 
 from numbers import Number
@@ -20,31 +17,24 @@ from numbers import Number
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
-
-from nagios.plugin.range import NagiosRangeError
-from nagios.plugin.range import InvalidRangeError
-from nagios.plugin.range import InvalidRangeValueError
 from nagios.plugin.range import NagiosRange
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class NagiosThreshold(object):
     """
     Encapsulation of a Nagios threshold, how used by some Nagios plugins.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self,
-            warning = None,
-            critical = None,
-            ):
+    # -------------------------------------------------------------------------
+    def __init__(self, warning=None, critical=None):
         """
         Initialisation of the NagiosThreshold object.
 
@@ -67,10 +57,9 @@ class NagiosThreshold(object):
         @type: NagiosRange
         """
 
-        self.set_thresholds(
-                warning = warning, critical = critical)
+        self.set_thresholds(warning=warning, critical=critical)
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def warning(self):
         """The warning threshold."""
@@ -78,8 +67,8 @@ class NagiosThreshold(object):
 
     @warning.setter
     def warning(self, value):
-        if value is None or (isinstance(value, str) and
-                value == ''):
+        if value is None or (
+                isinstance(value, str) and value == ''):
             self._warning = NagiosRange()
             return
 
@@ -94,7 +83,7 @@ class NagiosThreshold(object):
 
         self._warning = NagiosRange(value)
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold."""
@@ -102,8 +91,8 @@ class NagiosThreshold(object):
 
     @critical.setter
     def critical(self, value):
-        if value is None or (isinstance(value, str) and
-                value == ''):
+        if value is None or (
+                isinstance(value, str) and value == ''):
             self._critical = NagiosRange()
             return
 
@@ -118,7 +107,7 @@ class NagiosThreshold(object):
 
         self._critical = NagiosRange(value)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -129,9 +118,9 @@ class NagiosThreshold(object):
         """
 
         d = {
-                '__class__': self.__class__.__name__,
-                'warning': None,
-                'critical': None,
+            '__class__': self.__class__.__name__,
+            'warning': None,
+            'critical': None,
         }
 
         if self.warning:
@@ -142,17 +131,17 @@ class NagiosThreshold(object):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
         out = '<NagiosThreshold(warning=%r, critical=%r)>' % (
-                self.warning, self.critical)
+            self.warning, self.critical)
 
         return out
 
-    #--------------------------------------------------------------------------
-    def set_thresholds(self, warning = None, critical = None):
+    # -------------------------------------------------------------------------
+    def set_thresholds(self, warning=None, critical=None):
         """
         Re-Initialisation of the NagiosThreshold object.
 
@@ -166,7 +155,7 @@ class NagiosThreshold(object):
         self.warning = warning
         self.critical = critical
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_status(self, values):
         """
         Checks the given values against the critical and the warning range.
@@ -185,22 +174,22 @@ class NagiosThreshold(object):
 
         if self.critical.initialized:
             for value in values:
-                if not value in self.critical:
+                if value not in self.critical:
                     return nagios.state.critical
 
         if self.warning.initialized:
             for value in values:
-                if not value in self.warning:
+                if value not in self.warning:
                     return nagios.state.warning
 
         return nagios.state.ok
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et
