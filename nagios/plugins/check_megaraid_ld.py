@@ -9,50 +9,33 @@
 """
 
 # Standard modules
-import os
-import sys
 import re
 import logging
 import textwrap
-
-from numbers import Number
 
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
-
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
 
 from nagios.plugin.functions import max_state
 
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
-from nagios.plugin.extended import ExtNagiosPlugin
 
 import nagios.plugins.check_megaraid
 from nagios.plugins.check_megaraid import CheckMegaRaidPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 log = logging.getLogger(__name__)
 
 # Example output
 """
 0 storage208:~ # megacli -LdInfo -L 0 -a0
-                                     
+
 
 Adapter 0 -- Virtual Drive Information:
 Virtual Drive: 0 (Target Id: 0)
@@ -80,7 +63,7 @@ Is VD Cached: No
 
 Exit Code: 0x00
 0 storage208:~ # megacli -LdInfo -L 3 -a0
-                                     
+
 
 Adapter 0 -- Virtual Drive Information:
 Virtual Drive: 3 (Target Id: 3)
@@ -110,14 +93,15 @@ Cache Cade Type : Read Only
 Exit Code: 0x00
 """
 
-#==============================================================================
+
+# =============================================================================
 class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
     """
     A special NagiosPlugin class for checking the state of a Logical Drive of a
     LSI MegaRaid adapter.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckMegaRaidLdPlugin class.
@@ -134,9 +118,9 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
         blurb += "Checks the state of a Logical Drive of a LSI MegaRaid adapter."
 
         super(CheckMegaRaidLdPlugin, self).__init__(
-                shortname = 'MEGARAID_LD',
-                usage = usage, blurb = blurb,
-                version = __version__,
+            shortname='MEGARAID_LD',
+            usage=usage, blurb=blurb,
+            version=__version__,
         )
 
         self._ld_number = None
@@ -160,19 +144,19 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def ld_number(self):
         """The number of the Logical Drive to check."""
         return self._ld_number
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def cached(self):
         """Checking, whether the LD is cached by CacheCade."""
         return self._cached
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def warn_on_consistency_check(self):
         """
@@ -181,7 +165,7 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
         """
         return self._warn_on_consistency_check
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -199,40 +183,41 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                '-l', '--ld-nr',
-                metavar = 'NR',
-                dest = 'ld_nr',
-                required = True,
-                type = int,
-                help = "The number of the Logical Drive to check (mandantory).",
+            '-l', '--ld-nr',
+            metavar='NR',
+            dest='ld_nr',
+            required=True,
+            type=int,
+            help="The number of the Logical Drive to check (mandantory).",
         )
 
         self.add_arg(
-                '--cached',
-                action = 'store_true',
-                dest = 'cached',
-                help = "Checking, whether the LD is cached by CacheCade.",
+            '--cached',
+            action='store_true',
+            dest='cached',
+            help="Checking, whether the LD is cached by CacheCade.",
         )
 
         self.add_arg(
-                '-W', '--warn_on_consistency_check',
-                action = 'store_true',
-                dest = 'wocc',
-                help = ('Emit a warning, if there is currently a consitency ' +
-                        'check on this logical drive.'),
+            '-W', '--warn_on_consistency_check',
+            action='store_true',
+            dest='wocc',
+            help=(
+                'Emit a warning, if there is currently a '
+                'consitency check on this logical drive.'),
         )
 
         super(CheckMegaRaidLdPlugin, self)._add_args()
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -253,8 +238,7 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
         if self.argparser.args.wocc:
             self._warn_on_consistency_check = True
 
-
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def call(self):
         """
         Method to call the plugin directly.
@@ -262,31 +246,32 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
 
         state = nagios.state.ok
         out = "LD %d of MegaRaid adapter %d seems to be okay." % (
-                self.ld_number, self.adapter_nr)
+            self.ld_number, self.adapter_nr)
 
         # Adapter 0: Virtual Drive 55 Does not Exist.
-        re_not_exists = re.compile(r'^.*Virtual\s+Drive\s+\d+\s+Does\s+not\s+Exist\.',
-                re.IGNORECASE)
+        re_not_exists = re.compile(
+            r'^.*Virtual\s+Drive\s+\d+\s+Does\s+not\s+Exist\.', re.IGNORECASE)
         # RAID Level          : Primary-1, Secondary-0, RAID Level Qualifier-0
-        re_raid_level = re.compile(r'^\s*RAID\s+Level\s*:\s+Primary-(\d+)',
-                re.IGNORECASE)
+        re_raid_level = re.compile(
+            r'^\s*RAID\s+Level\s*:\s+Primary-(\d+)', re.IGNORECASE)
         # Size                : 2.728 TB
-        re_size = re.compile(r'^\s*Size\s*:\s+(\d+(?:\.\d*)?)\s*(\S+)?',
-                re.IGNORECASE)
+        re_size = re.compile(
+            r'^\s*Size\s*:\s+(\d+(?:\.\d*)?)\s*(\S+)?', re.IGNORECASE)
         # State               : Optimal
         re_state = re.compile(r'^\s*State\s*:\s+(\S+)', re.IGNORECASE)
-        #Number Of Drives    : 2
-        re_number = re.compile(r'^\s*Number\s+Of\s+Drives\s*:\s+(\d+)',
-                re.IGNORECASE)
+        # Number Of Drives    : 2
+        re_number = re.compile(
+            r'^\s*Number\s+Of\s+Drives\s*:\s+(\d+)', re.IGNORECASE)
         # Span Depth          : 1
         re_span = re.compile(r'^\s*Span\s+Depth\s*:\s+(\d+)', re.IGNORECASE)
         # Is VD Cached: Yes
         # Is VD Cached: No
-        re_cached = re.compile(r'^\s*Is\s+VD\s+Cached\s*:\s+(\S+)',
-                re.IGNORECASE)
+        re_cached = re.compile(
+            r'^\s*Is\s+VD\s+Cached\s*:\s+(\S+)', re.IGNORECASE)
         # Check Consistency: Completed 95%, Taken 8 min
-        re_consist = re.compile(r'Check\s+Consistency\s*:\s+Completed\s+(\d+)%,\s+Taken\s+(\d+)\s*min',
-                re.IGNORECASE)
+        re_consist = re.compile(
+            r'Check\s+Consistency\s*:\s+Completed\s+(\d+)%,\s+Taken\s+(\d+)\s*min',
+            re.IGNORECASE)
 
         raid_level = None
         size_val = None
@@ -346,7 +331,6 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
                 consist_percent = int(match.group(1))
                 consist_min = int(match.group(2))
 
-
         if exit_code:
             state = nagios.state.critical
         elif not ld_state:
@@ -360,13 +344,13 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
             if self.warn_on_consistency_check:
                 state = max_state(state, nagios.state.warning)
             consistency_out = ", consistency check completed: %d%%, taken %d min." % (
-                    consist_percent, consist_min)
+                consist_percent, consist_min)
 
         cached_out = ', cached: No'
         if ld_cached:
             cached_out = ', cached: %s' % (ld_cached)
         if self.cached:
-           if not ld_cached or ld_cached.lower() != 'yes':
+            if not ld_cached or ld_cached.lower() != 'yes':
                 state = max_state(state, nagios.state.warning)
 
         pd_count = 9999
@@ -385,17 +369,17 @@ class CheckMegaRaidLdPlugin(CheckMegaRaidPlugin):
                 size_out = ', %s' % (str(size_val))
 
         out = "State of LD %d of MegaRaid adapter %d (RAID-%d, %d drives%s%s%s): %s." % (
-                self.ld_number, self.adapter_nr, raid_level, pd_count,
-                size_out, cached_out, consistency_out, ld_state)
+            self.ld_number, self.adapter_nr, raid_level, pd_count,
+            size_out, cached_out, consistency_out, ld_state)
 
         self.exit(state, out)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
