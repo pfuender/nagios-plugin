@@ -9,56 +9,40 @@
 """
 
 # Standard modules
-import os
-import sys
 import re
 import logging
 import textwrap
-
-from numbers import Number
 
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
-
-from nagios.common import pp, caller_search_path
 
 import nagios.plugin
-from nagios.plugin import NagiosPluginError
 
 import nagios.plugin.functions
 from nagios.plugin.functions import max_state
 
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
-from nagios.plugin.extended import ExtNagiosPlugin
-
 import nagios.plugins.check_megaraid
 from nagios.plugins.check_megaraid import CheckMegaRaidPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
     """
     A special NagiosPlugin class for checking the state of physical drives
     a LSI MegaRaid adapter.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckMegaRaidPdPlugin class.
@@ -75,9 +59,9 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
         blurb += "Checks the number of the state of physical drives on a LSI MegaRaid adapter."
 
         super(CheckMegaRaidPdPlugin, self).__init__(
-                shortname = 'MEGARAID_PD',
-                usage = usage, blurb = blurb,
-                version = __version__,
+            shortname='MEGARAID_PD',
+            usage=usage, blurb=blurb,
+            version=__version__,
         )
 
         self._add_args()
@@ -85,7 +69,7 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
         self.drive_list = []
         self.drive = {}
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -99,7 +83,7 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
@@ -107,8 +91,8 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
 
         super(CheckMegaRaidPdPlugin, self)._add_args()
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -122,7 +106,7 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
 
         super(CheckMegaRaidPdPlugin, self).parse_args(args)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def call(self):
         """
         Method to call the plugin directly.
@@ -130,7 +114,7 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
 
         state = nagios.state.ok
         out = "State of physical drives of MegaRaid adapter %d seems to be okay." % (
-                self.adapter_nr)
+            self.adapter_nr)
 
         # Enclosure Device ID: 0
         re_enc = re.compile(r'^\s*Enclosure\s+Device\s+ID\s*:\s*(\d+)', re.IGNORECASE)
@@ -139,15 +123,19 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
         # Device Id: 6
         re_dev_id = re.compile(r'^\s*Device\s+Id\s*:\s*(\d+)', re.IGNORECASE)
         # Media Error Count: 0
-        re_media_errors = re.compile(r'^\s*Media\s+Error\s+Count\s*:\s*(\d+)', re.IGNORECASE)
+        re_media_errors = re.compile(
+            r'^\s*Media\s+Error\s+Count\s*:\s*(\d+)', re.IGNORECASE)
         # Other Error Count: 0
-        re_other_errors = re.compile(r'^\s*Other\s+Error\s+Count\s*:\s*(\d+)', re.IGNORECASE)
+        re_other_errors = re.compile(
+            r'^\s*Other\s+Error\s+Count\s*:\s*(\d+)', re.IGNORECASE)
         # Predictive Failure Count: 0
-        re_pred_failures = re.compile(r'^\s*Predictive\s+Failure\s+Count\s*:\s*(\d+)', re.IGNORECASE)
+        re_pred_failures = re.compile(
+            r'^\s*Predictive\s+Failure\s+Count\s*:\s*(\d+)', re.IGNORECASE)
         # Firmware state: Online, Spun Up
         re_fw_state = re.compile(r'^\s*Firmware\s+state\s*:\s*(\S+.*)', re.IGNORECASE)
         # Foreign State: None
-        re_foreign_state = re.compile(r'^\s*Foreign\s+state\s*:\s*(\S+.*)', re.IGNORECASE)
+        re_foreign_state = re.compile(
+            r'^\s*Foreign\s+state\s*:\s*(\S+.*)', re.IGNORECASE)
 
         good_fw_states = (
             r'Online,\s+Spun\s+Up',
@@ -181,19 +169,19 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
                 if cur_dev:
                     if ('enclosure' in cur_dev) and ('slot' in cur_dev):
                         pd_id = '[%d:%d]' % (
-                                cur_dev['enclosure'], cur_dev['slot'])
+                            cur_dev['enclosure'], cur_dev['slot'])
                         self.drive_list.append(pd_id)
                         self.drive[pd_id] = cur_dev
 
                 cur_dev = {}
                 drives_total += 1
                 cur_dev = {
-                        'enclosure': int(m.group(1)),
-                        'media_errors': 0,
-                        'other_errors': 0,
-                        'predictive_failures': 0,
-                        'fw_state': None,
-                        'foreign_state': None,
+                    'enclosure': int(m.group(1)),
+                    'media_errors': 0,
+                    'other_errors': 0,
+                    'predictive_failures': 0,
+                    'fw_state': None,
+                    'foreign_state': None,
                 }
                 continue
 
@@ -291,8 +279,9 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
                 dd += ' and '.join(drv_desc)
                 errors.append(dd)
             if found_errors or self.verbose > 1:
-                log.debug("State of drive %s is %s.", pd_id,
-                         nagios.plugin.functions.STATUS_TEXT[disk_state])
+                log.debug(
+                    "State of drive %s is %s.", pd_id,
+                    nagios.plugin.functions.STATUS_TEXT[disk_state])
 
         log.debug("Found %d drives.", drives_total)
         if self.verbose > 2:
@@ -302,45 +291,21 @@ class CheckMegaRaidPdPlugin(CheckMegaRaidPlugin):
         if errors:
             out = ', '.join(errors)
 
-        self.add_perfdata(
-                label = 'drives_total',
-                value = drives_total,
-                uom = '',
-        )
-        self.add_perfdata(
-                label = 'media_errors',
-                value = media_errors,
-                uom = '',
-        )
-        self.add_perfdata(
-                label = 'other_errors',
-                value = other_errors,
-                uom = '',
-        )
-        self.add_perfdata(
-                label = 'predictive_failures',
-                value = predictive_failures,
-                uom = '',
-        )
-        self.add_perfdata(
-                label = 'wrong_fw_state',
-                value = fw_state_wrong,
-                uom = '',
-        )
-        self.add_perfdata(
-                label = 'wrong_foreign_state',
-                value = foreign_state_wrong,
-                uom = '',
-        )
+        self.add_perfdata(label='drives_total', value=drives_total, uom='')
+        self.add_perfdata(label='media_errors', value=media_errors, uom='')
+        self.add_perfdata(label='other_errors', value=other_errors, uom='')
+        self.add_perfdata(label='predictive_failures', value=predictive_failures, uom='')
+        self.add_perfdata(label='wrong_fw_state', value=fw_state_wrong, uom='')
+        self.add_perfdata(label='wrong_foreign_state', value=foreign_state_wrong, uom='')
 
         self.exit(state, out)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
