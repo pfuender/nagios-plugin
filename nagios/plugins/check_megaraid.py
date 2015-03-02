@@ -10,56 +10,41 @@
 
 # Standard modules
 import os
-import sys
 import re
 import logging
-import textwrap
-
-from numbers import Number
 
 # Third party modules
 
 # Own modules
 
-import nagios
-from nagios import BaseNagiosError
-
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
-
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
+from nagios.common import pp
 
 from nagios.plugin.argparser import default_timeout
 
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 log = logging.getLogger(__name__)
 
 re_exit_code = re.compile(r'^\s*Exit\s*Code\s*:\s+0x([0-9a-f]+)', re.IGNORECASE)
-re_no_adapter = re.compile(r'^\s*User\s+specified\s+controller\s+is\s+not\s+present',
-        re.IGNORECASE)
+re_no_adapter = re.compile(
+    r'^\s*User\s+specified\s+controller\s+is\s+not\s+present', re.IGNORECASE)
 
-#==============================================================================
+
+# =============================================================================
 class CheckMegaRaidPlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking the state of a LSI MegaRaid
     adapter and its connected enclosures, physical drives and logical volumes.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, usage = None, shortname = None, version = None,
-            blurb = None,):
+    # -------------------------------------------------------------------------
+    def __init__(
+            self, usage=None, shortname=None, version=None, blurb=None,):
         """
         Constructor of the CheckMegaRaidPlugin class.
 
@@ -86,8 +71,7 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
         """
 
         super(CheckMegaRaidPlugin, self).__init__(
-                usage = usage, blurb = blurb, shortname = shortname,
-        )
+            usage=usage, blurb=blurb, shortname=shortname)
 
         self._adapter_nr = 0
         """
@@ -109,25 +93,25 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
         self._init_megacli_cmd()
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def adapter_nr(self):
         """The number of the MegaRaid adapter (e.g. 0)."""
         return self._adapter_nr
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def megacli_cmd(self):
         """The path to the executable MegaCli command."""
         return self._megacli_cmd
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def timeout(self):
         """The timeout on execution of MegaCli in seconds."""
         return self._timeout
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -145,33 +129,33 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                '-a', '--adapter-nr',
-                metavar = 'NR',
-                dest = 'adapter_nr',
-                required = True,
-                type = int,
-                default = 0,
-                help = ("The number of the MegaRaid adapter to check " + 
-                        "(Default: %(default)d)."),
+            '-a', '--adapter-nr',
+            metavar='NR',
+            dest='adapter_nr',
+            required=True,
+            type=int,
+            default=0,
+            help=(
+                "The number of the MegaRaid adapter to check (Default: %(default)d)."),
         )
 
         self.add_arg(
-                '--megacli',
-                metavar = 'CMD',
-                dest = 'megacli_cmd',
-                default = self.megacli_cmd,
-                help = ("The path to the executable MegaCli command " +
-                        "(Default: %(default)r)."),
+            '--megacli',
+            metavar='CMD',
+            dest='megacli_cmd',
+            default=self.megacli_cmd,
+            help=(
+                "The path to the executable MegaCli command (Default: %(default)r)."),
         )
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _init_megacli_cmd(self):
         """
         Initializes self.megacli_cmd.
@@ -179,8 +163,8 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
         self._megacli_cmd = self._get_megacli_cmd()
 
-    #--------------------------------------------------------------------------
-    def _get_megacli_cmd(self, given_path = None):
+    # -------------------------------------------------------------------------
+    def _get_megacli_cmd(self, given_path=None):
         """
         Finding the executable 'MegaCli64', 'MegaCli' or 'megacli' under the
         search path or the given path.
@@ -214,7 +198,7 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
             os.sep + os.path.join('opt', 'sbin'),
         )
         for sbin in sbin_paths:
-            if not sbin in search_paths:
+            if sbin not in search_paths:
                 search_paths.append(sbin)
 
         for exe_name in exe_names:
@@ -226,8 +210,8 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
         return None
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -250,11 +234,12 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
             megacli_cmd = self._get_megacli_cmd(self.argparser.args.megacli_cmd)
             if not megacli_cmd:
-                self.die(("Could not find MegaCli command %r." %
+                self.die(
+                    "Could not find MegaCli command %r." % (
                         self.argparser.args.megacli_cmd))
             self._megacli_cmd = megacli_cmd
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def pre_call(self):
         """
         A method, which is called before the underlaying actions are called.
@@ -266,7 +251,7 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
         if not self.megacli_cmd:
             self.die("Could not find 'MegaCli64' or 'MegaCli' in OS PATH.")
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __call__(self):
 
         self.pre_call()
@@ -276,17 +261,18 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
 
         self.call()
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def call(self):
         """
         Method to call the plugin directly.
         """
 
-        self.die("The method call() must be overridden in inherited class %r." % (
+        self.die(
+            "The method call() must be overridden in inherited class %r." % (
                 self.__class__.__name__))
 
-    #--------------------------------------------------------------------------
-    def megacli(self, args, nolog = True, no_adapter = False):
+    # -------------------------------------------------------------------------
+    def megacli(self, args, nolog=True, no_adapter=False):
         """
         Method to call MegaCli directly with the given arguments.
 
@@ -329,14 +315,13 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
         (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd_list)
 
         exit_code = ret
-        no_adapter_found = False
         if stdoutdata:
             for line in stdoutdata.splitlines():
 
                 if not no_adapter:
                     if re_no_adapter.search(line):
-                        self.die('The specified controller %d is not present.' % (
-                                self.adapter_nr))
+                        self.die(
+                            'The specified controller %d is not present.' % (self.adapter_nr))
 
                 match = re_exit_code.search(line)
                 if match:
@@ -346,12 +331,12 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
         return (stdoutdata, stderrdata, ret, exit_code)
 
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4 et
+# vim: fileencoding=utf-8 filetype=python ts=4 sw=4 et
