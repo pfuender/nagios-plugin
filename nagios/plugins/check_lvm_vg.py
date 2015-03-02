@@ -9,15 +9,11 @@
 
 # Standard modules
 import os
-import sys
 import logging
 import textwrap
-import pwd
 import re
-import locale
 import math
 
-from numbers import Number
 from subprocess import CalledProcessError
 
 # Third party modules
@@ -25,69 +21,65 @@ from subprocess import CalledProcessError
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
-
-from nagios.plugin.range import NagiosRange
+from nagios.common import pp
 
 from nagios.plugin.threshold import NagiosThreshold
 
 from nagios.plugin.extended import ExtNagiosPluginError
 from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 log = logging.getLogger(__name__)
 
 VGS_CMD = os.sep + os.path.join('sbin', 'vgs')
 
 vg_attribute = {
-        'w': 'writeable',
-        'r': 'readonly',
-        'z': 'resizeable',
-        'x': 'exported',
-        'p': 'partial physical volumes',
-        'c': 'contiguous allocation',
-        'l': 'cling allocation',
-        'n': 'normal allocation',
-        'a': 'anywhere allocated',
-        'i': 'inherited allocation',
-        'C': 'clustered',
+    'w': 'writeable',
+    'r': 'readonly',
+    'z': 'resizeable',
+    'x': 'exported',
+    'p': 'partial physical volumes',
+    'c': 'contiguous allocation',
+    'l': 'cling allocation',
+    'n': 'normal allocation',
+    'a': 'anywhere allocated',
+    'i': 'inherited allocation',
+    'C': 'clustered',
 }
 
 re_number_abs = re.compile(r'^\s*(\d+)\s*$')
 re_number_percent = re.compile(r'^\s*(\d+)\s*%\s*$')
 
-#==============================================================================
+
+# =============================================================================
 class VgNotExistsError(ExtNagiosPluginError):
     """Special exception indicating, that the volume group doesn't exists."""
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, vg):
         self.vg = vg
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         return "Volume group %r doesn't exists." % (self.vg)
 
-#==============================================================================
+
+# =============================================================================
 class LvmVgState(object):
     """
     A class for enapsulating and retrieving the state of an existing
     LVM volume group.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, plugin, vg, vgs_cmd = VGS_CMD, verbose = 0,
-            timeout = 15, **kwargs):
+    # -------------------------------------------------------------------------
+    def __init__(
+            self, plugin, vg, vgs_cmd=VGS_CMD, verbose=0, timeout=15, **kwargs):
         """
         Constructor.
 
@@ -105,8 +97,8 @@ class LvmVgState(object):
         """
 
         if not isinstance(plugin, CheckLvmVgPlugin):
-            raise ExtNagiosPluginError(("Given parameter plugin is not a " +
-                    "CheckLvmVgPlugin object, instead: %r") % (plugin))
+            raise ExtNagiosPluginError(
+                "Given parameter plugin is not a CheckLvmVgPlugin object, instead: %r" % (plugin))
         self.plugin = plugin
         """
         @ivar: a reference of the parent plugin object
@@ -179,49 +171,49 @@ class LvmVgState(object):
         if 'ext_free' in kwargs:
             self._ext_free = int(kwargs.get('ext_free'))
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def vgs_cmd(self):
         """The absolute path to the OS command 'vgs'."""
         return self._vgs_cmd
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def vg(self):
         """The volume group to check."""
         return self._vg
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def verbose(self):
         """The verbosity level."""
         return self._verbose
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def timeout(self):
         """The timeout in execution the 'vgs' command."""
         return self._timeout
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def checked(self):
         """A flag, that the state of VG was even checked."""
         return self._checked
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def format(self):
         """The LVM format of the VG."""
         return self._format
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def attr(self):
         """The attributes of the VG."""
         return self._attr
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def attr_str(self):
         """A textual representation of the state of the vg."""
@@ -240,7 +232,7 @@ class LvmVgState(object):
 
         return ', '.join(descs)
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def attr_vgs(self):
         """The attributes of the VG in a representation like in vgs."""
@@ -274,19 +266,19 @@ class LvmVgState(object):
 
         return ''.join(chars)
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def ext_size(self):
         """The extent size of the VG in MiBytes."""
         return self._ext_size
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def ext_count(self):
         """The total extent count of the VG."""
         return self._ext_count
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def size(self):
         """The total size of the VG in Bytes."""
@@ -296,7 +288,7 @@ class LvmVgState(object):
 
         return int(self.ext_size) * int(self.ext_count) * 1024 * 1024
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def size_mb(self):
         """The total size of the VG in MiBytes."""
@@ -305,13 +297,13 @@ class LvmVgState(object):
             return None
         return self.ext_size * self.ext_count
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def ext_free(self):
         """The count of free extents of the VG."""
         return self._ext_free
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def free(self):
         """The free size of the VG in Bytes."""
@@ -321,7 +313,7 @@ class LvmVgState(object):
 
         return int(self.ext_size) * int(self.ext_free) * 1024 * 1024
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def free_mb(self):
         """The free size of the VG in MiBytes."""
@@ -331,7 +323,7 @@ class LvmVgState(object):
 
         return self.ext_size * self.ext_free
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def percent_free(self):
         """The percentage of free space in the VG."""
@@ -342,7 +334,7 @@ class LvmVgState(object):
 
         return (float(self.ext_free) / float(self.ext_count)) * 100.0
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def ext_used(self):
         """The count of used extents of the VG."""
@@ -352,7 +344,7 @@ class LvmVgState(object):
 
         return self.ext_count - self.ext_free
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def used(self):
         """The used size of the VG in Bytes."""
@@ -362,7 +354,7 @@ class LvmVgState(object):
 
         return int(self.ext_size) * int(self.ext_used) * 1024 * 1024
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def used_mb(self):
         """The used size of the VG in MiBytes."""
@@ -372,7 +364,7 @@ class LvmVgState(object):
 
         return self.ext_size * self.ext_used
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def percent_used(self):
         """The percentage of used space in the VG."""
@@ -383,7 +375,7 @@ class LvmVgState(object):
 
         return (float(self.ext_used) / float(self.ext_count)) * 100.0
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -419,7 +411,7 @@ class LvmVgState(object):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting function for translating object structure into a string.
@@ -431,7 +423,7 @@ class LvmVgState(object):
 
         return pp(self.as_dict())
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
@@ -452,8 +444,8 @@ class LvmVgState(object):
         out += ", ".join(fields) + ")>"
         return out
 
-    #--------------------------------------------------------------------------
-    def get_data(self, force = False):
+    # -------------------------------------------------------------------------
+    def get_data(self, force=False):
         """
         Main method to retrieve the data about the VG with the 'vgs' command.
 
@@ -466,19 +458,20 @@ class LvmVgState(object):
             return
 
         # vgs --unit m --noheadings --nosuffix --separator ';' --unbuffered \
-        #   -o vg_fmt,vg_name,vg_attr,vg_size,vg_free,vg_extent_size,vg_extent_count,vg_free_count storage
+        #   -o vg_fmt,vg_name,vg_attr,vg_size,vg_free,vg_extent_size,\
+        #      vg_extent_count,vg_free_count storage
 
-        fields = ('vg_fmt', 'vg_name', 'vg_attr', 'vg_extent_size',
-                    'vg_extent_count', 'vg_free_count')
+        fields = (
+            'vg_fmt', 'vg_name', 'vg_attr', 'vg_extent_size', 'vg_extent_count', 'vg_free_count')
 
         cmd = [
-                self.vgs_cmd,
-                '--unit', 'm',
-                '--noheadings', '--nosuffix',
-                '--separator', ';',
-                '--unbuffered',
-                '-o', ','.join(fields),
-                self.vg
+            self.vgs_cmd,
+            '--unit', 'm',
+            '--noheadings', '--nosuffix',
+            '--separator', ';',
+            '--unbuffered',
+            '-o', ','.join(fields),
+            self.vg
         ]
 
         current_locale = os.environ.get('LC_NUMERIC')
@@ -501,7 +494,6 @@ class LvmVgState(object):
         if self.verbose > 2:
             log.debug("Got fields:\n%s", pp(fields))
 
-
         self._format = fields[0]
         self._ext_size = int(float(fields[3]))
         self._ext_count = int(fields[4])
@@ -518,15 +510,16 @@ class LvmVgState(object):
 
         self._checked = True
 
-#==============================================================================
+
+# =============================================================================
 class CheckLvmVgPlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking a LVM volume group for its
     state and/or its free place.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, check_state = False):
+    # -------------------------------------------------------------------------
+    def __init__(self, check_state=False):
         """
         Constructor of the CheckLvmVgPlugin class.
 
@@ -555,9 +548,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
         else:
             blurb += "Checks the free space of the given volume group."
 
-        super(CheckLvmVgPlugin, self).__init__(
-                usage = usage, blurb = blurb,
-        )
+        super(CheckLvmVgPlugin, self).__init__(usage=usage, blurb=blurb)
 
         self._check_state = bool(check_state)
         """
@@ -586,25 +577,25 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def vgs_cmd(self):
         """The absolute path to the OS command 'vgs'."""
         return self._vgs_cmd
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def vg(self):
         """The volume group to check."""
         return self._vg
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def check_state(self):
         """Use this plugin to check the state or to check the free place."""
         return self._check_state
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -622,7 +613,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
@@ -630,23 +621,23 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
 
         if not self.check_state:
             self.add_arg(
-                    '-w', '--warning',
-                    metavar = 'FREE',
-                    dest = 'warning',
-                    required = True,
-                    help = ('Generate warning state if the free space of the' +
-                            'VG is below this value, maybe given absolute in ' +
-                            'MiBytes or as percentage of the total size.'),
+                '-w', '--warning',
+                metavar='FREE',
+                dest='warning',
+                required=True,
+                help=(
+                    'Generate warning state if the free space of the VG is below this value, '
+                    'maybe given absolute in MiBytes or as percentage of the total size.'),
             )
 
             self.add_arg(
-                    '-c', '--critical',
-                    metavar = 'FREE',
-                    dest = 'critical',
-                    required = True,
-                    help = ('Generate critical state if the free space of the' +
-                            'VG is below this value, maybe given absolute in ' +
-                            'MiBytes or as percentage of the total size.'),
+                '-c', '--critical',
+                metavar='FREE',
+                dest='critical',
+                required=True,
+                help=(
+                    'Generate critical state if the free space of the VG is below this value, '
+                    'maybe given absolute in MiBytes or as percentage of the total size.'),
             )
 
         vg_help = ''
@@ -656,13 +647,13 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             vg_help = "The volume group to check the free place."
 
         self.add_arg(
-                'vg',
-                dest = 'vg',
-                nargs = '?',
-                help = vg_help,
+            'vg',
+            dest='vg',
+            nargs='?',
+            help=vg_help,
         )
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -678,7 +669,7 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
 
-        #-----------------------------------------------------------
+        # ----------------------------------------------------------
         # Parameters for check_free
         crit = 0
         crit_is_abs = True
@@ -711,61 +702,62 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
                 self.die("Invalid warning value %r." % (self.argparser.args.warning))
                 return
 
-        #-----------------------------------------------------------
+        # ----------------------------------------------------------
         # Getting current state of VG
         vg_state = LvmVgState(
-                plugin = self, vg = self.vg, vgs_cmd = self.vgs_cmd,
-                verbose = self.verbose, timeout = self.argparser.args.timeout)
+            plugin=self, vg=self.vg, vgs_cmd=self.vgs_cmd,
+            verbose=self.verbose, timeout=self.argparser.args.timeout)
 
         try:
             vg_state.get_data()
-        except (ExecutionTimeoutError, VgNotExistsError) as  e:
+        except (ExecutionTimeoutError, VgNotExistsError) as e:
             self.die(str(e))
         except CalledProcessError as e:
             msg = "The %r command returned %d with the message: %s" % (
-                    self.vgs_cmd, e.returncode, e.output)
+                self.vgs_cmd, e.returncode, e.output)
             self.die(msg)
 
         if self.verbose > 1:
-            log.debug("Got a state of the volume group %r:\n%s",
-                    self.vg, vg_state)
+            log.debug(
+                "Got a state of the volume group %r:\n%s", self.vg, vg_state)
 
-        #-----------------------------------------------
+        # ----------------------------------------------
         if self.check_state:
 
-            self.add_message(nagios.state.ok,
-                    ("Volume group %r seems to be OK." % (self.vg)))
+            self.add_message(
+                nagios.state.ok, ("Volume group %r seems to be OK." % (self.vg)))
 
             if 'r' in vg_state.attr:
-                self.add_message(nagios.state.warning,
-                        ("Volume group %r is in a read-only state." % (self.vg)))
+                self.add_message(
+                    nagios.state.warning,
+                    ("Volume group %r is in a read-only state." % (self.vg)))
 
-            if not 'z' in vg_state.attr:
-                self.add_message(nagios.state.warning,
-                        ("Volume group %r is not resizeable." % (self.vg)))
+            if 'z' not in vg_state.attr:
+                self.add_message(
+                    nagios.state.warning, ("Volume group %r is not resizeable." % (self.vg)))
 
             if 'p' in vg_state.attr:
-                self.add_message(nagios.state.critical,
-                        (("One or more physical volumes belonging to the " +
-                        "volume group %r are missing from the system.") % (
-                        self.vg)))
+                self.add_message(
+                    nagios.state.critical,
+                    (("One or more physical volumes belonging to the "
+                        "volume group %r are missing from the system.") % (self.vg)))
 
             if self.verbose:
-                self.out("Attributes of VG %r: %s" % (
-                        self.vg, vg_state.attr_str))
+                self.out(
+                    "Attributes of VG %r: %s" % (self.vg, vg_state.attr_str))
 
             (state, msg) = self.check_messages()
             self.exit(state, msg)
 
-            #Only for the blinds:
+            # Only for the blinds:
             return
 
-        #-----------------------------------------------
+        # ----------------------------------------------
         # And now check free space (or whatever)
 
         if not vg_state.size_mb:
-            self.die("Cannot detect absolute size of volume group %r." % (
-                    self.vg))
+            self.die(
+                "Cannot detect absolute size of volume group %r." % (self.vg))
 
         c_free_abs = 0
         c_free_pc = 0
@@ -798,24 +790,26 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             w_used_abs = vg_state.size_mb - w_free_abs
 
         if c_free_abs > w_free_abs:
-            self.die(("The warning threshold must be greater than the " +
-                    "critical threshold."))
+            self.die(
+                "The warning threshold must be greater than the critical threshold.")
 
         th_free_abs = NagiosThreshold(
-                warning = "@%d" % (w_free_abs), critical = "@%d" % (c_free_abs))
+            warning="@%d" % (w_free_abs), critical="@%d" % (c_free_abs))
         th_used_abs = NagiosThreshold(
-                warning = "%d" % (w_used_abs), critical = "%d" % (c_used_abs))
+            warning="%d" % (w_used_abs), critical="%d" % (c_used_abs))
         th_free_pc = NagiosThreshold(
-                warning = "@%d" % (w_free_pc), critical = "@%d" % (c_free_pc))
+            warning="@%d" % (w_free_pc), critical="@%d" % (c_free_pc))
         th_used_pc = NagiosThreshold(
-                warning = "%f" % (w_used_pc), critical = "%f" % (c_used_pc))
+            warning="%f" % (w_used_pc), critical="%f" % (c_used_pc))
 
         if self.verbose:
-            self.out("VG %r total size: %8d MiBytes." % (
-                    self.vg, vg_state.size_mb))
-            self.out("VG %r used size:  %8d MiBytes (%0.2f%%)." % (
+            self.out(
+                "VG %r total size: %8d MiBytes." % (self.vg, vg_state.size_mb))
+            self.out(
+                "VG %r used size:  %8d MiBytes (%0.2f%%)." % (
                     self.vg, vg_state.used_mb, vg_state.percent_used))
-            self.out("VG %r free size:  %8d MiBytes (%0.2f%%)." % (
+            self.out(
+                "VG %r free size:  %8d MiBytes (%0.2f%%)." % (
                     self.vg, vg_state.free_mb, vg_state.percent_free))
 
         if self.verbose > 2:
@@ -824,33 +818,34 @@ class CheckLvmVgPlugin(ExtNagiosPlugin):
             log.debug("Thresholds used MBytes:\n%s", pp(th_used_abs.as_dict()))
             log.debug("Thresholds used percent:\n%s", pp(th_used_pc.as_dict()))
 
-        self.add_perfdata(label = 'total_size', value = vg_state.size_mb,
-                uom = 'MB')
-        self.add_perfdata(label = 'free_size', value = vg_state.free_mb,
-                uom = 'MB', threshold = th_free_abs)
-        self.add_perfdata(label = 'free_percent',
-                value = float("%0.2f" % (vg_state.percent_free)), uom = '%',
-                threshold = th_free_pc)
-        self.add_perfdata(label = 'alloc_size', value = vg_state.used_mb,
-                uom = 'MB', threshold = th_used_abs)
-        self.add_perfdata(label = 'alloc_percent',
-                value = float("%0.2f" % (vg_state.percent_used)), uom = '%',
-                threshold = th_used_pc)
+        self.add_perfdata(
+            label='total_size', value=vg_state.size_mb, uom='MB')
+        self.add_perfdata(
+            label='free_size', value=vg_state.free_mb, uom='MB', threshold=th_free_abs)
+        self.add_perfdata(
+            label='free_percent', value=float("%0.2f" % (vg_state.percent_free)),
+            uom='%', threshold=th_free_pc)
+        self.add_perfdata(
+            label='alloc_size', value=vg_state.used_mb, uom='MB',
+            threshold=th_used_abs)
+        self.add_perfdata(
+            label='alloc_percent', value=float("%0.2f" % (vg_state.percent_used)),
+            uom='%', threshold=th_used_pc)
 
         state = th_free_abs.get_status(vg_state.free_mb)
 
         out = "%d MiB total, %d MiB free (%0.1f%%), %d MiB allocated (%0.1f%%)" % (
-                vg_state.size_mb, vg_state.free_mb, vg_state.percent_free,
-                vg_state.used_mb, vg_state.percent_used)
+            vg_state.size_mb, vg_state.free_mb, vg_state.percent_free,
+            vg_state.used_mb, vg_state.percent_used)
 
         self.exit(state, out)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
