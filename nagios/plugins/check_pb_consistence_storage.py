@@ -15,71 +15,55 @@ import sys
 import re
 import logging
 import socket
-import textwrap
-import time
-import socket
 import uuid
 import math
 import datetime
-
-
-from numbers import Number
 
 try:
     import configparser as cfgparser
 except ImportError:
     import ConfigParser as cfgparser
 
-
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
+from nagios.common import pp
 
 from nagios.plugin.range import NagiosRange
 
-from nagios.plugin.threshold import NagiosThreshold
-
 from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
 from nagios.plugin.extended import CommandNotFoundError
 
-from nagios.plugin.config import NoConfigfileFound
-from nagios.plugin.config import NagiosPluginConfig
-
-from nagios.plugins.base_dcm_client_check import FunctionNotImplementedError
 from nagios.plugins.base_dcm_client_check import DEFAULT_TIMEOUT, DEFAULT_PB_VG
 from nagios.plugins.base_dcm_client_check import STORAGE_CONFIG_DIR, DUMMY_LV, BACKUP_LV
 from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
 from dcmanagerclient.client import RestApiError
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.9.1'
+__version__ = '0.9.2'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_VOL_ERRORS = 0
 DEFAULT_CRIT_VOL_ERRORS = 2
 
-#LVM_PATH = "/usr/sbin"
+# LVM_PATH = "/usr/sbin"
 LVM_PATH = os.sep + os.path.join('usr', 'sbin')
 # LVM_BIN_PATH = '/usr/sbin/lvm'
 LVM_BIN_PATH = os.path.join(LVM_PATH, 'lvm')
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
+# =============================================================================
 class CfgFileNotValidError(ExtNagiosPluginError):
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, cfg_file, msg):
 
         self.cfg_file = cfg_file
@@ -89,7 +73,7 @@ class CfgFileNotValidError(ExtNagiosPluginError):
             if m:
                 self.msg = m
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
 
         msg = "Invalid configuration file %r" % (self.cfg_file)
@@ -98,7 +82,8 @@ class CfgFileNotValidError(ExtNagiosPluginError):
         msg += "."
         return msg
 
-#==============================================================================
+
+# =============================================================================
 class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
     """
     A special Nagios/Icinga plugin to check the existent volumes on a storage
@@ -106,7 +91,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
     The target volumes from database are get via REST API calls.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckPbConsistenceStoragePlugin class.
@@ -114,16 +99,16 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         failed_commands = []
 
-        usage = """\
-                %(prog)s [options] [-H <server_name>] [-c <critical_volume_errors>] [-w <warning_volume_errors>]
-                """
-        usage = textwrap.dedent(usage).strip()
+        usage = (
+            "%(prog)s [options] [-H <server_name>] [-c <critical_volume_errors>]"
+            " [-w <warning_volume_errors>]")
         usage += '\n       %(prog)s --usage'
         usage += '\n       %(prog)s --help'
 
         blurb = __copyright__ + "\n\n"
-        blurb += ("Checks the existent volumes on a storage server against " +
-                    "the target state from provisioning database.")
+        blurb += (
+            "Checks the existent volumes on a storage server against "
+            "the target state from provisioning database.")
 
         self._hostname = socket.gethostname()
         """
@@ -132,9 +117,9 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         """
 
         super(CheckPbConsistenceStoragePlugin, self).__init__(
-                shortname = 'PB_CONSIST_STORAGE',
-                usage = usage, blurb = blurb,
-                timeout = DEFAULT_TIMEOUT,
+            shortname='PB_CONSIST_STORAGE',
+            usage=usage, blurb=blurb,
+            timeout=DEFAULT_TIMEOUT,
         )
 
         self._pb_vg = None
@@ -178,37 +163,37 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         if failed_commands:
             raise CommandNotFoundError(failed_commands)
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def hostname(self):
         """The hostname of the current storage server."""
         return self._hostname
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def pb_vg(self):
         """The name of the ProfitBricks storage volume group."""
         return self._pb_vg
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def warning(self):
         """The warning threshold of the test."""
         return self._warning
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold of the test."""
         return self._critical
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def lvm_command(self):
         """The 'lvm' command in operating system."""
         return self._lvm_command
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -228,56 +213,58 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
-        msg_tpl = ("Generate %s state if the sum of missing, erroneous and " +
-                "orphaned volumes is higher (Default: %%(default)d).")
+        msg_tpl = (
+            "Generate %s state if the sum of missing, erroneous and "
+            "orphaned volumes is higher (Default: %%(default)d).")
 
         msg = msg_tpl % ('warning')
         self.add_arg(
-                '-w', '--warning',
-                metavar = 'NUMBER',
-                dest = 'warning',
-                required = True,
-                type = int,
-                default = DEFAULT_WARN_VOL_ERRORS,
-                help = msg,
+            '-w', '--warning',
+            metavar='NUMBER',
+            dest='warning',
+            required=True,
+            type=int,
+            default=DEFAULT_WARN_VOL_ERRORS,
+            help=msg,
         )
 
         msg = msg_tpl % ('critical')
         self.add_arg(
-                '-c', '--critical',
-                metavar = 'NUMBER',
-                dest = 'critical',
-                type = int,
-                required = True,
-                default = DEFAULT_CRIT_VOL_ERRORS,
-                help = msg,
+            '-c', '--critical',
+            metavar='NUMBER',
+            dest='critical',
+            type=int,
+            required=True,
+            default=DEFAULT_CRIT_VOL_ERRORS,
+            help=msg,
         )
 
         self.add_arg(
-                '-H', '--hostname', '--host',
-                metavar = 'NAME',
-                dest = 'hostname',
-                help = (("The hostname of the current storage server " +
-                        "(Default: %r).") % (self.hostname)),
+            '-H', '--hostname', '--host',
+            metavar='NAME',
+            dest='hostname',
+            help=(
+                "The hostname of the current storage server (Default: %r)." % (self.hostname)),
         )
 
         self.add_arg(
-                '--vg', '--volume-group',
-                metavar = 'VG',
-                dest = 'pb_vg',
-                help = ("The name of the ProfitBricks storage volume group (Default: %r)." % (
-                        DEFAULT_PB_VG)),
+            '--vg', '--volume-group',
+            metavar='VG',
+            dest='pb_vg',
+            help=(
+                "The name of the ProfitBricks storage volume group (Default: %r)." % (
+                    DEFAULT_PB_VG)),
         )
 
         super(CheckPbConsistenceStoragePlugin, self).add_args()
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def parse_args_second(self):
         """
         Evaluates comand line parameters after evaluating the configuration.
@@ -309,11 +296,11 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         # set thresholds
         self.set_thresholds(
-                warning = self.warning,
-                critical = self.critical,
+            warning=self.warning,
+            critical=self.critical,
         )
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def read_config(self, cfg):
         """
         Read configuration from an already read in configuration file.
@@ -344,13 +331,13 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                     log.debug("Got a volume group from config: %r", vg)
                 self._pb_vg = vg
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def run(self):
         """Main execution method."""
 
         state = nagios.state.ok
         out = "Storage volumes on %r seems to be okay." % (
-                self.hostname)
+            self.hostname)
 
         self.all_api_volumes = {}
 
@@ -395,15 +382,15 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             log.debug("All Logical Volumes from LVM:\n%s", pp(self.lvm_lvs))
 
         self.count = {
-                'total': 0,
-                'missing': 0,
-                'alien': 0,
-                'orphans': 0,
-                'zombies': 0,
-                'snapshots': 0,
-                'ok': 0,
-                'dummy': 0,
-                'error': 0,
+            'total': 0,
+            'missing': 0,
+            'alien': 0,
+            'orphans': 0,
+            'zombies': 0,
+            'snapshots': 0,
+            'ok': 0,
+            'dummy': 0,
+            'error': 0,
         }
 
         self.compare()
@@ -420,14 +407,14 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         for key in self.count:
             if key == 'dummy':
                 continue
-            self.add_perfdata(label = key, value = self.count[key])
+            self.add_perfdata(label=key, value=self.count[key])
 
         if self.verbose > 1:
             log.debug("Got following counts:\n%s", pp(self.count))
 
         self.exit(state, out)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def compare(self):
 
         for lv in self.lvm_lvs:
@@ -445,36 +432,37 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             # volume group not 'storage' or volume name not a shortened GUID
             if not lv['is_pb_vol']:
                 self.count['alien'] += 1
-                log.debug("LV %s/%s is not a valid Profitbricks volume.",
-                        lv['vgname'], lv['lvname'])
+                log.debug(
+                    "LV %s/%s is not a valid Profitbricks volume.", lv['vgname'], lv['lvname'])
                 continue
 
             # LVM snapshots don't count
             if lv['is_snapshot']:
                 self.count['snapshots'] += 1
-                log.debug("LV %s/%s is a valid Profitbricks LVM snapshot.",
-                        lv['vgname'], lv['lvname'])
+                log.debug(
+                    "LV %s/%s is a valid Profitbricks LVM snapshot.", lv['vgname'], lv['lvname'])
                 continue
 
             # open LVs with extension '-snap' also don't count
             if lv['has_snap_ext'] and lv['is_open']:
                 self.count['snapshots'] += 1
-                log.debug("LV %s/%s is an opened, valid splitted LVM snapshot.",
-                        lv['vgname'], lv['lvname'])
+                log.debug(
+                    "LV %s/%s is an opened, valid splitted LVM snapshot.",
+                    lv['vgname'], lv['lvname'])
                 continue
 
             # our sealed bottled coffee volume
             if lv['lvname'] == DUMMY_LV:
                 self.count['dummy'] += 1
-                log.debug("LV %s/%s is the notorious dummy device.",
-                        lv['vgname'], lv['lvname'])
+                log.debug(
+                    "LV %s/%s is the notorious dummy device.", lv['vgname'], lv['lvname'])
                 continue
 
             guid = '600144f0-' + lv['lvname']
             if self.verbose > 3:
                 log.debug("Searching for GUID %r ...", guid)
 
-            if not guid in self.all_api_volumes:
+            if guid not in self.all_api_volumes:
 
                 if lv['cfg_file_exists'] and lv['cfg_file_valid'] and lv['remove_timestamp']:
                     # Zombie == should be removed sometimes
@@ -482,8 +470,9 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                     if self.verbose > 1:
                         ts = lv['remove_timestamp']
                         dd = datetime.datetime.fromtimestamp(ts)
-                        log.debug(("LV %s/%s has a remove timestamp " +
-                                "of %d (%s)") % (lv['vgname'], lv['lvname'], ts, dd))
+                        log.debug(
+                            "LV %s/%s has a remove timestamp of %d (%s)" % (
+                                lv['vgname'], lv['lvname'], ts, dd))
                 else:
 
                     # Orphaned == existing, should not be removed, but not in DB
@@ -501,8 +490,9 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             if not lv['cfg_file_exists']:
                 # No config file found == Error
                 self.count['error'] += 1
-                log.info("LV %s/%s has no config file %r.", lv['vgname'],
-                        lv['lvname'], lv['cfg_file'])
+                log.info(
+                    "LV %s/%s has no config file %r.",
+                    lv['vgname'], lv['lvname'], lv['cfg_file'])
                 del self.all_api_volumes[guid]
                 continue
 
@@ -511,16 +501,18 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                 if prov_state and 'delete' in prov_state:
                     # Volume is on deletion
                     if self.verbose > 2:
-                        log.debug("LV %s/%s will deleted sometimes.",
-                                 lv['vgname'], lv['lvname'])
+                        log.debug(
+                            "LV %s/%s will deleted sometimes.",
+                            lv['vgname'], lv['lvname'])
                     self.count['zombies'] += 1
                     continue
                 # Volume should be there, but remove date was set
                 self.count['error'] += 1
                 ts = lv['remove_timestamp']
                 dd = datetime.datetime.fromtimestamp(ts)
-                log.info(("LV %s/%s is valid, but has a remove timestamp " +
-                        "of %d (%s)"), lv['vgname'], lv['lvname'], ts, dd)
+                log.info(
+                    "LV %s/%s is valid, but has a remove timestamp of %d (%s)",
+                    lv['vgname'], lv['lvname'], ts, dd)
                 del self.all_api_volumes[guid]
                 continue
 
@@ -529,9 +521,9 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             if cur_size != target_size:
                 # different sizes between database and current state
                 self.count['error'] += 1
-                log.info(("LV %s/%s has a wrong size, current %d MiB, " +
-                        "provisioned %d MiB."), lv['vgname'], lv['lvname'],
-                        cur_size, target_size)
+                log.info(
+                    "LV %s/%s has a wrong size, current %d MiB, provisioned %d MiB.",
+                    lv['vgname'], lv['lvname'], cur_size, target_size)
                 del self.all_api_volumes[guid]
                 continue
 
@@ -554,25 +546,26 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                 if prov_state and 'delete' in prov_state:
                     # Volume is on deletion
                     if self.verbose > 2:
-                        log.debug("%s %s is on deletion in database.",
-                                voltype, guid)
+                        log.debug(
+                            "%s %s is on deletion in database.", voltype, guid)
                     self.count['zombies'] += 1
                     continue
 
                 if prov_state and 'to_be_created' in prov_state:
                     # Volume is on creation
                     if self.verbose > 2:
-                        log.debug("%s %s is on creation in database.",
-                                voltype, guid)
+                        log.debug(
+                            "%s %s is on creation in database.", voltype, guid)
                     self.count['ok'] += 1
                     continue
 
                 # These volumes should be there
-                log.info("%s %s with a size of %d MiB doesn't exists.", voltype,
+                log.info(
+                    "%s %s with a size of %d MiB doesn't exists.", voltype,
                     guid, self.all_api_volumes[guid]['size'])
                 self.count['missing'] += 1
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_api_storage_volumes(self):
 
         self.api_volumes = []
@@ -593,7 +586,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         storages = None
         try:
-            storages = self.api.vstorages(pstorage = self.hostname)
+            storages = self.api.vstorages(pstorage=self.hostname)
         except RestApiError as e:
             self.die(str(e))
         except Exception as e:
@@ -614,7 +607,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             state = None
 
             guid = None
-            for replica in  stor[key_replicas]:
+            for replica in stor[key_replicas]:
                 hn = replica[key_storage_server]
                 if sys.version_info[0] <= 2:
                     hn = hn.encode('utf-8')
@@ -649,7 +642,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         if self.verbose > 3:
             log.debug("Got Storage volumes from API:\n%s", pp(self.api_volumes))
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_api_image_volumes(self):
 
         self.api_images = []
@@ -672,7 +665,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         images = None
         try:
-            images = self.api.vimages(pstorage = self.hostname)
+            images = self.api.vimages(pstorage=self.hostname)
         except RestApiError as e:
             self.die(str(e))
         except Exception as e:
@@ -705,7 +698,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                 img_type = img_type.encode('utf-8')
 
             guid = None
-            for replica in  stor[key_replicas]:
+            for replica in stor[key_replicas]:
                 hn = replica[key_storage_server]
                 if sys.version_info[0] <= 2:
                     hn = hn.encode('utf-8')
@@ -741,7 +734,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         if self.verbose > 3:
             log.debug("Got Image volumes from API:\n%s", pp(self.api_images))
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_api_snapshot_volumes(self):
 
         self.api_snapshots = []
@@ -764,7 +757,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         snapshots = None
         try:
-            snapshots = self.api.vsnapshots(pstorage = self.hostname)
+            snapshots = self.api.vsnapshots(pstorage=self.hostname)
         except RestApiError as e:
             self.die(str(e))
         except Exception as e:
@@ -798,41 +791,42 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             if self.verbose > 5:
                 log.debug("Transferred data of storage volume:\n%s", pp(vol))
 
-
         if self.verbose > 1:
             log.debug("Got %d Snapshot volumes from API.", len(self.api_snapshots))
         if self.verbose > 3:
             log.debug("Got Snapshot volumes from API:\n%s", pp(self.api_snapshots))
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_lvm_lvs(self):
 
         self.lvm_lvs = []
 
-        pat_pb_vol = r'^(?:[\da-f]{4}-){3}[\da-f]{12}'
-        pat_pb_vol += r'(-snap)?'
-        pat_pb_vol += r'(-del-\d{4}[-_]?\d{2}[-_]?\d{2}[-_]?\d{2}[-_:]?\d{2}(?:[-_:]?\d{2}))?$'
+        pat_pb_vol = (
+            r'^(?:[\da-f]{4}-){3}[\da-f]{12}(-snap)?'
+            r'(-del-\d{4}[-_]?\d{2}[-_]?\d{2}[-_]?\d{2}[-_:]?\d{2}(?:[-_:]?\d{2}))?$')
         if self.verbose > 3:
             log.debug("Regex for a PB Volume: %r", pat_pb_vol)
         re_pb_vol = re.compile(pat_pb_vol, re.IGNORECASE)
 
         cmd = [
-                self.lvm_command,
-                "lvs",
-                "--nosuffix",
-                "--noheadings",
-                "--units",
-                "b",
-                "--separator",
-                ";",
-                "-o",
-                "lv_name,vg_name,stripes,stripesize,lv_attr,lv_uuid,devices,lv_path,vg_extent_size,lv_size,origin"
-            ]
+            self.lvm_command,
+            "lvs",
+            "--nosuffix",
+            "--noheadings",
+            "--units",
+            "b",
+            "--separator",
+            ";",
+            "-o",
+            (
+                "lv_name,vg_name,stripes,stripesize,lv_attr,lv_uuid,devices,"
+                "lv_path,vg_extent_size,lv_size,origin")
+        ]
 
         (ret_code, std_out, std_err) = self.exec_cmd(cmd)
         if ret_code:
-            msg = (("Error %d listing LVM logical volumes: %s")
-                    % (ret_code, std_err))
+            msg = (
+                "Error %d listing LVM logical volumes: %s" % (ret_code, std_err))
             self.die(msg)
 
         lines = std_out.split('\n')
@@ -867,8 +861,8 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             lv['total'] = int(words[9]) / 1024 / 1024
 
             if self.verbose > 3:
-                log.debug("Got LV %s/%s, size %d MiB ...", lv['vgname'],
-                         lv['lvname'], lv['total'])
+                log.debug(
+                    "Got LV %s/%s, size %d MiB ...", lv['vgname'], lv['lvname'], lv['total'])
 
             lv['origin'] = words[10].strip()
             if lv['origin'] == '':
@@ -896,22 +890,21 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                     if match.group(1) is not None:
                         lv['has_snap_ext'] = True
             if lv['is_pb_vol'] and not lv['is_snapshot']:
-                lv['cfg_file'] = os.path.join(STORAGE_CONFIG_DIR,
-                        (lv['lvname'] + '.ini'))
+                lv['cfg_file'] = os.path.join(
+                    STORAGE_CONFIG_DIR, (lv['lvname'] + '.ini'))
                 if os.path.exists(lv['cfg_file']):
                     lv['cfg_file_exists'] = True
                     try:
                         lv['remove_timestamp'] = self.get_remove_timestamp(
-                                lv['cfg_file'])
+                            lv['cfg_file'])
                         lv['cfg_file_valid'] = True
                     except CfgFileNotValidError as e:
                         log.debug("Error reading %r: %s", lv['cfg_file'], e)
 
             self.lvm_lvs.append(lv)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_remove_timestamp(self, cfg_file):
-
 
         cfg = cfgparser.ConfigParser()
         try:
@@ -935,12 +928,12 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         return timestamp
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et sw=4
