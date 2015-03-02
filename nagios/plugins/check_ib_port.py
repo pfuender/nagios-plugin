@@ -9,34 +9,21 @@
 
 # Standard modules
 import os
-import sys
 import re
 import logging
 import textwrap
-
-from numbers import Number
 
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
+from nagios.common import pp
 
-from nagios.plugin import NagiosPluginError
-
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
 __version__ = '0.3.0'
@@ -49,32 +36,33 @@ IB_BASE_DIR = os.sep + os.path.join('sys', 'class', 'infiniband')
 
 # Some conststants from /usr/include/infiniband/iba/ib_types.h:
 IB_LINK_NO_CHANGE = 0
-IB_LINK_DOWN      = 1
-IB_LINK_INIT      = 2
-IB_LINK_ARMED     = 3
-IB_LINK_ACTIVE    = 4
+IB_LINK_DOWN = 1
+IB_LINK_INIT = 2
+IB_LINK_ARMED = 3
+IB_LINK_ACTIVE = 4
 IB_LINK_ACT_DEFER = 5
 
-IB_PORT_PHYS_STATE_NO_CHANGE      = 0
-IB_PORT_PHYS_STATE_SLEEP          = 1
-IB_PORT_PHYS_STATE_POLLING        = 2
-IB_PORT_PHYS_STATE_DISABLED       = 3
-IB_PORT_PHYS_STATE_SHIFT          = 4
-IB_PORT_PHYS_STATE_LINKUP         = 5
+IB_PORT_PHYS_STATE_NO_CHANGE = 0
+IB_PORT_PHYS_STATE_SLEEP = 1
+IB_PORT_PHYS_STATE_POLLING = 2
+IB_PORT_PHYS_STATE_DISABLED = 3
+IB_PORT_PHYS_STATE_SHIFT = 4
+IB_PORT_PHYS_STATE_LINKUP = 5
 IB_PORT_PHYS_STATE_LINKERRRECOVER = 6
-IB_PORT_PHYS_STATE_PHYTEST        = 7
+IB_PORT_PHYS_STATE_PHYTEST = 7
 
 re_state = re.compile(r'^(\d+):\s+(\S.*)')
 re_rate = re.compile(r'^(\d+)')
 
-#==============================================================================
+
+# =============================================================================
 class CheckIbStatusPlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking the state of a particular
     infiniband HCA and port.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckIbStatusPlugin class.
@@ -91,9 +79,9 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         blurb += "Checks the state of the given Infiniband HCA port."
 
         super(CheckIbStatusPlugin, self).__init__(
-                shortname = 'IB_PORT',
-                usage = usage, blurb = blurb,
-                timeout = DEFAULT_TIMEOUT,
+            shortname='IB_PORT',
+            usage=usage, blurb=blurb,
+            timeout=DEFAULT_TIMEOUT,
         )
 
         self._hca_name = None
@@ -116,25 +104,25 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def hca_name(self):
         """The name of the HCA to check (e.g. 'mlx4_0')."""
         return self._hca_name
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def hca_port(self):
         """The port number of the HCA to check (e.g. 1)."""
         return self._hca_port
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def rate(self):
         """The expected transfer rate of the HCA port in Gb/sec."""
         return self._rate
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -152,41 +140,42 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                '-H', '--hca-name',
-                metavar = 'HCA',
-                dest = 'hca_name',
-                required = True,
-                help = "The name of the HCA to check (e.g. 'mlx4_0').",
+            '-H', '--hca-name',
+            metavar='HCA',
+            dest='hca_name',
+            required=True,
+            help="The name of the HCA to check (e.g. 'mlx4_0').",
         )
 
         self.add_arg(
-                '-P', '--hca-port',
-                metavar = 'PORT',
-                dest = 'hca_port',
-                type = int,
-                required = True,
-                help = "The port number of the HCA to check (e.g. 1).",
+            '-P', '--hca-port',
+            metavar='PORT',
+            dest='hca_port',
+            type=int,
+            required=True,
+            help="The port number of the HCA to check (e.g. 1).",
         )
 
         self.add_arg(
-                '--rate',
-                metavar = 'RATE',
-                dest = 'rate',
-                type = int,
-                default = DEFAULT_RATE,
-                help = ("The expected transfer rate of the HCA port " +
-                        "in Gb/sec (Default: %(default)d)."),
+            '--rate',
+            metavar='RATE',
+            dest='rate',
+            type=int,
+            default=DEFAULT_RATE,
+            help=(
+                "The expected transfer rate of the HCA port "
+                "in Gb/sec (Default: %(default)d)."),
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -202,7 +191,7 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         self._hca_port = self.argparser.args.hca_port
         self._rate = self.argparser.args.rate
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -213,7 +202,7 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
 
         state = nagios.state.ok
         out = "Infiniband port %s:%d seems to be okay." % (
-                self.hca_name, self.hca_port)
+            self.hca_name, self.hca_port)
 
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
@@ -255,12 +244,13 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         match = re_state.search(cur_state)
         if not match:
             msg = "Could not evaluate IB port state %r from %r." % (
-                    cur_state, state_file)
+                cur_state, state_file)
             self.die(msg)
         state_num = int(match.group(1))
         state_str = match.group(2)
-        log.debug("Got a state %r (%d) for infiniband port %s:%d.", state_str,
-                state_num, self.hca_name, self.hca_port)
+        log.debug(
+            "Got a state %r (%d) for infiniband port %s:%d.", state_str,
+            state_num, self.hca_name, self.hca_port)
 
         # getting physical state (e.g.: '5: LinkUp', '2: Polling')
         cur_phys_state = self.read_file(phys_state_file).strip()
@@ -269,12 +259,13 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         match = re_state.search(cur_phys_state)
         if not match:
             msg = "Could not evaluate IB port physical state %r from %r." % (
-                    cur_phys_state, phys_state_file)
+                cur_phys_state, phys_state_file)
             self.die(msg)
         phys_state_num = int(match.group(1))
         phys_state_str = match.group(2)
-        log.debug("Got a physical state %r (%d) for infiniband port %s:%d.",
-                phys_state_str, phys_state_num, self.hca_name, self.hca_port)
+        log.debug(
+            "Got a physical state %r (%d) for infiniband port %s:%d.",
+            phys_state_str, phys_state_num, self.hca_name, self.hca_port)
 
         # getting the current port rate (e.g. '40 Gb/sec (4X QDR)')
         cur_rate = self.read_file(rate_file).strip()
@@ -282,11 +273,12 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
         match = re_rate.search(cur_rate)
         if not match:
             msg = "Could not evaluate IB port rate %r from %r." % (
-                    cur_rate, rate_file)
+                cur_rate, rate_file)
             self.die(msg)
         rate_val = int(match.group(1))
-        log.debug("Got a data rate of %d GiB/sec [%s] for infiniband port %s:%d.",
-                rate_val, cur_rate, self.hca_name, self.hca_port)
+        log.debug(
+            "Got a data rate of %d GiB/sec [%s] for infiniband port %s:%d.",
+            rate_val, cur_rate, self.hca_name, self.hca_port)
 
         if rate_val != self.rate:
             state = nagios.state.warning
@@ -298,17 +290,16 @@ class CheckIbStatusPlugin(ExtNagiosPlugin):
             state = nagios.state.critical
 
         out = "Infiniband port %s:%d is %s (%s) - current rate %s." % (
-                self.hca_name, self.hca_port, state_str, phys_state_str,
-                cur_rate)
+            self.hca_name, self.hca_port, state_str, phys_state_str, cur_rate)
 
         self.exit(state, out)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
