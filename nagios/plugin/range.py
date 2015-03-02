@@ -8,8 +8,6 @@
 """
 
 # Standard modules
-import os
-import sys
 import re
 import logging
 
@@ -19,13 +17,12 @@ from numbers import Number
 
 # Own modules
 
-import nagios
 from nagios import BaseNagiosError
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 log = logging.getLogger(__name__)
 
@@ -37,18 +34,20 @@ re_dot = re.compile(r'\.')
 re_digit = re.compile(r'[\d~]')
 re_range = re.compile(match_range)
 
-#==============================================================================
+
+# =============================================================================
 class NagiosRangeError(BaseNagiosError):
     """Base exception class for all exceptions in this module."""
     pass
 
-#==============================================================================
+
+# =============================================================================
 class InvalidRangeError(NagiosRangeError):
     """
     A special exception, which is raised, if an invalid range string was found.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, wrong_range):
         """
         Constructor.
@@ -60,20 +59,21 @@ class InvalidRangeError(NagiosRangeError):
 
         self.wrong_range = wrong_range
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """Typecasting into a string for error output."""
 
         return "Wrong range %r." % (self.wrong_range)
 
-#==============================================================================
+
+# =============================================================================
 class InvalidRangeValueError(NagiosRangeError):
     """
     A special exception, which is raised, if an invalid value should be checked
     against the current range object.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, value):
         """
         Constructor.
@@ -85,26 +85,23 @@ class InvalidRangeValueError(NagiosRangeError):
 
         self.value = value
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """Typecasting into a string for error output."""
 
         return "Wrong value %r to check against a range." % (self.value)
 
-#==============================================================================
+
+# =============================================================================
 class NagiosRange(object):
     """
     Encapsulation of a Nagios range, how used by some Nagios plugins.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self,
-            range_str = None,
-            start = None,
-            end = None,
-            invert_match = False,
-            initialized = None
-            ):
+    # -------------------------------------------------------------------------
+    def __init__(
+        self, range_str=None, start=None, end=None,
+            invert_match=False, initialized=None):
         """
         Initialisation of the NagiosRange object.
 
@@ -164,16 +161,16 @@ class NagiosRange(object):
         elif isinstance(start, float):
             self._start = start
         elif start is not None:
-            raise ValueError("Start value %r for NagiosRange is unusable." %
-                    (start))
+            raise ValueError(
+                "Start value %r for NagiosRange is unusable." % (start))
 
         if isinstance(end, int):
             self._end = int(end)
         elif isinstance(end, float):
             self._end = end
         elif end is not None:
-            raise ValueError("End value %r for NagiosRange is unusable." %
-                    (end))
+            raise ValueError(
+                "End value %r for NagiosRange is unusable." % (end))
 
         self._invert_match = bool(invert_match)
 
@@ -182,19 +179,19 @@ class NagiosRange(object):
         elif self.start is not None or self.end is not None:
             self._initialized = True
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def start(self):
         """The start value of the range, infinite, if None."""
         return self._start
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def end(self):
         """The end value of the range, infinite, if None."""
         return self._end
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def invert_match(self):
         """
@@ -203,19 +200,19 @@ class NagiosRange(object):
         """
         return self._invert_match
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def is_set(self):
         """The initialisation of this object is complete."""
         return self._initialized
 
-    #------------------------------------------------------------
+    # -----------------------------------------------------------
     @property
     def initialized(self):
         """The initialisation of this object is complete."""
         return self._initialized
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __str__(self):
         """Typecasting into a string."""
 
@@ -236,7 +233,7 @@ class NagiosRange(object):
 
         return res
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -247,25 +244,25 @@ class NagiosRange(object):
         """
 
         d = {
-                '__class__': self.__class__.__name__,
-                'start': self.start,
-                'end': self.end,
-                'invert_match': self.invert_match,
-                'initialized': self.initialized,
+            '__class__': self.__class__.__name__,
+            'start': self.start,
+            'end': self.end,
+            'invert_match': self.invert_match,
+            'initialized': self.initialized,
         }
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
         out = '<NagiosRange(start=%r, end=%r, invert_match=%r, initialized=%r)>' % (
-                self.start, self.end, self.invert_match, self.initialized)
+            self.start, self.end, self.invert_match, self.initialized)
 
         return out
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def single_val(self):
         """
         Returns a single Number value.
@@ -281,7 +278,7 @@ class NagiosRange(object):
             return self.end
         return self.start
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def parse_range_string(self, range_str):
         """
         Parsing the given range_str and set self.start, self.end and
@@ -372,7 +369,7 @@ class NagiosRange(object):
         self._end = end
         self._initialized = True
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def check_range(self, value):
         """Recverse method of self.check(), it inverts the result of check()
         to provide the exact same behaviour like the check_range() method
@@ -382,7 +379,7 @@ class NagiosRange(object):
             return False
         return True
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __contains__(self, value):
         """
         Special method to implement the 'in' operator. With the help of this
@@ -404,7 +401,7 @@ class NagiosRange(object):
 
         return self.check(value)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def check(self, value):
         """
         Checks the given value against the current range.
@@ -422,8 +419,8 @@ class NagiosRange(object):
         """
 
         if not self.initialized:
-            raise NagiosRangeError("The current NagiosRange object is not " +
-                    "initialized.")
+            raise NagiosRangeError(
+                "The current NagiosRange object is not initialized.")
 
         if not isinstance(value, Number):
             raise InvalidRangeValueError(value)
@@ -452,17 +449,18 @@ class NagiosRange(object):
             else:
                 return my_false
 
-        raise NagiosRangeError("This point should never been reached in " +
-                "checking a value against a range.")
+        raise NagiosRangeError(
+            "This point should never been reached in "
+            "checking a value against a range.")
 
         return my_false
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
-# vim: fileencoding=utf-8 filetype=python ts=4
+# vim: fileencoding=utf-8 filetype=python ts=4 et
