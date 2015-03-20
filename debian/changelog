@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.14) all; urgency=medium
+
+  * Add submit_passive_check for Icinga 2
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 20 Mar 2015 13:40:28 +0100
+
 pb-monitoring-plugins (1.7.13) all; urgency=medium
 
   * Added catch-all exception handling in
