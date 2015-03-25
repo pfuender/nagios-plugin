@@ -124,6 +124,10 @@ if [[ -z ${MD_DEVICES} ]]; then
     MD_DEVICES="md*"
 fi
 for dir in /sys/block/${MD_DEVICES}; do
+    if ! [[ -e /sys/block/md* ]]; then
+        ok_message="  No md-devices."
+        break
+    fi
     dev=${dir##*/}
     [[ ${dev} == 'md400' ]] && continue
     print_verbose "Checking '${dev}'."
@@ -161,7 +165,7 @@ for dir in /sys/block/${MD_DEVICES}; do
     done
 done
 
-if [[ ${count} -eq ${count_ok} ]]; then
+if [[ ${return_state} -eq ${STATE_OK} ]]; then
     echo "OK: ${ok_message:2}|${perfdata}"
     exit ${STATE_OK}
 elif [[ ${return_state} -eq ${STATE_WARNING} ]]; then
