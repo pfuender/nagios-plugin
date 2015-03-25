@@ -15,7 +15,7 @@
 return_code=-1
 
 # Icinga 2 cmd file
-cmd_file=/var/run/icinga2/rw/icinga2.cmd
+cmd_file=/var/run/icinga2/cmd/icinga2.cmd
 
 case "$3" in
     OK)
@@ -33,5 +33,4 @@ case "$3" in
 esac
 
 # add the service check info into the command file
-
-/bin/printf "%s\t%s\t%s\t%s\n" "$1" "$2" "$return_code" "$4" >> ${cmd_file}
+echo "[$(date +%s)] PROCESS_SERVICE_CHECK_RESULT;${1};${2};${return_code};${4}" >> ${cmd_file}
