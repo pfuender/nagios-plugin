@@ -34,7 +34,7 @@ print_help() {
     echo ""
     echo "Arguments:"
     echo " -w|--warning    Set warning threshold, default: ${WARNING}"
-    echo " -c|--critical   Set critical threshold, default: ${WARNING}"
+    echo " -c|--critical   Set critical threshold, default: ${CRITICAL}"
     echo " -m|--md-device  Specify md-device to check, default: check all"
     echo " -v|--verbose    Show verbose messsages"
     echo " -h|--help       Show (this) help"
