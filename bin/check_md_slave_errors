@@ -15,8 +15,8 @@ fi
 
 VERBOSE=false
 MD_DEVICES=''
-WARNING=10
-CRITICAL=15
+WARNING=15
+CRITICAL=20
 
 # some funcions
 print_usage() {
