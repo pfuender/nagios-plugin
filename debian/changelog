@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.15) all; urgency=medium
+
+  * Customization of check_md_slave_errors
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 25 Mar 2015 12:44:09 +0100
+
 pb-monitoring-plugins (1.7.14) all; urgency=medium
 
   * Add submit_passive_check for Icinga 2
