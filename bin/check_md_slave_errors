@@ -123,47 +123,48 @@ if [[ -z ${MD_DEVICES} ]]; then
     print_verbose "Checking all md-devices."
     MD_DEVICES="md*"
 fi
-for dir in /sys/block/${MD_DEVICES}; do
-    if ! [[ -e /sys/block/md* ]]; then
-        ok_message="  No md-devices."
-        break
-    fi
-    dev=${dir##*/}
-    [[ ${dev} == 'md400' ]] && continue
-    print_verbose "Checking '${dev}'."
-    for slave_dir in /sys/block/${dev}/md/dev*; do
-        errors=-1
-        slave=${slave_dir##*/}
-        slave=${slave/dev-/}
-        print_verbose "-n Checking slave '${slave}': "
-        ((count++))
-        if [[ -r ${slave_dir}/errors ]]; then
-            read errors < ${slave_dir}/errors
-        fi
-        print_verbose "-n ${errors}"
-        perfdata="${perfdata} ${slave}=${errors};${WARNING};${CRITICAL}"
-        if [[ ${errors} -eq -1 ]]; then
-            warning_message="${warning_message}; ${slave} has no 'errors' file"
-            [[ ${return_state} -lt ${STATE_CRITICAL} ]] && return_state=${STATE_WARNING}
-            ((count_warning++))
-            print_verbose ": WARNING (${return_state})"
-        elif [[ ${errors} -ge ${CRITICAL} ]]; then
-            critical_message="${critical_message}; ${slave}: ${errors} errors"
-            return_state=${STATE_CRITICAL}
-            ((count_critical++))
-            print_verbose ": CRITICAL (${return_state})"
-        elif [[ ${errors} -ge ${WARNING} ]]; then
-            warning_message="${warning_message}; ${slave}: ${errors} errors"
-            [[ ${return_state} -lt ${STATE_CRITICAL} ]] && return_state=${STATE_WARNING}
-            ((count_warning++))
-            print_verbose ": WARNING (${return_state})"
-        else
-            ok_message="${ok_message}; ${slave}: ${errors} errors"
-            ((count_ok++))
-            print_verbose ": OK (${return_state})"
-        fi
+
+if ! ls /sys/block/md* >/dev/null 2>&1; then
+    ok_message="  No md-devices."
+else
+    for dir in /sys/block/${MD_DEVICES}; do
+        dev=${dir##*/}
+        [[ ${dev} == 'md400' ]] && continue
+        print_verbose "Checking '${dev}'."
+        for slave_dir in /sys/block/${dev}/md/dev*; do
+            errors=-1
+            slave=${slave_dir##*/}
+            slave=${slave/dev-/}
+            print_verbose "-n Checking slave '${slave}': "
+            ((count++))
+            if [[ -r ${slave_dir}/errors ]]; then
+                read errors < ${slave_dir}/errors
+            fi
+            print_verbose "-n ${errors}"
+            perfdata="${perfdata} ${slave}=${errors};${WARNING};${CRITICAL}"
+            if [[ ${errors} -eq -1 ]]; then
+                warning_message="${warning_message}; ${slave} has no 'errors' file"
+                [[ ${return_state} -lt ${STATE_CRITICAL} ]] && return_state=${STATE_WARNING}
+                ((count_warning++))
+                print_verbose ": WARNING (${return_state})"
+            elif [[ ${errors} -ge ${CRITICAL} ]]; then
+                critical_message="${critical_message}; ${slave}: ${errors} errors"
+                return_state=${STATE_CRITICAL}
+                ((count_critical++))
+                print_verbose ": CRITICAL (${return_state})"
+            elif [[ ${errors} -ge ${WARNING} ]]; then
+                warning_message="${warning_message}; ${slave}: ${errors} errors"
+                [[ ${return_state} -lt ${STATE_CRITICAL} ]] && return_state=${STATE_WARNING}
+                ((count_warning++))
+                print_verbose ": WARNING (${return_state})"
+            else
+                ok_message="${ok_message}; ${slave}: ${errors} errors"
+                ((count_ok++))
+                print_verbose ": OK (${return_state})"
+            fi
+        done
     done
-done
+fi
 
 if [[ ${return_state} -eq ${STATE_OK} ]]; then
     echo "OK: ${ok_message:2}|${perfdata}"
