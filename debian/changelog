@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.7.19) all; urgency=medium
+
+  * Fix submit_passive_check
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 30 Mar 2015 12:51:51 +0200
+
 pb-monitoring-plugins (1.7.18) all; urgency=medium
 
   * Fix check_mds_slave_errors if no md-device exists
