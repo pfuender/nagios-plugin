@@ -1,3 +1,39 @@
+pb-monitoring-plugins (1.7.19) all; urgency=medium
+
+  * Fix submit_passive_check
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 30 Mar 2015 12:51:51 +0200
+
+pb-monitoring-plugins (1.7.18) all; urgency=medium
+
+  * Fix check_mds_slave_errors if no md-device exists
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Thu, 26 Mar 2015 14:29:14 +0100
+
+pb-monitoring-plugins (1.7.17) all; urgency=medium
+
+  * Fix submit_passive_check
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 25 Mar 2015 18:12:39 +0100
+
+pb-monitoring-plugins (1.7.16) all; urgency=medium
+
+  * Fix check_md_slave_errors
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 25 Mar 2015 13:15:03 +0100
+
+pb-monitoring-plugins (1.7.15) all; urgency=medium
+
+  * Customization of check_md_slave_errors
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 25 Mar 2015 12:44:09 +0100
+
+pb-monitoring-plugins (1.7.14) all; urgency=medium
+
+  * Add submit_passive_check for Icinga 2
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Fri, 20 Mar 2015 13:40:28 +0100
+
 pb-monitoring-plugins (1.7.13) all; urgency=medium
 
   * Added catch-all exception handling in

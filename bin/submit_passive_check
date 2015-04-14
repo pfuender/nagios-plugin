@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Arguments:
+#  $1 = host_name (fqdn name of host that the service is
+#       associated with)
+#  $2 = svc_name (name of the service)
+#  $3 = state_string (a string representing the status of
+#       the given service - "OK", "WARNING", "CRITICAL"
+#       or "UNKNOWN")
+#  $4 = plugin_output (a text string that should be used
+#       as the plugin output for the service check)
+#
+
+# Convert the state string to the corresponding return code
+return_code=3
+
+# Icinga 2 cmd file
+cmd_file=/var/run/icinga2/cmd/icinga2.cmd
+
+case "$3" in
+    OK)
+        return_code=0
+        ;;
+    WARNING)
+        return_code=1
+        ;;
+    CRITICAL)
+        return_code=2
+        ;;
+    UNKNOWN)
+        return_code=3
+        ;;
+esac
+
+# add the service check info into the command file
+echo "[$(date +%s)] PROCESS_SERVICE_CHECK_RESULT;${1};${2};${return_code};${4}" >> ${cmd_file}
