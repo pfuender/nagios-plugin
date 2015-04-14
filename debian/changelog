@@ -1,3 +1,13 @@
+pb-monitoring-plugins (1.8.0) all; urgency=medium
+
+  * Started with cleanup of Python sources with Flake8
+  * Set 'replicated' for storage volumes always to True in
+    nagios/plugins/check_pb_storage_exports.py
+  * Smaller changes in nagios/plugins/check_pb_consistence_storage.py
+    because of the fact, that storage volumes are always replicated.
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Tue, 14 Apr 2015 13:46:55 +0200
+
 pb-monitoring-plugins (1.7.19) all; urgency=medium
 
   * Fix submit_passive_check
