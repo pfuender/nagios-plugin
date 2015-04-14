@@ -66,7 +66,7 @@ from dcmanagerclient.client import RestApiError
 #---------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_ERRORS = 0
@@ -604,7 +604,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                                 {   'guid': '600144f0-0001-dc98-6910-e09d11e3920c',
                                     'storage_server': 'storage103',
                                     'virtual_state': 'AVAILABLE'}],
-                'replicated': True,
                 'size': 716800,
                 'uuid': 'e7abbe07-3d3e-4468-9af4-1bfe8af418dc',
                 'virtual_network': '61ba3819-d719-4986-b59d-c6178a32aabe'}
@@ -617,7 +616,9 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             if self.verbose > vl:
                 log.debug("Got Storage volume from API:\n%s", pp(stor))
 
-            replicated = stor[key_replicated]
+            replicated = True
+            if key_replicated in stor:
+                replicated = stor[key_replicated]
             vol_uuid = uuid.UUID(stor[key_uuid])
 
             guid = None
@@ -672,7 +673,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 'pserver_uuid': '48385147-3600-0030-48FF-003048FF26B2',
                 'pstorage_name': 'storage201',
                 'pstorage_uuid': '49434D53-0200-9071-2500-71902500F26D',
-                'replicated': True,
                 'size_mb': 102400,
                 'vm_name': 'replacement',
                 'vm_uuid': '001f75f0-fa36-40cc-a628-060d2ecdccc1',
