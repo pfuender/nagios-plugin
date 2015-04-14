@@ -46,7 +46,7 @@ from dcmanagerclient.client import RestApiError
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.9.2'
+__version__ = '0.9.3'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_VOL_ERRORS = 0
@@ -595,11 +595,20 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         first_volume = True
         for stor in storages:
 
-            if self.verbose > 2 and (first_volume or self.verbose > 4):
+            vl = 4
+            if first_volume:
+                vl = 2
+
+            if self.verbose > vl:
                 log.debug("Got Storage volume from API:\n%s", pp(stor))
             first_volume = False
 
-            replicated = stor[key_replicated]
+            replicated = True
+            if key_replicated in stor:
+                if stor[key_replicated]:
+                    replicated = True
+                else:
+                    replicated = False
             size = stor[key_size]
             if replicated:
                 size += 4
@@ -634,7 +643,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             }
             self.api_volumes.append(vol)
 
-            if self.verbose > 5:
+            if self.verbose > vl:
                 log.debug("Transferred data of storage volume:\n%s", pp(vol))
 
         if self.verbose > 1:
@@ -674,7 +683,11 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         first_volume = True
         for stor in images:
 
-            if self.verbose > 2 and (first_volume or self.verbose > 4):
+            vl = 4
+            if first_volume:
+                vl = 2
+
+            if self.verbose > vl:
                 log.debug("Got Image volume from API:\n%s", pp(stor))
             first_volume = False
 
@@ -685,8 +698,9 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
                     state = state.encode('utf-8')
 
             replicated = False
-            if stor[key_replicated]:
-                replicated = True
+            if key_replicated in stor:
+                if stor[key_replicated]:
+                    replicated = True
 
             size = stor[key_size]
             size = int(math.ceil(float(size) / 4.0)) * 4
@@ -726,7 +740,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             }
             self.api_images.append(vol)
 
-            if self.verbose > 5:
+            if self.verbose > vl:
                 log.debug("Transferred data of image volume:\n%s", pp(vol))
 
         if self.verbose > 1:
@@ -766,12 +780,16 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
         first_volume = True
         for stor in snapshots:
 
-            if self.verbose > 2 and (first_volume or self.verbose > 4):
+            vl = 4
+            if first_volume:
+                vl = 2
+
+            if self.verbose > vl:
                 log.debug("Got Snapshot volume from API:\n%s", pp(stor))
             first_volume = False
 
             size = stor[key_size]
-            guid = stor[key_guid]
+            guid = uuid.UUID(stor[key_guid])
 
             state = None
             if key_virtual_state in stor:
@@ -788,7 +806,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
             }
             self.api_snapshots.append(vol)
 
-            if self.verbose > 5:
+            if self.verbose > vl:
                 log.debug("Transferred data of storage volume:\n%s", pp(vol))
 
         if self.verbose > 1:
