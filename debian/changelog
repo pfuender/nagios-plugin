@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.1) all; urgency=medium
+
+  * Add check_graylog_elasticsearch
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 01 Jun 2015 12:23:14 +0200
+
 pb-monitoring-plugins (1.8.0) all; urgency=medium
 
   * Started with cleanup of Python sources with Flake8
