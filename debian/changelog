@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.8.2) all; urgency=medium
+
+  * Adds bin/check_apachestatus.pl
+  * bin/submit_check_result: option --recipient is mandatory now when submiting check results
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Thu, 09 Jul 2015 12:50:56 +0200
+
 pb-monitoring-plugins (1.8.1) all; urgency=medium
 
   * Add check_graylog_elasticsearch
