@@ -3,7 +3,6 @@
 dir=/var/lib/icinga/spool/checkresult-queue
 
 log_target=${0##*/}
-recipient=icinga01-webui.pb.local
 verbose=0
 debug=0
 
@@ -24,7 +23,7 @@ function info() {
         echo -n -e "\033[1mINFO:\033[0m" 1>&2
         tput sgr0                               # Reset colors to "normal."
         echo " $@"
-        logger -p local7.info -t ${log_target} $@
+        logger -p local7.info -t ${log_target} -- $@
     fi
 }
 
@@ -32,7 +31,7 @@ function error() {
     echo -n -e '\E[47;31m'"\033[1mERROR:\033[0m" 1>&2
     tput sgr0                               # Reset colors to "normal."
     echo " $@" 1>&2
-    logger -p local7.err -t ${log_target} $@
+    logger -p local7.err -t ${log_target} -- $@
     exit 2
 }
 
@@ -40,15 +39,14 @@ function error() {
 function usage() {
     echo "$@" 1>&2
     echo "
-    Usage: $0 [-v] [-d] --submit-results [--recipient <recipient>]
+    Usage: $0 [-v] [-d] --submit-results --recipient <recipient>
            $0 [-v] [-d] --queue-host-result <hostname> <state> <plugin_output> <performance_data>
            $0 [-v] [-d] --queue-service-result <hostname> <svc_description> <state> <plugin_output> <performance_data>
 
            -v, --verbose           enable verbose output
            -d, --debug             enable debug mode
            --recipient             send result to <recipient>
-                                   default: ${recipient}
-           --submit-results	       send content of each result file via send_nsca
+           --submit-results        send content of each result file via send_nsca
            --queue-host-result     queue a host check result
            --queue-service-result  queue a service check result
 
@@ -197,9 +195,12 @@ if [[ ! -d ${dir} ]]; then
 fi
 
 if [[ ${submit} -eq 1 ]]; then
-   submit_results
+    if [[ -z ${recipient} ]]; then
+        error "option --recipient is missing"
+    fi
+    submit_results
 elif [[ ${queue} -eq 1 ]]; then
-   queue_result
+    queue_result
 else
-   usage
+    usage
 fi
