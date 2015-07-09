@@ -36,13 +36,18 @@ my $o_port          = undef;    # port
 my $o_version       = undef;    # print version
 my $o_warn_level    = undef;    # Number of available slots that will cause a warning
 my $o_crit_level    = undef;    # Number of available slots that will cause an error
-my $o_w_warn_level  = 0;    # Number of waiting slots that will cause a warning
-my $o_w_crit_level  = 0;    # Number of waiting slots that will cause an error
-my $o_k_warn_level  = 0;    # Number of keepalive slots that will cause a warning
-my $o_k_crit_level  = 0;    # Number of keepalive slots that will cause an error
+my $o_w_warn_level  = undef;    # Number of waiting slots that will cause a warning
+my $o_w_crit_level  = undef;    # Number of waiting slots that will cause an error
+my $o_k_warn_level  = undef;    # Number of keepalive slots that will cause a warning
+my $o_k_crit_level  = undef;    # Number of keepalive slots that will cause an error
 my $o_timeout       = 15;       # Default 15s Timeout
 my $o_protocol      = 'http';   # 'http' or 'https'
 my $o_auth          = undef;    # auth
+
+my $w_warn_pc = undef;          # Bool: the $o_w_warn_level value is a percentage or not
+my $w_crit_pc = undef;          # Bool: the $o_w_crit_level value is a percentage or not
+my $k_warn_pc = undef;          # Bool: the $o_k_warn_level value is a percentage or not
+my $k_crit_pc = undef;          # Bool: the $o_k_crit_level value is a percentage or not
 
 # functions
 
@@ -94,6 +99,18 @@ GPL licence, (c)2006-2007 De Bodt Lieven
    -1 for no warning
 -c, --critical=MIN
    number of available slots that will cause an error
+--w_warn=INTEGER or PERCENTAGE
+   number of waiting connections as total count or as a percentage
+   of all slots that will cause a warning
+--w_crit=INTEGER or PERCENTAGE
+   number of waiting connections as total count or as a percentage
+   of all slots that will cause an error
+--k_warn=INTEGER or PERCENTAGE
+   number of keepalive connections as total count or as a percentage
+   of all slots that will cause a warning
+--k_crit=INTEGER or PERCENTAGE
+   number of keepalive connections as total count or as a percentage
+   of all slots that will cause an error
 -a, --auth=USER:PASS
    Set the authentication auth to user "USER" and password "PASS" if
    the server-status page is restricted.
@@ -144,10 +161,10 @@ sub check_options {
         'version|V'       => \$o_version,
         'warn|w=i'        => \$o_warn_level,
         'critical|c=i'    => \$o_crit_level,
-        'w_warn=i'        => \$o_w_warn_level,
-        'w_crit=i'        => \$o_w_crit_level,
-        'k_warn=i'        => \$o_k_warn_level,
-        'k_crit=i'        => \$o_k_crit_level,
+        'w_warn=s'        => \$o_w_warn_level,
+        'w_crit=s'        => \$o_w_crit_level,
+        'k_warn=s'        => \$o_k_warn_level,
+        'k_crit=s'        => \$o_k_crit_level,
         'auth|a=s'        => \$o_auth,
         'timeout|t=i'     => \$o_timeout,
     ) ) {
@@ -171,6 +188,92 @@ sub check_options {
         warn "Check warn and crit!\n";
         print_usage();
         exit $ERRORS{"UNKNOWN"};
+    }
+
+    if ( (defined($o_w_warn_level) && !defined($o_w_crit_level)) ||
+            (!defined($o_w_warn_level) && defined($o_w_crit_level)) ) {
+            warn "Check warn and crit waiting connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+    }
+
+    if ( defined($o_w_warn_level) ) {
+        if ($o_w_warn_level =~ /^\s*(\d+)\s*(\%)?\s*$/) {
+            $o_w_warn_level = int($1);
+            if ( $2 ) {
+                $w_warn_pc = 1;
+            }
+        }
+        else {
+            warn "Check warn waiting connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
+
+    if ( defined($o_w_crit_level) ) {
+        if ($o_w_crit_level =~ /^\s*(\d+)\s*(\%)?\s*$/) {
+            $o_w_crit_level = int($1);
+            if ( $2 ) {
+                $w_crit_pc = 1;
+            }
+        }
+        else {
+            warn "Check crit waiting connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
+
+    if ( defined($o_w_warn_level) &&  defined($o_w_crit_level) ) {
+        if ( $o_w_crit_level < $o_w_warn_level ) {
+            warn "Check warn and crit waiting connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
+
+    if ( (defined($o_k_warn_level) && !defined($o_k_crit_level)) ||
+            (!defined($o_k_warn_level) && defined($o_k_crit_level)) ) {
+            warn "Check warn and crit keepalive connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+    }
+
+    if ( defined($o_k_warn_level) ) {
+        if ($o_k_warn_level =~ /^\s*(\d+)\s*(\%)?\s*$/) {
+            $o_k_warn_level = int($1);
+            if ( $2 ) {
+                $k_warn_pc = 1;
+            }
+        }
+        else {
+            warn "Check warn keepalive connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
+
+    if ( defined($o_k_crit_level) ) {
+        if ($o_k_crit_level =~ /^\s*(\d+)\s*(\%)?\s*$/) {
+            $o_k_crit_level = int($1);
+            if ( $2 ) {
+                $k_crit_pc = 1;
+            }
+        }
+        else {
+            warn "Check crit keepalive connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
+
+    if ( defined($o_k_warn_level) &&  defined($o_k_crit_level) ) {
+        if ( $o_k_crit_level < $o_k_warn_level ) {
+            warn "Check warn and crit keepalive connections!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
     }
 
     # Check compulsory attributes
@@ -255,36 +358,78 @@ if ( $response->is_success ) {
 
     # count open slots
     my $CountOpenSlots = ( $ScoreBoard =~ tr/\.// );
+    my $CountAllSlots = length($ScoreBoard);
     my $CountWaitingConnections = ( $ScoreBoard =~ tr/W// );
     my $CountKeepaliveConnections = ( $ScoreBoard =~ tr/K// );
+
+    my $w_crit_level = $o_w_crit_level;
+    if ( defined($o_w_crit_level) and $w_crit_pc ) {
+        $w_crit_level = $o_w_crit_level * $CountAllSlots / 100;
+    }
+
+    my $w_warn_level = $o_w_warn_level;
+    if ( defined($o_w_warn_level) and $w_warn_pc ) {
+        $w_warn_level = $o_w_warn_level * $CountAllSlots / 100;
+    }
+
+    my $k_crit_level = $o_k_crit_level;
+    if ( defined($o_k_crit_level) and $k_crit_pc ) {
+        $k_crit_level = $o_k_crit_level * $CountAllSlots / 100;
+    }
+
+    my $k_warn_level = $o_k_warn_level;
+    if ( defined($o_k_warn_level) and $k_warn_pc ) {
+        $k_warn_level = $o_k_warn_level * $CountAllSlots / 100;
+    }
 
     my $label = 'OK';
     if ( ( defined($o_crit_level) && ( $o_crit_level != -1 ) ) and ( ( $CountOpenSlots + $IdleWorkers ) <= $o_crit_level )  ) {
         $label = 'CRITICAL';
     }
-    elsif ( $CountWaitingConnections >= $o_w_crit_level ) {
+    elsif ( defined($w_crit_level) and ($CountWaitingConnections >= $w_crit_level) ) {
         $label = 'CRITICAL';
     }
-    elsif ( $CountKeepaliveConnections >= $o_k_crit_level ) {
+    elsif ( defined($k_crit_level) and ($CountKeepaliveConnections >= $k_crit_level) ) {
         $label = 'CRITICAL';
     }
     elsif ( ( defined($o_warn_level) && ( $o_warn_level != -1 ) ) and ( ( $CountOpenSlots + $IdleWorkers ) <= $o_warn_level ) ) {
         $label = 'WARNING';
     }
-    elsif ( $CountWaitingConnections >= $o_w_warn_level ) {
+    elsif ( defined($w_warn_level) and ($CountWaitingConnections >= $w_warn_level) ) {
         $label = 'WARNING';
     }
-    elsif ( $CountKeepaliveConnections >= $o_k_warn_level ) {
+    elsif ( defined($k_warn_level) and ($CountKeepaliveConnections >= $k_warn_level) ) {
         $label = 'WARNING';
     }
 
-    printf( "%s %f seconds response time. Idle %d, busy %d, waiting %d, keepalive %d, open slots %d | waiting=%d;%d;%d;0 keepalive=%d;%d;%d;0 busy=%d;;;0 idle=%d;;;0 resp_time=%f;;;0",
+    my $w_c = '';
+    if ( defined($w_crit_level) ) {
+        $w_c = sprintf('%d', $w_crit_level);
+    }
+
+    my $w_w = '';
+    if ( defined($w_warn_level) ) {
+        $w_w = sprintf('%d', $w_warn_level);
+    }
+
+    my $k_c = '';
+    if ( defined($k_crit_level) ) {
+        $k_c = sprintf('%d', $k_crit_level);
+    }
+
+    my $k_w = '';
+    if ( defined($k_warn_level) ) {
+        $k_w = sprintf('%d', $k_warn_level);
+    }
+
+    printf( "%s %f seconds response time. Idle %d, busy %d, waiting %d, keepalive %d, open slots %d | waiting=%d;%s;%s;0 keepalive=%d;%s;%s;0 busy=%d;;;0 idle=%d;;;0 open=%d;;;0 resp_time=%f;;;0",
         $label, $timeelapsed,
         $IdleWorkers, $BusyWorkers, $CountWaitingConnections, $CountKeepaliveConnections, $CountOpenSlots,
-        $CountWaitingConnections, $o_w_warn_level, $o_w_crit_level,
-        $CountKeepaliveConnections, $o_k_warn_level, $o_k_crit_level,
+        $CountWaitingConnections, $w_w, $w_c,
+        $CountKeepaliveConnections, $k_w, $k_c,
         $BusyWorkers,
         $IdleWorkers,
+        $CountOpenSlots,
         $timeelapsed );
     print $reqpersec_out . "\n";
 
@@ -304,3 +449,4 @@ else {
 
 } ## end else [ if ( $response->is_success )
 
+# vim: ts=4 et
