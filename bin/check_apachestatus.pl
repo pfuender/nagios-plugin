@@ -30,15 +30,19 @@ my $Version = '1.1';
 my $Name    = $0;
 $Name =~ s#.*/##;
 
-my $o_host       = undef;    # hostname
-my $o_help       = undef;    # want some help ?
-my $o_port       = undef;    # port
-my $o_version    = undef;    # print version
-my $o_warn_level = undef;    # Number of available slots that will cause a warning
-my $o_crit_level = undef;    # Number of available slots that will cause an error
-my $o_timeout    = 15;       # Default 15s Timeout
-my $o_protocol   = 'http';   # 'http' or 'https'
-my $o_cred       = undef;    # Credentials
+my $o_host          = undef;    # hostname
+my $o_help          = undef;    # want some help ?
+my $o_port          = undef;    # port
+my $o_version       = undef;    # print version
+my $o_warn_level    = undef;    # Number of available slots that will cause a warning
+my $o_crit_level    = undef;    # Number of available slots that will cause an error
+my $o_w_warn_level  = 0;    # Number of waiting slots that will cause a warning
+my $o_w_crit_level  = 0;    # Number of waiting slots that will cause an error
+my $o_k_warn_level  = 0;    # Number of keepalive slots that will cause a warning
+my $o_k_crit_level  = 0;    # Number of keepalive slots that will cause an error
+my $o_timeout       = 15;       # Default 15s Timeout
+my $o_protocol      = 'http';   # 'http' or 'https'
+my $o_auth          = undef;    # auth
 
 # functions
 
@@ -51,7 +55,7 @@ sub show_versioninfo {
 #-------------------------------------------------
 
 sub print_usage {
-    print "Usage: $Name -H <host> [-p <port>] [-P <protocol>] [-t <timeout>] [-w <warn_level> -c <crit_level>] [-V]\n";
+    print "Usage: $Name -H <host> [-p <port>] [-P <protocol>] [-t <timeout>] [-w <warn_level> -c <crit_level>] [--w_warn <wconn_warn_level> --w_crit <wconn_crit_level>] [--k_warn <keepaliveconn_warn_level> --k_crit <keepaliveconnf_crit_level>]  [-V]\n";
 }
 
 #-------------------------------------------------
@@ -90,8 +94,8 @@ GPL licence, (c)2006-2007 De Bodt Lieven
    -1 for no warning
 -c, --critical=MIN
    number of available slots that will cause an error
--C, --credentials=USER:PASS
-   Set the authentication credentials to user "USER" and password "PASS" if
+-a, --auth=USER:PASS
+   Set the authentication auth to user "USER" and password "PASS" if
    the server-status page is restricted.
 -V, --version
    prints version number
@@ -140,7 +144,11 @@ sub check_options {
         'version|V'       => \$o_version,
         'warn|w=i'        => \$o_warn_level,
         'critical|c=i'    => \$o_crit_level,
-        'credentials|C=s' => \$o_cred,
+        'w_warn=i'        => \$o_w_warn_level,
+        'w_crit=i'        => \$o_w_crit_level,
+        'k_warn=i'        => \$o_k_warn_level,
+        'k_crit=i'        => \$o_k_crit_level,
+        'auth|a=s'        => \$o_auth,
         'timeout|t=i'     => \$o_timeout,
     ) ) {
         print_usage();
@@ -191,7 +199,7 @@ $url .= ':' . $o_port if defined $o_port;
 $url .= '/server-status?auto';
 
 my $req = HTTP::Request->new(GET => $url);
-$req->authorization_basic( split( /:/, $o_cred ) ) if $o_cred;
+$req->authorization_basic( split( /:/, $o_auth ) ) if $o_auth;
 
 my $timing0  = [gettimeofday];
 my $response = $ua->request($req);
@@ -247,17 +255,37 @@ if ( $response->is_success ) {
 
     # count open slots
     my $CountOpenSlots = ( $ScoreBoard =~ tr/\.// );
+    my $CountWaitingConnections = ( $ScoreBoard =~ tr/W// );
+    my $CountKeepaliveConnections = ( $ScoreBoard =~ tr/K// );
 
     my $label = 'OK';
     if ( ( defined($o_crit_level) && ( $o_crit_level != -1 ) ) and ( ( $CountOpenSlots + $IdleWorkers ) <= $o_crit_level )  ) {
         $label = 'CRITICAL';
     }
+    elsif ( $CountWaitingConnections >= $o_w_crit_level ) {
+        $label = 'CRITICAL';
+    }
+    elsif ( $CountKeepaliveConnections >= $o_k_crit_level ) {
+        $label = 'CRITICAL';
+    }
     elsif ( ( defined($o_warn_level) && ( $o_warn_level != -1 ) ) and ( ( $CountOpenSlots + $IdleWorkers ) <= $o_warn_level ) ) {
         $label = 'WARNING';
     }
+    elsif ( $CountWaitingConnections >= $o_w_warn_level ) {
+        $label = 'WARNING';
+    }
+    elsif ( $CountKeepaliveConnections >= $o_k_warn_level ) {
+        $label = 'WARNING';
+    }
 
-    printf( "%s %f seconds response time. Idle %d, busy %d, open slots %d | busy=%d;;;0 idle=%d;;;0 resp_time=%f;;;0",
-        $label, $timeelapsed, $IdleWorkers, $BusyWorkers, $CountOpenSlots, $BusyWorkers,  $IdleWorkers, $timeelapsed );
+    printf( "%s %f seconds response time. Idle %d, busy %d, waiting %d, keepalive %d, open slots %d | waiting=%d;%d;%d;0 keepalive=%d;%d;%d;0 busy=%d;;;0 idle=%d;;;0 resp_time=%f;;;0",
+        $label, $timeelapsed,
+        $IdleWorkers, $BusyWorkers, $CountWaitingConnections, $CountKeepaliveConnections, $CountOpenSlots,
+        $CountWaitingConnections, $o_w_warn_level, $o_w_crit_level,
+        $CountKeepaliveConnections, $o_k_warn_level, $o_k_crit_level,
+        $BusyWorkers,
+        $IdleWorkers,
+        $timeelapsed );
     print $reqpersec_out . "\n";
 
     exit $ERRORS{$label};
