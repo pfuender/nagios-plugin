@@ -1,3 +1,11 @@
+pb-monitoring-plugins (1.8.3) all; urgency=medium
+
+  * Modify bin/check_apachestatus.pl to have thresholds for waiting and
+    keepalive slots. This thresholds can be given either as an absolute
+    value or as a percentage of all slots.
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 10 Jul 2015 11:41:48 +0200
+
 pb-monitoring-plugins (1.8.2) all; urgency=medium
 
   * Adds bin/check_apachestatus.pl
