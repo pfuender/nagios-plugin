@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.8.4) all; urgency=medium
+
+  * check_IPoIB.py: adds option --ignore-dcmanager-host-states which allows to ignore the
+    dcmanager host state for pservers/gateways
+
+ -- Thomas Möricke <thomas.moericke@profitbricks.com>  Fri, 24 Jul 2015 15:15:02 +0200
+
 pb-monitoring-plugins (1.8.3) all; urgency=medium
 
   * Modify bin/check_apachestatus.pl to have thresholds for waiting and
