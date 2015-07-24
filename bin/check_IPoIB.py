@@ -149,6 +149,8 @@ def parse_args():
     parser.add_argument('--url', type=str, help=msg)
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT_API,
             help="Timeout in communication with the REST API (default: %(default)s seconds)")
+    parser.add_argument('--ignore-dcmanager-host-states', dest='ignore_host_states', action='store_true', default=False,
+            help="Continue despite of the pserver/gateway being marked down in the dcmanager")
 
     try:
         args = parser.parse_args()
@@ -303,7 +305,7 @@ if __name__ == '__main__':
         print("UNKNOWN: dcmanager api response for host %s does not contain any 'state' attribute" % hostname )
         sys.exit(state['UNKNOWN'])
         
-    if response[0]['state'] != 'UP':
+    if not args.ignore_host_states and response[0]['state'] != 'UP':
         print("OK: host %s is not marked as 'UP' in dcmanager" % hostname)
         sys.exit(state['OK'])
 
@@ -328,7 +330,7 @@ if __name__ == '__main__':
     dcmanager_offline = []
     n = 0
     for ps in pservers:
-        if ps["state"] != 'UP':
+        if not args.ignore_host_states and ps["state"] != 'UP':
             dcmanager_offline.append(ps["name"])
             continue
         for i in range(2):
@@ -349,7 +351,7 @@ if __name__ == '__main__':
 
     ## check pgateways in this cluster
     for ps in gateways:
-        if ps["state"] != 'UP':
+        if not args.ignore_host_states and ps["state"] != 'UP':
             dcmanager_offline.append(ps["name"])
             continue
         ping_hostname = ps["name"]
