@@ -33,7 +33,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 log = logging.getLogger(__name__)
 
@@ -480,6 +480,12 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 state_id = nagios.state.critical
             else:
                 state_id = nagios.state.unknown
+
+        if not self.spare_ok:
+            # Check for existing spare devices
+            if state.spare_devices.keys():
+                state_msg += ", has spares %r" % (state.spare_devices.keys())
+                state_id = max_state(state_id, nagios.state.warning)
 
         # Check degraded and synchronisation state
         if state.degraded:
