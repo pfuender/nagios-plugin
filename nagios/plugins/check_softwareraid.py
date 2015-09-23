@@ -26,14 +26,14 @@ from nagios.common import pp
 
 from nagios.plugin import NPReadTimeoutError
 
-from nagios.plugin.functions import max_state
+from nagios.plugin.functions import max_state, to_bool
 
 from nagios.plugin.extended import ExtNagiosPlugin
 
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 log = logging.getLogger(__name__)
 
@@ -187,6 +187,13 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         @type: int
         """
 
+        self.spare_ok = True
+        """
+        @ivar: flag, whether existing spare devices are OK or
+               should be noticed as a warning
+        @type: bool
+        """
+
         self._add_args()
 
     # -------------------------------------------------------------------------
@@ -207,6 +214,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         d['bad_ones'] = self.bad_ones
         d['ugly_ones'] = self.ugly_ones
         d['checked_devices'] = self.checked_devices
+        d['spare_ok'] = self.spare_ok
 
         return d
 
@@ -215,6 +223,13 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
+
+        self.add_arg(
+            '--no-spare',
+            dest='no_spare',
+            action='store_true',
+            help=("Existence of spare devices leads to a warning."),
+        )
 
         self.add_arg(
             'device',
@@ -239,6 +254,14 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         super(CheckSoftwareRaidPlugin, self).parse_args(args)
 
         self.init_root_logger()
+
+        ini_opts = self.argparser._load_config_section('softwareraid')
+        log.debug("Got options from ini-Parser: %s", pp(ini_opts))
+        if ini_opts and 'spare_ok' in ini_opts:
+            self.spare_ok = to_bool(ini_opts['spare_ok'])
+
+        if self.argparser.args.no_spare:
+            self.spare_ok = False
 
         re_dev = re.compile(r'^(?:/dev/|/sys/block/)?(md\d+)$')
 
