@@ -9,47 +9,31 @@
 
 # Standard modules
 import os
-import sys
 import logging
 import textwrap
-import pwd
 import re
-import locale
 import stat
 import glob
 import errno
-
-from numbers import Number
 
 # Third party modules
 
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
+from nagios.common import pp
 
-from nagios.plugin import NagiosPluginError
 from nagios.plugin import NPReadTimeoutError
 
 from nagios.plugin.functions import max_state
 
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.argparser import default_timeout
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
+# --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 log = logging.getLogger(__name__)
 
@@ -60,13 +44,14 @@ Default timeout for all reading operations.
 
 re_sync_completed = re.compile(r'(\d+)\s*/\s*(\d+)')
 
-#==============================================================================
+
+# =============================================================================
 class RaidState(object):
     """
     Encapsulation class for the state of an MD device.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, device):
 
         self.device = device
@@ -82,7 +67,7 @@ class RaidState(object):
         self.sync_completed = None
         self.slaves = {}
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
 
         d = {}
@@ -101,13 +86,14 @@ class RaidState(object):
 
         return d
 
-#==============================================================================
+
+# =============================================================================
 class SlaveState(object):
     """
     Encapsulation class for the state of a slave device of a RAID device.
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self, nr, path):
 
         self.nr = nr
@@ -117,7 +103,7 @@ class SlaveState(object):
         self.rdlink = None
         self.rdlink_exists = None
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
 
         d = {}
@@ -127,14 +113,15 @@ class SlaveState(object):
 
         return d
 
-#==============================================================================
+
+# =============================================================================
 class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking the state of one or all  Linux
     software RAID devices (MD devices).
     """
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckSoftwareRaidPlugin class.
@@ -151,7 +138,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         blurb += "Checks the state of one or all  Linux software RAID devices."
 
         super(CheckSoftwareRaidPlugin, self).__init__(
-                usage = usage, blurb = blurb, timeout = DEFAULT_TIMEOUT,
+            usage=usage, blurb=blurb, timeout=DEFAULT_TIMEOUT,
         )
 
         self.devices = []
@@ -192,7 +179,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -213,22 +200,23 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                'device',
-                dest = 'device',
-                nargs = '?',
-                help = ("The device to check (given as 'mdX' or '/dev/mdX' " +
-                        "or /sys/block/mdX, must exists)."),
+            'device',
+            dest='device',
+            nargs='?',
+            help=(
+                "The device to check (given as 'mdX' or '/dev/mdX' "
+                "or /sys/block/mdX, must exists)."),
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    # -------------------------------------------------------------------------
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -251,7 +239,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 match = re_dev.search(self.argparser.args.device)
                 if not match:
                     self.die("Device %r is not a valid MD device." % (
-                            self.argparser.args.device))
+                        self.argparser.args.device))
                 self.devices.append(match.group(1))
         else:
             self.check_all = True
@@ -274,7 +262,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         if not stat.S_ISBLK(dev_mode):
             self.die("%r is not a block device." % (dev_dev))
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def collect_devices(self):
         """
         Method to collect all MD devices and to store them in self.devices.
@@ -297,7 +285,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         return
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def check_mddev(self, dev):
         """
         Underlying method to check the state of a MD device.
@@ -373,8 +361,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 state.sectors_synced = int(match.group(1))
                 state.sectors_total = int(match.group(2))
                 if state.sectors_total:
-                    state.sync_completed = (float(state.sectors_synced) /
-                            float(state.sectors_total))
+                    state.sync_completed = (
+                        float(state.sectors_synced) / float(state.sectors_total))
 
         i = 0
         while i < state.nr_raid_disks:
@@ -382,8 +370,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             i += 1
 
         if self.verbose > 3:
-            log.debug("Searching for slave dirs with pattern %r ...",
-                    slavedir_pattern)
+            log.debug(
+                "Searching for slave dirs with pattern %r ...", slavedir_pattern)
         slavedirs = glob.glob(slavedir_pattern)
         if self.verbose > 2:
             log.debug("Found slave dirs: %r", slavedirs)
@@ -415,9 +403,9 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             # Retreiving the slave block device
             block_target = os.readlink(slave_block_file)
             slave_block_device = os.path.normpath(os.path.join(
-                    os.path.dirname(slave_block_file), block_target))
-            slave_block_device = os.sep + os.path.join('dev',
-                    os.path.basename(slave_block_device))
+                os.path.dirname(slave_block_file), block_target))
+            slave_block_device = os.sep + os.path.join(
+                'dev', os.path.basename(slave_block_device))
 
             slave = SlaveState(slave_slot, slave_dir)
             slave.block_device = slave_block_device
@@ -487,7 +475,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         return (state_id, state_msg)
 
-    #--------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -506,8 +494,9 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         state = nagios.state.ok
         out = "MD devices seems to be ok."
 
-        for dev in sorted(self.devices,
-                cmp = lambda x, y: cmp(int(x.replace('md', '')), int(y.replace('md', '')))):
+        for dev in sorted(
+            self.devices,
+                cmp=lambda x, y: cmp(int(x.replace('md', '')), int(y.replace('md', '')))):
             result = None
             try:
                 result = self.check_mddev(dev)
@@ -516,12 +505,12 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 self.ugly_ones.append(msg)
             except IOError as e:
                 msg = "MD device %r disappeared during this script: %s" % (
-                        dev, e)
+                    dev, e)
                 log.debug(msg)
                 continue
             except Exception as e:
-                self.die("Unknown %r error on getting information about %r: %s" %
-                        (e.__class__.__name__, dev, e))
+                self.die("Unknown %r error on getting information about %r: %s" % (
+                    e.__class__.__name__, dev, e))
             if result is None:
                 continue
 
@@ -559,12 +548,12 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         self.exit(state, out)
 
-#==============================================================================
+# =============================================================================
 
 if __name__ == "__main__":
 
     pass
 
-#==============================================================================
+# =============================================================================
 
 # vim: fileencoding=utf-8 filetype=python ts=4 expandtab shiftwidth=4 softtabstop=4
