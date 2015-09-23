@@ -35,7 +35,7 @@ from nagios.plugin.config import NagiosPluginConfig
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.5.2'
+__version__ = '0.5.3'
 
 log = logging.getLogger(__name__)
 
@@ -77,8 +77,8 @@ class NagiosPluginArgparseAction(argparse.Action):
         if isinstance(messages, str):
             msgs = [msgs]
         msg = "\n".join(msgs)
-        log.debug(
-            "Exiting with return value %d and a message %r.", state, msg)
+        # log.debug(
+        #    "Exiting with return value %d and a message %r.", state, msg)
         parser.exit(state, msg)
 
 
@@ -502,19 +502,19 @@ class NagiosPluginArgparse(object):
         self._add_plugin_args(parser)
         self._add_std_args(parser)
 
-        log.debug("NpArgParser object: %r", parser)
+        # log.debug("NpArgParser object: %r", parser)
 
         self.args = parser.parse_args(args)
 
-        log.debug("Got first commandline arguments: %r", self.args)
+        # log.debug("Got first commandline arguments: %r", self.args)
 
         if self.args.extra_opts:
             new_args = self._process_extra_opts(args, self.args.extra_opts)
-            log.debug("Got new commandline parameters %r.", new_args)
+            # log.debug("Got new commandline parameters %r.", new_args)
             if new_args != args:
-                log.debug("Reevaluate commandline options ...")
+                # log.debug("Reevaluate commandline options ...")
                 self.args = parser.parse_args(new_args)
-                log.debug("Got next commandline arguments: %r", self.args)
+                # log.debug("Got next commandline arguments: %r", self.args)
 
         for arg in self.arguments:
 
@@ -525,8 +525,8 @@ class NagiosPluginArgparse(object):
                 required = arg['kwargs']['required']
                 if required:
                     val = getattr(self.args, dest, None)
-                    log.debug(
-                        "Checking for required argument %r, current value is %r.", dest, val)
+                    # log.debug(
+                    #     "Checking for required argument %r, current value is %r.", dest, val)
                     if not hasattr(self.args, dest) or getattr(self.args, dest, None) is None:
                         arg_str = '/'.join(arg['names'])
                         msg = "Argument %r is a required argument." % (arg_str)
@@ -562,9 +562,9 @@ class NagiosPluginArgparse(object):
                 cfg_file = match.group(2)
 
             ini_opts = self._load_config_section(section, cfg_file)
-            log.debug("Read extra opts from %r: %r", cfg_file, ini_opts)
+            # log.debug("Read extra opts from %r: %r", cfg_file, ini_opts)
             n_args = self._cmdline(ini_opts)
-            log.debug("Resulting commandline options: %r", n_args)
+            # log.debug("Resulting commandline options: %r", n_args)
 
             s_args += n_args
 
@@ -606,8 +606,8 @@ class NagiosPluginArgparse(object):
                 continue
 
             if not re_valid_key.search(key):
-                log.warn(
-                    "Invalid key %r for usage as commandline parameter found.", key)
+                # log.warn(
+                #     "Invalid key %r for usage as commandline parameter found.", key)
                 continue
 
             if len(key) > 1:
@@ -627,15 +627,15 @@ class NagiosPluginArgparse(object):
         if not section:
             section = self.plugin
 
-        log.debug(
-            "Trying to load extra options from section %r of file %r.", section, cfg_file)
+        # log.debug(
+        #     "Trying to load extra options from section %r of file %r.", section, cfg_file)
 
         cfg = NagiosPluginConfig()
         configs = []
         try:
             configs = cfg.read(cfg_file)
         except NoConfigfileFound as e:
-            log.warn(str(e))
+            # log.warn(str(e))
             return {}
 
         configs_str = str(configs)
@@ -645,8 +645,8 @@ class NagiosPluginArgparse(object):
             configs_str = '<None>'
 
         if section not in cfg.sections():
-            log.debug(
-                "Section %r not found in ini-files %s.", section, configs_str)
+            # log.debug(
+            #     "Section %r not found in ini-files %s.", section, configs_str)
             return {}
 
         ini_opts = {}
