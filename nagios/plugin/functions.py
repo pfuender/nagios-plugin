@@ -21,7 +21,7 @@ import nagios
 from nagios import FakeExitError
 import collections
 
-__version__ = '0.2.3'
+__version__ = '0.3.0'
 
 # --------------------------------------------
 # Some module variables
@@ -170,6 +170,52 @@ def nagios_die(message, plugin_object=None, no_status_line=False):
 
     return nagios_exit(
         nagios.state.unknown, message, plugin_object, no_status_line)
+
+
+# -----------------------------------------------------------------------------
+def to_bool(value):
+    """
+    Converter from string to boolean values (e.g. from configurations)
+    """
+
+    if not value:
+        return False
+
+    if isinstance(value, bool):
+        return value
+
+    try:
+        v_int = int(value)
+    except ValueError:
+        pass
+    except TypeError:
+        pass
+    else:
+        if v_int == 0:
+            return False
+        else:
+            return True
+
+    re_yes = re.compile(r'^\s*(?:y(?:es)?|true)\s*$', re.IGNORECASE)
+    re_no = re.compile(r'^\s*(?:no?|false|off)\s*$', re.IGNORECASE)
+
+    v_str = ''
+    if isinstance(value, str):
+        v_str = value
+        if sys.version_info[0] <= 2:
+            if isinstance(value, unicode):
+                v_str = value.encode('utf-8')
+    elif sys.version_info[0] > 2 and isinstance(value, bytes):
+        v_str = value.decode('utf-8')
+    else:
+        v_str = str(value)
+
+    if re_yes.search(v_str):
+        return True
+    if re_no.search(v_str):
+        return False
+
+    return bool(value)
 
 
 # -----------------------------------------------------------------------------
