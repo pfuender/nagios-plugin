@@ -232,8 +232,9 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         Adding all necessary arguments to the commandline argument parser.
         """
 
-        msg = ("Existence of spare devices leads to a warning. Overrides a possible "
-            "entry 'spare_ok' in section [softwareraid] in file '/etc/nagios/plugins.ini'.")
+        msg = (
+            "Existence of spare devices leads to a warning. Overrides a possible entry "
+            "'spare_ok' in section [softwareraid] in file '/etc/nagios/plugins.ini'.")
         self.add_arg(
             '--no-spare',
             dest='no_spare',

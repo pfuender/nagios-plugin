@@ -304,7 +304,7 @@ if __name__ == '__main__':
     if not 'state' in response[0]:
         print("UNKNOWN: dcmanager api response for host %s does not contain any 'state' attribute" % hostname )
         sys.exit(state['UNKNOWN'])
-        
+
     if not args.ignore_host_states and response[0]['state'] != 'UP':
         print("OK: host %s is not marked as 'UP' in dcmanager" % hostname)
         sys.exit(state['OK'])
