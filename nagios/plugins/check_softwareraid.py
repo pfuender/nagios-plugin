@@ -33,7 +33,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 log = logging.getLogger(__name__)
 
@@ -232,11 +232,13 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         Adding all necessary arguments to the commandline argument parser.
         """
 
+        msg = ("Existence of spare devices leads to a warning. Overrides a possible "
+            "entry 'spare_ok' in section [softwareraid] in file '/etc/nagios/plugins.ini'.")
         self.add_arg(
             '--no-spare',
             dest='no_spare',
             action='store_true',
-            help=("Existence of spare devices leads to a warning."),
+            help=msg,
         )
 
         self.add_arg(
