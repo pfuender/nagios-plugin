@@ -1,3 +1,15 @@
+pb-monitoring-plugins (1.8.5) UNRELEASED; urgency=medium
+
+  * Add function to_bool() to nagios/plugin/functions.py
+  * Removed all debug output from nagios/plugin/argparser.py.
+  * Refactored nagios/plugins/check_softwareraid.py for taking care of
+    spare devices and better evaluation of failed devices.
+  * Added commandline option --no-spare to bin/check_softwareraid and
+    check for spare devices and warn if requested in
+    nagios/plugins/check_softwareraid.py.
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Wed, 23 Sep 2015 15:59:50 +0200
+
 pb-monitoring-plugins (1.8.4) all; urgency=medium
 
   * check_IPoIB.py: adds option --ignore-dcmanager-host-states which allows to ignore the
