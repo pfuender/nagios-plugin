@@ -33,7 +33,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +67,7 @@ class RaidState(object):
         self.sync_completed = None
         self.slaves = []
         self.raid_devices = {}
+        self.failed_devices = {}
         self.spare_devices = {}
 
     # -------------------------------------------------------------------------
@@ -74,13 +75,20 @@ class RaidState(object):
 
         d = {}
         for key in self.__dict__:
-            if key in ('raid_devices', 'spare_devices'):
+            if key in ('failed_devices', 'raid_devices', 'spare_devices'):
                 continue
             val = self.__dict__[key]
             d[key] = val
 
+        d['failed_devices'] = {}
         d['raid_devices'] = {}
         d['spare_devices'] = {}
+
+        for sid in self.failed_devices:
+            if not self.failed_devices[sid]:
+                d['failed_devices'][sid] = None
+            else:
+                d['failed_devices'][sid] = self.failed_devices[sid].as_dict()
 
         for sid in self.raid_devices:
             if not self.raid_devices[sid]:
@@ -436,8 +444,6 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             rd_link = None
             if slave_slot is not None:
                 rd_link = os.path.join(base_mddir, 'rd%d' % (slave_slot))
-                if rd_link.lower() == 'none':
-                    is_spare = True
 
             # Retreiving the slave block device
             block_target = os.readlink(slave_block_file)
@@ -461,6 +467,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             state.slaves.append(slave_bd_basename)
             if is_spare:
                 state.spare_devices[slave_bd_basename] = slave
+            elif rd_link is None or slave_state == 'faulty':
+                state.failed_devices[slave_bd_basename] = slave
             else:
                 state.raid_devices[slave_slot] = slave
 
@@ -524,6 +532,10 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             if not raid_device.rdlink_exists:
                 state_msg += " failed"
                 state_id = max_state(state_id, nagios.state.critical)
+
+        if state.failed_devices.keys():
+            state_msg += ", failed %r" % (state.failed_devices.keys())
+            state_id = max_state(state_id, nagios.state.critical)
 
         return (state_id, state_msg)
 
