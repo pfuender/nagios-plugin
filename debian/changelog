@@ -1,4 +1,4 @@
-pb-monitoring-plugins (1.8.5) UNRELEASED; urgency=medium
+pb-monitoring-plugins (1.8.5) all; urgency=medium
 
   * Add function to_bool() to nagios/plugin/functions.py
   * Removed all debug output from nagios/plugin/argparser.py.
