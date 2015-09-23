@@ -33,7 +33,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.2.1'
+__version__ = '0.3.0'
 
 log = logging.getLogger(__name__)
 
@@ -65,24 +65,34 @@ class RaidState(object):
         self.sectors_total = None
         self.sectors_synced = None
         self.sync_completed = None
-        self.slaves = {}
+        self.slaves = []
+        self.raid_devices = {}
+        self.spare_devices = {}
 
     # -------------------------------------------------------------------------
     def as_dict(self):
 
         d = {}
         for key in self.__dict__:
-            if key == 'slaves':
+            if key in ('raid_devices', 'spare_devices'):
                 continue
             val = self.__dict__[key]
             d[key] = val
 
-        d['slaves'] = {}
-        for sid in self.slaves:
-            if not self.slaves[sid]:
-                d['slaves'][sid] = None
+        d['raid_devices'] = {}
+        d['spare_devices'] = {}
+
+        for sid in self.raid_devices:
+            if not self.raid_devices[sid]:
+                d['raid_devices'][sid] = None
             else:
-                d['slaves'][sid] = self.slaves[sid].as_dict()
+                d['raid_devices'][sid] = self.raid_devices[sid].as_dict()
+
+        for sid in self.spare_devices:
+            if not self.spare_devices[sid]:
+                d['spare_devices'][sid] = None
+            else:
+                d['spare_devices'][sid] = self.spare_devices[sid].as_dict()
 
         return d
 
@@ -366,7 +376,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
 
         i = 0
         while i < state.nr_raid_disks:
-            state.slaves[i] = None
+            state.raid_devices[i] = None
             i += 1
 
         if self.verbose > 3:
@@ -389,34 +399,47 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             # /sys/block/mdX/md/dev-XYZ/block
             slave_block_file = os.path.join(slave_dir, 'block')
 
+            is_spare = False
+
             # Reading some status files
             try:
                 slave_slot = int(self.read_file(slave_slot_file))
             except ValueError:
                 slave_slot = None
             slave_state = self.read_file(slave_state_file).strip()
+            if slave_state == 'spare':
+                is_spare = True
 
             rd_link = None
             if slave_slot is not None:
                 rd_link = os.path.join(base_mddir, 'rd%d' % (slave_slot))
+                if rd_link.lower() == 'none':
+                    is_spare = True
 
             # Retreiving the slave block device
             block_target = os.readlink(slave_block_file)
             slave_block_device = os.path.normpath(os.path.join(
                 os.path.dirname(slave_block_file), block_target))
-            slave_block_device = os.sep + os.path.join(
-                'dev', os.path.basename(slave_block_device))
+            slave_bd_basename = os.path.basename(slave_block_device)
+            slave_block_device = os.sep + os.path.join('dev', slave_bd_basename)
 
             slave = SlaveState(slave_slot, slave_dir)
             slave.block_device = slave_block_device
             slave.state = slave_state
-            state.slaves[slave_slot] = slave
 
+            # Check existense of the rdX link
             slave.rdlink = rd_link
             if rd_link is not None and os.path.exists(rd_link):
                 slave.rdlink_exists = True
             else:
                 slave.rdlink_exists = False
+
+            # Assigne slave as a raid or a spare device
+            state.slaves.append(slave_bd_basename)
+            if is_spare:
+                state.spare_devices[slave_bd_basename] = slave
+            else:
+                state.raid_devices[slave_slot] = slave
 
         if self.verbose > 2:
             log.debug("Status results for %r:\n%s", dev, pp(state.as_dict()))
@@ -457,21 +480,21 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
             if state.sync_completed is not None:
                 state_msg += " %.1f%%" % ((state.sync_completed * 100))
 
-            # Check state of slave devices
-            for i in state.slaves:
-                log.debug("Evaluating state of slave[%r]", i)
-                if state.slaves[i] is None:
-                    state_id = max_state(state_id, nagios.state.critical)
-                    state_msg += ", slave[%r] fails" % (i)
-                    continue
-                slave = state.slaves[i]
-                if slave.state in ('in_sync', 'writemostly'):
-                    continue
-                bd = os.path.basename(slave.block_device)
-                state_msg += ", slave[%r]=%s %s" % (i, bd, slave.state)
-                if not slave.rdlink_exists:
-                    state_msg += " failed"
-                    state_id = max_state(state_id, nagios.state.critical)
+        # Check state of slave devices
+        for i in state.raid_devices:
+            log.debug("Evaluating state of raid_device[%r]", i)
+            if state.raid_devices[i] is None:
+                state_id = max_state(state_id, nagios.state.critical)
+                state_msg += ", raid_device[%r] fails" % (i)
+                continue
+            raid_device = state.raid_devices[i]
+            if raid_device.state in ('in_sync', 'writemostly'):
+                continue
+            bd = os.path.basename(raid_device.block_device)
+            state_msg += ", raid_device[%r]=%s %s" % (i, bd, raid_device.state)
+            if not raid_device.rdlink_exists:
+                state_msg += " failed"
+                state_id = max_state(state_id, nagios.state.critical)
 
         return (state_id, state_msg)
 
@@ -509,6 +532,8 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
                 log.debug(msg)
                 continue
             except Exception as e:
+                msg = "Error on getting information about %r: %s" % (dev, e)
+                self.handle_error(msg, e.__class__.__name__, True)
                 self.die("Unknown %r error on getting information about %r: %s" % (
                     e.__class__.__name__, dev, e))
             if result is None:
