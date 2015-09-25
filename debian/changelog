@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.8.6) all; urgency=medium
+
+  * Fixed bin/check_softwareraid to emit only a warning on regular sync
+    actions of a MD device.
+
+ -- Frank Brehm <frank.brehm@profitbricks.com>  Fri, 25 Sep 2015 10:39:44 +0200
+
 pb-monitoring-plugins (1.8.5) all; urgency=medium
 
   * Add function to_bool() to nagios/plugin/functions.py
