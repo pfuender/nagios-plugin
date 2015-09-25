@@ -33,7 +33,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'
 
 log = logging.getLogger(__name__)
 
@@ -524,7 +524,10 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         for i in state.raid_devices:
             log.debug("Evaluating state of raid_device[%r]", i)
             if state.raid_devices[i] is None:
-                state_id = max_state(state_id, nagios.state.critical)
+                if state.sync_action in ('resync', 'recover', 'check', 'repair'):
+                    state_id = max_state(state_id, nagios.state.warning)
+                else:
+                    state_id = max_state(state_id, nagios.state.critical)
                 state_msg += ", raid_device[%r] fails" % (i)
                 continue
             raid_device = state.raid_devices[i]
