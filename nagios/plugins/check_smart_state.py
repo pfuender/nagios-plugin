@@ -620,7 +620,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
             reason = match.group(1).strip()
             reason = re.sub(r'\s+', ' ', reason)
-            log.debug("No SMART of HDD %s: %s", dev, reason)
+            log.debug("No SMART of Drive %s: %s", dev, reason)
 
             if self.megaraid:
 
@@ -628,10 +628,10 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 spin_state = self.get_megaraid_pd_spin_state()
                 if spin_state and spin_state == 'down':
 
-                    msg += "HDD %s: Spun Down" % (dev)
+                    msg += "Drive %s: Spun Down" % (dev)
                     self.exit(nagios.state.ok, msg)
 
-            msg += "HDD %s: %s" % (dev, reason)
+            msg += "Drive %s: %s" % (dev, reason)
             self.die(msg)
 
         self.disk_data = {
@@ -663,7 +663,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
             dev = self.device
             if self.megaraid:
                 dev = "[%d:%d]" % self.megaraid_slot
-            msg += "HDD %s." % (dev)
+            msg += "Drive %s." % (dev)
             self.die(msg)
 
         if is_sas:
@@ -710,7 +710,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         dev = self.device
         if self.megaraid:
             dev = "[%d:%d]" % self.megaraid_slot
-        out += "HDD %s " % (dev)
+        out += "Drive %s " % (dev)
 
         if err_msgs:
             out += ", ".join(err_msgs)
