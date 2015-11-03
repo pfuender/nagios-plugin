@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.8.8) all; urgency=medium
+
+  * Remove wildcard from nagios sudoers rule
+  * Correct section of python*-nagios-plugin to python
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Tue, 03 Nov 2015 11:13:48 +0100
+
 pb-monitoring-plugins (1.8.7) all; urgency=medium
 
   * FIX "HDD" name convention in check_smart_state.py for "Device"
