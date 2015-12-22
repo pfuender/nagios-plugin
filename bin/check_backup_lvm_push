@@ -1,0 +1,92 @@
+#!/bin/bash
+TMP_DIR=/var/tmp/tmp_git
+basename=${0##*/}
+GIT_URL="git@gitlab.pb.local:storage/lvm-backup"
+GIT_BRANCH=$(hostname -s)
+BACKUP_DIR=/storage/lvm_backup
+
+
+
+#human time
+#time_git=$(git log -n 1 --pretty=format:"%cd" | awk '{print $2,$3,$4}' | cut -d ':' -f1,2)
+#time_file=$(ls -al /etc/lvm/backup/storage | awk {'print $6,$7,$8'})
+#
+##unix time for logal git
+#time_git_u=$(git log -n 1 --pretty=format:"%cd" | awk '{print $3"-"$2"-"$5,$4}' | xargs -0 -I {} date -d  "{}" +'%s')
+time_file_u=$(stat --printf=%Z /etc/lvm/backup/storage)
+
+
+# 60 sec buffer
+
+buffer_time=$[$time_file_u + 60]
+
+
+#Temporary git clone
+
+tmp_git_clone()
+{
+if [[ ! -d $TMP_DIR ]]
+    then 
+    mkdir -p $TMP_DIR
+    cd $TMP_DIR
+    git clone -q -b ${GIT_BRANCH} ${GIT_URL} ${TMP_DIR}
+    else
+    cd $TMP_DIR
+    git pull -q origin $GIT_BRANCH 
+fi
+#unix time for remote git
+time_git_u_r=$(git log -n 1 --pretty=format:"%cd" | awk '{print $3"-"$2"-"$5,$4}' | xargs -0 -I {} date -d  "{}" +'%s')
+}
+
+
+
+#check with human date
+#if [[ $(git status -s) ]]
+#then
+#        echo "git status error chech why git is not working"
+#        git status
+#        exit 3
+#fi
+#
+#if [ "$time_git" == "$time_file" ]
+#then
+#echo "OK, backup-lvm is working"
+#        exit 0
+#else
+#echo "CRITICAL , backup-lvm is not running"
+#        exit 2
+#fi
+#
+
+
+cd $BACKUP_DIR
+if [[ $(git status -s) ]]
+then
+        echo "git status error chech why git is not working"
+        git status
+        exit 3
+fi
+
+
+#check with unix timestamp  and 60 sec buffer
+#if [ $buffer_time -ge $time_git_u ]
+#then
+#echo "OK, backup-lvm is working"
+#        exit 0
+#else
+#echo "CRITICAL , backup-lvm is not running correctly check git log"
+#        exit 2
+#fi
+
+#check with unix timestamp and remote git clone last push
+
+tmp_git_clone
+
+if [ $buffer_time -ge $time_git_u_r ]
+    then
+    echo "OK, backup-lvm is working"
+            exit 0
+    else
+    echo "CRITICAL , backup-lvm is not running correctly check git log"
+            exit 2
+fi
