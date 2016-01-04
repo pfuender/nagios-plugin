@@ -161,7 +161,8 @@ class CheckMegaRaidPlugin(ExtNagiosPlugin):
         Initializes self.megacli_cmd.
         """
 
-        self._megacli_cmd = self._get_megacli_cmd()
+        #self._megacli_cmd = self._get_megacli_cmd()
+        self._megacli_cmd = '/usr/bin/storcli'
 
     # -------------------------------------------------------------------------
     def _get_megacli_cmd(self, given_path=None):
