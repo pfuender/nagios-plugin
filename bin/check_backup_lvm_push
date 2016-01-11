@@ -43,7 +43,7 @@ time_git_u_r=$(git log -n 1 --pretty=format:"%cd" | awk '{print $3"-"$2"-"$5,$4}
 #check with human date
 #if [[ $(git status -s) ]]
 #then
-#        echo "git status error chech why git is not working"
+#        echo "git status error check why git is not working"
 #        git status
 #        exit 3
 #fi
@@ -62,7 +62,7 @@ time_git_u_r=$(git log -n 1 --pretty=format:"%cd" | awk '{print $3"-"$2"-"$5,$4}
 cd $BACKUP_DIR
 if [[ $(git status -s) ]]
 then
-        echo "git status error chech why git is not working"
+        echo "git status error, check why git is not working correctly"
         git status
         exit 3
 fi
