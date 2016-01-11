@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.10) all; urgency=medium
+
+  * Fix typo in output of check_backup_lvm_push
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Mon, 11 Jan 2016 16:37:46 +0100
+
 pb-monitoring-plugins (1.8.9) all; urgency=medium
 
   * Adding new check check_backup_lvm_push it will monitor "git push" in backup-lvm.
