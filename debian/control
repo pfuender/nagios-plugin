@@ -54,6 +54,7 @@ Depends: nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
          python-pkg-resources,
+	 libnet-snmp-perl,
          ${misc:Depends},
          ${perl:Depends},
          ${python:Depends}
