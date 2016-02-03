@@ -1,11 +1,17 @@
-pb-monitoring-plugins (1.8.12) UNRELEASED; urgency=medium
+pb-monitoring-plugins (1.8.12) all; urgency=medium
+
+  [ Agata Nazar ]
+  * Add check for GlassFish monitoring check_jmx
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 03 Feb 2016 14:34:51 +0100
+
+pb-monitoring-plugins (1.8.11) all; urgency=medium
 
   [ Tobias von der Krone ]
   * Use storcli in megaraid scripts
 
   [ Agata Nazar ]
-  * Add check_dell_bladechassis 
-  * Add check for GlassFish monitoring check_jmx 
+  * Add check_dell_bladechassis
 
  -- Agata Nazar <agata.nazar@profitbricks.com>  Wed, 03 Feb 2016 12:35:52 +0100
 
