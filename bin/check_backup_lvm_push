@@ -16,7 +16,7 @@ basename=${0##*/}
 
 GIT_URL="git@gitlab.pb.local:storage/lvm-backup"
 GIT_BRANCH=$(hostname -s)
-BACKUP_DIR=/var/lib/backup-lvm/
+BACKUP_DIR=/var/lib/backup-lvm
 
 # source defaults
 [[ -r /etc/default/backup-lvm ]] && . /etc/default/backup-lvm
@@ -33,20 +33,20 @@ warning() {
 
 
 # get values
-if ! LOCAL_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ rev-parse HEAD >&2); then
+if ! LOCAL_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ rev-parse HEAD 2>&1); then
     error "CRITICAL: local git command rev-parse HEAD failed, retval: ${?}"
     error "${LOCAL_HEAD}"
     exit 2
 fi
-if ! REMOTE_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ ls-remote --heads origin ${GIT_BRANCH} | awk '{ print $1 }' >&2); then
+if ! REMOTE_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ ls-remote --heads origin ${GIT_BRANCH} | awk '{ print $1 }' 2>&1); then
     warning "WARNING: remote git command ls-remote --heads origin ${GIT_BRANCH} failed, retval: ${?}"
     warning "${REMOTE_HEAD}"
     exit 1
 fi 
 
 # check + compare values
-if [[ "${LOCAL_HEAD}" =~ ^[a-z0-9]$ ]] && [[ "${REMOTE_HEAD}" =~ ^[a-z0-9]$ ]]; then
-    if [[ "${LOCAL_HEAD}" == "${REMOTE_HEAD}" ]]; then
+if [[ "${LOCAL_HEAD}" =~ ^[a-z0-9]+$ ]] && [[ "${REMOTE_HEAD}" =~ ^[a-z0-9]+$ ]]; then
+    if [[ "${LOCAL_HEAD}" = "${REMOTE_HEAD}" ]]; then
         echo "OK - local and remote git repository have same HEAD"
         exit 0
     else
