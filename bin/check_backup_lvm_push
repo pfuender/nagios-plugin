@@ -1,92 +1,59 @@
 #!/bin/bash
-TMP_DIR=/var/tmp/tmp_git
+
+set -e -o pipefail
+
+while getopts ":v" opt; do
+    case "${opt}" in
+        v) #verbose
+            set -x
+            VERBOSE_PARM="-v"
+            ;;
+    esac
+done
+
+# name of file being executed - used in logger functions
 basename=${0##*/}
+
 GIT_URL="git@gitlab.pb.local:storage/lvm-backup"
 GIT_BRANCH=$(hostname -s)
-BACKUP_DIR=/storage/lvm_backup
+BACKUP_DIR=/var/lib/backup-lvm/
 
+# source defaults
+[[ -r /etc/default/backup-lvm ]] && . /etc/default/backup-lvm
 
+# error() for display error and log
+error() {
+    logger -s -t ${basename} -p err "error: ${@}"
+}
 
-#human time
-#time_git=$(git log -n 1 --pretty=format:"%cd" | awk '{print $2,$3,$4}' | cut -d ':' -f1,2)
-#time_file=$(ls -al /etc/lvm/backup/storage | awk {'print $6,$7,$8'})
-#
-##unix time for logal git
-#time_git_u=$(git log -n 1 --pretty=format:"%cd" | awk '{print $3"-"$2"-"$5,$4}' | xargs -0 -I {} date -d  "{}" +'%s')
-time_file_u=$(stat --printf=%Z /etc/lvm/backup/storage)
-
-
-# 60 sec buffer
-
-buffer_time=$[$time_file_u + 60]
-
-
-#Temporary git clone
-
-tmp_git_clone()
-{
-if [[ ! -d $TMP_DIR ]]
-    then 
-    mkdir -p $TMP_DIR
-    cd $TMP_DIR
-    git clone -q -b ${GIT_BRANCH} ${GIT_URL} ${TMP_DIR}
-    else
-    cd $TMP_DIR
-    git pull -q origin $GIT_BRANCH 
-fi
-#unix time for remote git
-time_git_u_r=$(git log -n 1 --pretty=format:"%cd" | awk '{print $3"-"$2"-"$5,$4}' | xargs -0 -I {} date -d  "{}" +'%s')
+# warning
+warning() {
+    logger -s -t ${basename} -p warning "warning: ${@}"
 }
 
 
-
-#check with human date
-#if [[ $(git status -s) ]]
-#then
-#        echo "git status error check why git is not working"
-#        git status
-#        exit 3
-#fi
-#
-#if [ "$time_git" == "$time_file" ]
-#then
-#echo "OK, backup-lvm is working"
-#        exit 0
-#else
-#echo "CRITICAL , backup-lvm is not running"
-#        exit 2
-#fi
-#
-
-
-cd $BACKUP_DIR
-if [[ $(git status -s) ]]
-then
-        echo "git status error, check why git is not working correctly"
-        git status
-        exit 3
+# get values
+if ! LOCAL_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ rev-parse HEAD >&2); then
+    error "CRITICAL: local git command rev-parse HEAD failed, retval: ${?}"
+    error "${LOCAL_HEAD}"
+    exit 2
 fi
+if ! REMOTE_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ ls-remote --heads origin ${GIT_BRANCH} | awk '{ print $1 }' >&2); then
+    warning "WARNING: remote git command ls-remote --heads origin ${GIT_BRANCH} failed, retval: ${?}"
+    warning "${REMOTE_HEAD}"
+    exit 1
+fi 
 
-
-#check with unix timestamp  and 60 sec buffer
-#if [ $buffer_time -ge $time_git_u ]
-#then
-#echo "OK, backup-lvm is working"
-#        exit 0
-#else
-#echo "CRITICAL , backup-lvm is not running correctly check git log"
-#        exit 2
-#fi
-
-#check with unix timestamp and remote git clone last push
-
-tmp_git_clone
-
-if [ $buffer_time -ge $time_git_u_r ]
-    then
-    echo "OK, backup-lvm is working"
-            exit 0
+# check + compare values
+if [[ "${LOCAL_HEAD}" =~ ^[a-z0-9]$ ]] && [[ "${REMOTE_HEAD}" =~ ^[a-z0-9]$ ]]; then
+    if [[ "${LOCAL_HEAD}" == "${REMOTE_HEAD}" ]]; then
+        echo "OK - local and remote git repository have same HEAD"
+        exit 0
     else
-    echo "CRITICAL , backup-lvm is not running correctly check git log"
-            exit 2
+        echo "WARNING - local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD do not match" 
+        exit 2
+    fi
+else
+    echo "UNKNOWN - could not compare local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD" 
+    exit 3
 fi
