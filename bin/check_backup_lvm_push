@@ -63,7 +63,7 @@ else
 fi
 
 # check if local git repo is up to date
-echo -n "timestamp compared for:"
+echo -n "timestamp compared:"
 if [[ -r "${LVM_BACKUP_DIR}" ]]; then
     for FILE in $(ls -1 ${LVM_BACKUP_DIR}); do
         # get mtime
