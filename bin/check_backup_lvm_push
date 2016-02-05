@@ -46,7 +46,7 @@ fi
 
 # check + compare values
 if [[ "${LOCAL_HEAD}" =~ ^[a-z0-9]+$ ]] && [[ "${REMOTE_HEAD}" =~ ^[a-z0-9]+$ ]]; then
-    if [[ "${LOCAL_HEAD}" = "${REMOTE_HEAD}" ]]; then
+    if [[ "${LOCAL_HEAD}" = ${REMOTE_HEAD} ]]; then
         echo "OK - local and remote git repository have same HEAD"
         exit 0
     else
