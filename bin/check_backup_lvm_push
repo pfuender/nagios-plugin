@@ -16,44 +16,79 @@ basename=${0##*/}
 
 GIT_URL="git@gitlab.pb.local:storage/lvm-backup"
 GIT_BRANCH=$(hostname -s)
-BACKUP_DIR=/var/lib/backup-lvm
+GIT_DIR=/var/lib/backup-lvm
+LVM_BACKUP_DIR=/etc/lvm/backup
 
 # source defaults
 [[ -r /etc/default/backup-lvm ]] && . /etc/default/backup-lvm
 
-# error() for display error and log
-error() {
-    logger -s -t ${basename} -p err "error: ${@}"
+# nagios return values
+# see https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/3/en/pluginapi.html
+# critical()
+critical() {
+    logger -t ${basename} -p err "critical: ${@}"
+    echo ${@}
+    exit 2
 }
-
 # warning
 warning() {
-    logger -s -t ${basename} -p warning "warning: ${@}"
+    logger -t ${basename} -p warning "warning: ${@}"
+    echo ${@}
+    exit 1
+}
+# unknown
+unknown() {
+    logger -t ${basename} -p warning "warning: ${@}"
+    echo ${@}
+    exit 3
 }
 
-
-# get values
-if ! LOCAL_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ rev-parse HEAD 2>&1); then
-    error "CRITICAL: local git command rev-parse HEAD failed, retval: ${?}"
-    error "${LOCAL_HEAD}"
-    exit 2
+# get both git heads
+if ! LOCAL_HEAD=$(git --git-dir=${GIT_DIR}/.git/ rev-parse HEAD 2>&1); then
+    critical "local git command rev-parse HEAD failed, retval: ${?}, ${LOCAL_HEAD}"
 fi
-if ! REMOTE_HEAD=$(git --git-dir=${BACKUP_DIR}/.git/ ls-remote --heads origin ${GIT_BRANCH} | awk '{ print $1 }' 2>&1); then
-    warning "WARNING: remote git command ls-remote --heads origin ${GIT_BRANCH} failed, retval: ${?}"
-    warning "${REMOTE_HEAD}"
-    exit 1
+if ! REMOTE_HEAD=$(git --git-dir=${GIT_DIR}/.git/ ls-remote --heads origin ${GIT_BRANCH} | awk '{ print $1 }' 2>&1); then
+    warning "remote git command ls-remote --heads origin ${GIT_BRANCH} failed, retval: ${?}, ${REMOTE_HEAD}"
 fi 
 
 # check + compare values
-if [[ "${LOCAL_HEAD}" =~ ^[a-z0-9]+$ ]] && [[ "${REMOTE_HEAD}" =~ ^[a-z0-9]+$ ]]; then
-    if [[ "${LOCAL_HEAD}" = ${REMOTE_HEAD} ]]; then
+if [[ ${LOCAL_HEAD} =~ ^[a-z0-9]+$ ]] && [[ ${REMOTE_HEAD} =~ ^[a-z0-9]+$ ]]; then
+    if [[ ${LOCAL_HEAD} == ${REMOTE_HEAD} ]]; then
         echo "OK - local and remote git repository have same HEAD"
-        exit 0
     else
-        echo "WARNING - local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD do not match" 
-        exit 2
+        warning "local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD do not match" 
     fi
 else
-    echo "UNKNOWN - could not compare local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD" 
-    exit 3
+    unknown "could not compare local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD" 
+fi
+
+# check if local git repo is up to date
+echo -n "timestamp compared for:"
+if [[ -r "${LVM_BACKUP_DIR}" ]]; then
+    for FILE in $(ls -1 ${LVM_BACKUP_DIR}); do
+        # get mtime
+        if [[ -r "${LVM_BACKUP_DIR}/${FILE}" ]]; then
+            FILE_LVM_BACKUP_MTIME=$(stat -c %Y ${LVM_BACKUP_DIR}/${FILE} 2>&1)
+        else
+            warning "${LVM_BACKUP_DIR}/${FILE} is not readable"
+        fi
+        if [[ -r "${GIT_DIR}/${FILE}" ]]; then
+            FILE_GIT_DIR_MTIME=$(stat -c %Y ${GIT_DIR}/${FILE} 2>&1)
+        else
+            warning "${GIT_DIR}/${FILE} is not readable"
+        fi
+        # semantic check both mtime values
+        if ! [[ "${FILE_LVM_BACKUP_MTIME}" =~ ^[0-9]+$ ]]; then
+            warning "modified time of ${LVM_BACKUP_DIR}/${FILE} could not be evaluated"
+        fi
+        if ! [[ "${FILE_GIT_DIR_MTIME}" =~ ^[0-9]+$ ]]; then
+            warning "modified time of ${GIT_DIR}/${FILE} could not be evaluated"
+        fi
+        # compare both timestamps
+        if [[ ${FILE_GIT_DIR_MTIME} != ${FILE_LVM_BACKUP_MTIME} ]]; then
+            critical "Timestamps of ${LVM_BACKUP_DIR}/${FILE} (${FILE_LVM_BACKUP_MTIME}) and ${GIT_DIR}/${FILE} (${FILE_GIT_DIR_MTIME}) differ"
+        else
+            echo -n " ${FILE} "
+        fi
+    done
 fi
