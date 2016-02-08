@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.13) all; urgency=medium
+
+  * check_IPoIB.py: fix regex to support new name scheme
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Mon, 08 Feb 2016 12:34:18 +0100
+
 pb-monitoring-plugins (1.8.12) all; urgency=medium
 
   [ Agata Nazar ]
