@@ -276,7 +276,7 @@ if __name__ == '__main__':
     efile = args.auth_token
     timeout = args.timeout
 
-    pattern = re.compile('^(pserver|gw)\d+$')
+    pattern = re.compile('^(pserver|gw|ps)(\d+[a-z]-)?\d+$')
     if not pattern.match(hostname):
         print("UNKNOWN: only pservers and gateways are supported")
         sys.exit(state['UNKNOWN'])
