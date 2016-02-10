@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.15) all; urgency=medium
+
+  * ajust Output to one line and correct critical timestamp message - #20086
+
+ -- Jan Hendrick Reiche <jhreiche@ws00824>  Wed, 10 Feb 2016 18:09:04 +0100
+
 pb-monitoring-plugins (1.8.14) all; urgency=medium
 
   * Enhance check for backup-lvm checking if git push was made. - #20086
