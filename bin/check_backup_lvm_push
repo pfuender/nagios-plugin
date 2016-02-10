@@ -13,6 +13,8 @@ done
 
 # name of file being executed - used in logger functions
 basename=${0##*/}
+# initial variables
+MESSAGE_STRING=""
 
 GIT_URL="git@gitlab.pb.local:storage/lvm-backup"
 GIT_BRANCH=$(hostname -s)
@@ -27,19 +29,19 @@ LVM_BACKUP_DIR=/etc/lvm/backup
 # critical()
 critical() {
     logger -t ${basename} -p err "critical: ${@}"
-    echo ${@}
+    echo "CRITICAL: ${@}"
     exit 2
 }
 # warning
 warning() {
     logger -t ${basename} -p warning "warning: ${@}"
-    echo ${@}
+    echo "WARNING: ${@}"
     exit 1
 }
 # unknown
 unknown() {
     logger -t ${basename} -p warning "warning: ${@}"
-    echo ${@}
+    echo "UNKNOWN: ${@}"
     exit 3
 }
 
@@ -54,7 +56,7 @@ fi
 # check + compare values
 if [[ ${LOCAL_HEAD} =~ ^[a-z0-9]+$ ]] && [[ ${REMOTE_HEAD} =~ ^[a-z0-9]+$ ]]; then
     if [[ ${LOCAL_HEAD} == ${REMOTE_HEAD} ]]; then
-        echo "OK - local and remote git repository have same HEAD"
+        MESSAGE_STRING="local and remote git repository have same HEAD"
     else
         warning "local (${LOCAL_HEAD}) and remote (${REMOTE_HEAD}) HEAD do not match" 
     fi
@@ -63,7 +65,7 @@ else
 fi
 
 # check if local git repo is up to date
-echo -n "vg compared:"
+MESSAGE_STRING+=", vg compared:"
 if [[ -r "${LVM_BACKUP_DIR}" ]]; then
     for FILE in $(ls -1 ${LVM_BACKUP_DIR}); do
         # get mtime
@@ -88,7 +90,10 @@ if [[ -r "${LVM_BACKUP_DIR}" ]]; then
         if [[ ${FILE_GIT_DIR_MTIME} != ${FILE_LVM_BACKUP_MTIME} ]]; then
             critical "Timestamps of ${LVM_BACKUP_DIR}/${FILE} (${FILE_LVM_BACKUP_MTIME}) and ${GIT_DIR}/${FILE} (${FILE_GIT_DIR_MTIME}) differ"
         else
-            echo -n " ${FILE} "
+            MESSAGE_STRING+=" ${FILE} "
         fi
     done
 fi
+
+echo "OK - ${MESSAGE_STRING}"
+exit 0
