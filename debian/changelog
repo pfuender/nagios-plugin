@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.14) all; urgency=medium
+
+  * Enhance check for backup-lvm checking if git push was made. - #20086
+
+ -- Jan Hendrick Reiche <jan-hendrick.reiche@profitbricks.com>  Wed, 10 Feb 2016 13:11:41 +0100
+
 pb-monitoring-plugins (1.8.13) all; urgency=medium
 
   * check_IPoIB.py: fix regex to support new name scheme
