@@ -1,0 +1,256 @@
+#!/bin/bash
+
+PROGNAME="${0##*/}"
+PROGPATH="${0%/*}"
+REVISION="0.1.0"
+
+# ProfitBricks checks are in /usr/lib/nagios/plugins/pb
+UTILS="${PROGPATH}/pb_utils.sh"
+if ! [[ -e ${UTILS} ]]; then
+    echo "File '${UTILS}' does not exist, aborting!"
+    exit 1
+fi
+. ${UTILS}
+
+megaraid=false
+verbose=0
+device=''
+warning_percentage=90
+critical_percentage=95
+
+# some funcions
+print_usage() {
+    echo "Usage: ${PROGNAME} -d DEVICE"
+    echo "       [-w|--warning WARNING_PERCENTAGE] [-c|--critical CRITICAL_PERCENTAGE] -d DEVICE"
+    echo "       [-v|--verbose]"
+    echo ""
+    echo "  DEVICE                device to be checked, e.g. sda"
+    echo "  WARNING_PERCENTAGE    default: ${warning_percentage}"
+    echo "  CRITICAL_PERCENTAGE   default: ${critical_percentage}"
+}
+
+print_help() {
+    print_revision ${PROGNAME} ${REVISION}
+    echo ""
+    print_usage
+    echo ""
+    echo "This plugin checks the wear level (lifetime) of the disk."
+    echo ""
+    support
+    exit ${STATE_OK}
+}
+
+print_verbose() {
+    [[ ${verbose} -eq 1 ]] && echo $@
+}
+
+# needs to be run as root
+if [[ ${EUID} != 0 ]]; then
+    echo "Needs to be run with root priviledges!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# check if any arguments where given
+if [[ $# -eq 0 ]]; then
+    print_help
+    exit ${STATE_UNKNOWN}
+fi
+
+# process arguments
+while [[ $# -ne 0 ]]; do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit ${STATE_OK}
+            ;;
+        -w|--warning)
+            if [[ -n $2 ]]; then
+                warning_percentage=$2
+                shift
+            else
+                echo "Missing WARNING value!"
+                exit ${STATE_UNKNOWN}
+            fi
+            ;;
+        --warning=?*)
+            warning_percentage=${1#*=}
+            ;;
+        --warning=)
+            echo "Missing WARNING value!"
+            exit ${STATE_UNKNOWN}
+            ;;
+        -c|--critical)
+            if [[ -n $2 ]]; then
+                critical_percentage=$2
+                shift
+            else
+                echo "Missing CRITICAL value!"
+                exit ${STATE_UNKNOWN}
+            fi
+            ;;
+        --critical=?*)
+            critical_percentage=${1#*=}
+            ;;
+        --critical=)
+            echo "Missing CRITICAL value!"
+            exit ${STATE_UNKNOWN}
+            ;;
+        -d|--device)
+            if [[ -n $2 ]]; then
+                device=$2
+                shift
+            else
+                echo "Missing DEVICE value!"
+                exit ${STATE_UNKNOWN}
+            fi
+            ;;
+        --device=?*)
+            device=${1#*=}
+            ;;
+        --device=)
+            echo "Missing DEVICE value!"
+            exit ${STATE_UNKNOWN}
+            ;;
+        -V|--version)
+            print_revision ${PROGNAME} ${REVISION}
+            exit ${STATE_OK}
+            ;;
+        -v|--verbose)
+            verbose=1
+            shift
+            ;;
+        --) # End of all options.
+            shift
+            break
+            ;;
+        -?*)
+            echo "WARN: Unknown option (ignored): '$1'" >&2
+            ;;
+        *)               # Default case: If no more options then break out of the loop.
+            break
+    esac
+
+    shift
+done
+
+# check prerequisites
+if ! which bc >/dev/null; then
+    echo "UNKNOWN: Command 'bc' not found!"
+    exit ${STATE_UNKNOWN}
+fi
+if ! which smartctl >/dev/null; then
+    echo "UNKNOWN: Command 'smartctl' not found!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# do some argument checking
+if ! [[ ${warning_percentage} =~ ^[1-9][0-9]?$|^100$ ]]; then
+#if ! [[ ${warning_percentage} =~ ^[1-9][0-9]?$ ]]; then
+    echo "UNKNOWN: WARNING_PERCENTAGE is not in range 1..100!"
+    exit ${STATE_UNKNOWN}
+fi
+if ! [[ ${critical_percentage} =~ ^[1-9][0-9]?$|^100$ ]]; then
+#if ! [[ ${critical_percentage} =~ ^[1-9][0-9]$ ]]; then
+    echo "UNKNOWN: CRITICAL_PERCENTAGE is not in range 1..100!"
+    exit ${STATE_UNKNOWN}
+fi
+if [[ ${warning_percentage} -gt 100 ]]; then
+    echo "UNKNOWN: WARNING_PERCENTAGE >100 (%)!" >&2
+    exit ${STATE_UNKNOWN}
+fi
+if [[ ${critical_percentage} -gt 100 ]]; then
+    echo "UNKNOWN: CRITICAL_PERCENTAGE >100 (%)!" >&2
+    exit ${STATE_UNKNOWN}
+fi
+
+if [[ ${warning_percentage} -gt ${critical_percentage} ]]; then
+    echo "UNKNOWN: Warning threshold (${warning_percentage} is greater than critical (${critical_percentage})!"
+    exit ${STATE_UNKNOWN}
+fi
+
+# check for megaraid device
+if [[ ${device} =~ ^[0-9]*$ ]]; then
+    megaraid=true
+    # a (megaraid) device id was given
+    megaraid_did=${device}
+    disk_type=$(storcli /call/eall/sall show | awk '{print $2, $8}' | grep -w "^${device}" | awk '{print $2}' | tr ':' ' ')
+    if [[ ${disk_type} != SSD ]]; then
+        echo "UNKNOWN: Device '${device}' is not a SSD"
+        exit ${STATE_UNKNOWN}
+    fi
+    device='/dev/bus/0'
+elif [[ ${device} =~ ^[0-9]+:[0-9]+$ ]]; then
+    megaraid=true
+    # a (megaraid) device "enclosure:slot" was given
+    # get EID:Slot
+    read eid slot <<< $(echo ${device/:/ })
+    # --------------------------------------------------------------------------
+    # EID:Slt DID State DG     Size Intf Med SED PI SeSz Model               Sp 
+    # --------------------------------------------------------------------------
+    # 0:0       6 Onln  10 2.727 TB SATA HDD N   N  512B ST3000NM0033-9ZM178 U  
+    # --------------------------------------------------------------------------
+    read megaraid_did disk_type <<< $(storcli /call/e${eid}/s${slot} show | grep -w ${device} | awk '{print $2, $8}')
+    if [[ ${disk_type} != SSD ]]; then
+        echo "UNKNOWN: Device '${device}' is not a SSD"
+        exit ${STATE_UNKNOWN}
+    fi
+    device='/dev/bus/0'
+elif ! [[ ${device} =~ ^/dev/ ]]; then
+    # "normal" block was given
+    device="/dev/${device}"
+    # check existence of DEVICE
+    if ! [[ -e /sys/block/${device##*/} ]]; then
+        echo "UNKNOWN: Could not find device '${device##*/}' (/sys/block/${device##*/})!"
+        exit ${STATE_UNKNOWN}
+    fi
+fi
+
+# check if device is a virtual drive
+if ! ${megaraid}; then
+    read disk_model < /sys/block/${device##*/}/device/model
+    if [[ ${disk_model} =~ ^LSI ]]; then
+        echo "UNKNOWN: Device '${device}' is a megaraid virtual drive!"
+        exit ${STATE_UNKNOWN}
+    fi
+fi
+
+# build smartctl command
+if ${megaraid}; then
+    smartctl_output=$(smartctl -a -d megaraid,${megaraid_did} ${device})
+else
+    smartctl_output=$(smartctl -a ${device})
+fi
+
+# get data
+# User Capacity:    80,026,361,856 bytes [80.0 GB]
+device_size=$(grep ^'User Capacity:' <<< "${smartctl_output}" | awk '{print $3}' | sed 's/,//g')
+if ! [[ ${device_size} =~ ^[0-9]+$ ]]; then
+    echo "device_size '${device_size}' is not a number!"
+    exit ${STATE_UNKNOWN}
+fi
+# maximum wear in bytes
+max_wear=$((${device_size} * 3 * 365 * 5))
+# 241 Host_Writes_32MiB       0x0032   100   100   000    Old_age   Always       -       18734
+host_writes_32mib=$(grep ^241 <<< "${smartctl_output}" | awk '{print $NF}')
+if ! [[ ${host_writes_32mib} =~ ^[0-9]+$ ]]; then
+    echo "host_writes_32mib '${host_writes_32mib}' is not a number!"
+    exit ${STATE_UNKNOWN}
+fi
+# current wear (needs to be converted to bytes)
+current_wear=$((${host_writes_32mib} * 32 * 1024 * 1024))
+current_wear_percentage=$(echo "100 * ${current_wear} / ${max_wear}" | bc)
+
+# check the thresholds
+if [[ ${current_wear_percentage} > ${critical_percentage} ]]; then
+    message="CRITICAL: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+    exit ${STATE_CRITICAL}
+elif [[ ${current_wear_percentage} > ${warning_percentage} ]]; then
+    message="WARNING: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+    exit ${STATE_WARNING}
+fi
+
+# display message and exit
+echo "OK: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+exit ${STATE_OK}
+
+# vim: ts=4 sw=4 et filetype=sh
