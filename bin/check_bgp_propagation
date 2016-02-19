@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+# -*- coding: utf-8 -*-
+"""
+@author: Thomas Kroll
+@contact: thomas.kroll@profitbricks.com
+@copyright: © 2010 - 2016 by Frank Brehm, Berlin
+@summary: Nagios plugin ≡ check script to check the state
+          of a BGP propagation
+"""
+
+import sys,subprocess, re
+
+nagios_codes = {'OK': 0, 
+                'WARNING': 1, 
+                'CRITICAL': 2,
+                'UNKNOWN': 3,
+                'DEPENDENT': 4}
+
+def main():
+    result = check_condition()
+    if result and 'code' in result and 'message' in result:
+        nagios_return(result['code'], result['message'])
+    else:
+        nagios_return('UNKNOWN','check_condition returned unconditionally')
+
+def nagios_return(code, response):
+    """ prints the response message
+        and exits the script with one
+        of the defined exit codes
+        DOES NOT RETURN 
+    """
+    print(code + ": " + response)
+    sys.exit(nagios_codes[code])
+
+def check_condition():
+    command=(['sudo', 'birdc6', 'show protocols'])
+    try:
+        birdc6=subprocess.check_output(command, shell=False, stderr=subprocess.STDOUT)
+        l_birdc6=len(re.findall('BGP.*Established', birdc6))
+    except subprocess.CalledProcessError as e:
+        return dict(
+            code = 'UNKNOWN',
+            message = 'birdc6 failure'
+        )
+
+    command=(['cat', '/proc/ethoip6_vhost_gwconf'])
+    try:
+        gwconf=subprocess.check_output(command, shell=False, stderr=subprocess.STDOUT)
+        l_gwconf=len(re.findall('add_gw_address', gwconf))
+    except subprocess.CalledProcessError as e:
+        return dict(
+            code = 'UNKNOWN',
+            message = 'ethoip6_vhost_gwconf failure'
+        )
+
+    if l_birdc6 == l_gwconf and l_birdc6 >= 2 and l_gwconf >= 2:
+        return dict(
+            code = 'OK',
+            message = 'BGP propagation ' + str(l_birdc6) + ':' + str(l_gwconf)
+        )
+    elif l_birdc6 == 1 and l_gwconf == 1:
+        return dict(
+            code = 'WARNING',
+            message = 'BGP propagation low ' + str(l_birdc6) + ':' + str(l_gwconf)
+        )
+    elif l_birdc6 != l_gwconf or l_birdc6 == 0 or l_gwconf == 0:
+        return dict(
+            code = 'CRITICAL',
+            message = 'Mismatch in BGP propagation'
+        )
+
+if(__name__ == '__main__'):
+    main()
+
+# vim: fileencoding=utf-8 filetype=python ts=4 et

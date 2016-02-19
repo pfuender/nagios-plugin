@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.16) all; urgency=medium
+
+  * add new plugin check_bgp_propagation
+
+ -- Thomas Kroll <tkroll@xoxo>  Fri, 19 Feb 2016 12:47:07 +0100
+
 pb-monitoring-plugins (1.8.15) all; urgency=medium
 
   * ajust Output to one line and correct critical timestamp message - #20086
