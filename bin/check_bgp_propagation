@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # -*- coding: utf-8 -*-
 """
 @author: Thomas Kroll
@@ -9,68 +8,86 @@
           of a BGP propagation
 """
 
-import sys,subprocess, re
+import sys
+import subprocess
+import re
 
-nagios_codes = {'OK': 0, 
-                'WARNING': 1, 
+NAGIOS_CODES = {'OK': 0,
+                'WARNING': 1,
                 'CRITICAL': 2,
                 'UNKNOWN': 3,
                 'DEPENDENT': 4}
 
+
 def main():
+    """ main, which runs the code
+        and returns the result or UNKNOWN
+    """
     result = check_condition()
     if result and 'code' in result and 'message' in result:
         nagios_return(result['code'], result['message'])
     else:
-        nagios_return('UNKNOWN','check_condition returned unconditionally')
+        nagios_return('UNKNOWN', 'check_condition returned unconditionally')
+
 
 def nagios_return(code, response):
     """ prints the response message
         and exits the script with one
         of the defined exit codes
-        DOES NOT RETURN 
+        DOES NOT RETURN
     """
-    print(code + ": " + response)
-    sys.exit(nagios_codes[code])
+    print code + ": " + response
+    sys.exit(NAGIOS_CODES[code])
+
 
 def check_condition():
-    command=(['sudo', 'birdc6', 'show protocols'])
+    """ check_condition do the comparision between birdc6
+        output and vhost_gwconf
+    """
+    command = ('birdc6', 'show', 'protocols')
     try:
-        birdc6=subprocess.check_output(command, shell=False, stderr=subprocess.STDOUT)
-        l_birdc6=len(re.findall('BGP.*Established', birdc6))
-    except subprocess.CalledProcessError as e:
+        birdc6 = subprocess.check_output(
+            command,
+            shell=False,
+            stderr=subprocess.STDOUT)
+        l_birdc6 = len(re.findall('BGP.*Established', birdc6))
+    except (TypeError, OSError):
         return dict(
-            code = 'UNKNOWN',
-            message = 'birdc6 failure'
+            code='UNKNOWN',
+            message='birdc6 failure'
         )
 
-    command=(['cat', '/proc/ethoip6_vhost_gwconf'])
+    command = ('cat', '/proc/ethoip6_vhost_gwconf')
     try:
-        gwconf=subprocess.check_output(command, shell=False, stderr=subprocess.STDOUT)
-        l_gwconf=len(re.findall('add_gw_address', gwconf))
-    except subprocess.CalledProcessError as e:
+        gwconf = subprocess.check_output(
+            command,
+            shell=False,
+            stderr=subprocess.STDOUT)
+        l_gwconf = len(re.findall('add_gw_address', gwconf))
+    except (TypeError, OSError):
         return dict(
-            code = 'UNKNOWN',
-            message = 'ethoip6_vhost_gwconf failure'
+            code='UNKNOWN',
+            message='ethoip6_vhost_gwconf failure'
         )
 
     if l_birdc6 == l_gwconf and l_birdc6 >= 2 and l_gwconf >= 2:
         return dict(
-            code = 'OK',
-            message = 'BGP propagation ' + str(l_birdc6) + ':' + str(l_gwconf)
+            code='OK',
+            message='BGP propagation {} : {}'.format(l_birdc6, l_gwconf)
         )
     elif l_birdc6 == 1 and l_gwconf == 1:
         return dict(
-            code = 'WARNING',
-            message = 'BGP propagation low ' + str(l_birdc6) + ':' + str(l_gwconf)
+            code='WARNING',
+            message='BGP propagation low {} : {}'.format(l_birdc6, l_gwconf)
         )
     elif l_birdc6 != l_gwconf or l_birdc6 == 0 or l_gwconf == 0:
         return dict(
-            code = 'CRITICAL',
-            message = 'Mismatch in BGP propagation'
+            code='CRITICAL',
+            message='Mismatch in BGP propagation'
         )
 
-if(__name__ == '__main__'):
+
+if __name__ == '__main__':
     main()
 
 # vim: fileencoding=utf-8 filetype=python ts=4 et
