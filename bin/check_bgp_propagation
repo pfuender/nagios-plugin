@@ -8,6 +8,7 @@
           of a BGP propagation
 """
 
+import os
 import sys
 import subprocess
 import re
@@ -23,6 +24,11 @@ def main():
     """ main, which runs the code
         and returns the result or UNKNOWN
     """
+
+    if os.geteuid() != 0:
+        nagios_return('UNKNOWN', 'You need to have root privileges. '
+                      'Please try again, this time using \'sudo\'. Exiting.')
+
     result = check_condition()
     if result and 'code' in result and 'message' in result:
         nagios_return(result['code'], result['message'])
