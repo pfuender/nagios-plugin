@@ -3,21 +3,23 @@
 """
 @author: Thomas Kroll
 @contact: thomas.kroll@profitbricks.com
-@copyright: © 2010 - 2016 by Frank Brehm, Berlin
+@copyright: © 2010 - 2016 by Thomas Kroll, Berlin
 @summary: Nagios plugin ≡ check script to check the state
           of a BGP propagation
 """
+
+from __future__ import print_function
 
 import os
 import sys
 import subprocess
 import re
+import argparse
 
 NAGIOS_CODES = {'OK': 0,
                 'WARNING': 1,
                 'CRITICAL': 2,
-                'UNKNOWN': 3,
-                'DEPENDENT': 4}
+                'UNKNOWN': 3}
 
 
 def main():
@@ -25,9 +27,17 @@ def main():
         and returns the result or UNKNOWN
     """
 
+    parser = argparse.ArgumentParser(
+        description='This is a checkscript to compare the birdc6 against '
+                    'vhost_gwconf. It do not take any parameter but need '
+                    'to be called with "sudo"',
+        add_help=True
+    )
+    parser.parse_args()
+
     if os.geteuid() != 0:
         nagios_return('UNKNOWN', 'You need to have root privileges. '
-                      'Please try again, this time using \'sudo\'. Exiting.')
+                      'Please try again, this time using "sudo". Exiting.')
 
     result = check_condition()
     if result and 'code' in result and 'message' in result:
@@ -42,7 +52,7 @@ def nagios_return(code, response):
         of the defined exit codes
         DOES NOT RETURN
     """
-    print code + ": " + response
+    print('{}: {}'.format(code, response))
     sys.exit(NAGIOS_CODES[code])
 
 
@@ -57,7 +67,7 @@ def check_condition():
             shell=False,
             stderr=subprocess.STDOUT)
         l_birdc6 = len(re.findall('BGP.*Established', birdc6))
-    except (TypeError, OSError):
+    except (TypeError, OSError, subprocess.CalledProcessError):
         return dict(
             code='UNKNOWN',
             message='birdc6 failure'
@@ -70,7 +80,7 @@ def check_condition():
             shell=False,
             stderr=subprocess.STDOUT)
         l_gwconf = len(re.findall('add_gw_address', gwconf))
-    except (TypeError, OSError):
+    except (TypeError, OSError, subprocess.CalledProcessError):
         return dict(
             code='UNKNOWN',
             message='ethoip6_vhost_gwconf failure'
