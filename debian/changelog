@@ -1,8 +1,12 @@
 pb-monitoring-plugins (1.8.16) all; urgency=medium
 
+  [ Thomas Kroll ]
   * add new plugin check_bgp_propagation
 
- -- Thomas Kroll <tkroll@xoxo>  Fri, 19 Feb 2016 12:47:07 +0100
+  [ Tobias von der Krone ]
+  * add new plugin check_ssd_lifetime
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 24 Feb 2016 15:22:37 +0100
 
 pb-monitoring-plugins (1.8.15) all; urgency=medium
 
