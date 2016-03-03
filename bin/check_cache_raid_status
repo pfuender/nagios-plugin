@@ -1,0 +1,225 @@
+#!/bin/bash
+IFS=$','
+
+
+full_status=$(storcli /c0 /vall show)
+data=$(echo $full_status | grep -i data)
+cache=$(echo $full_status | egrep -v 'OffLine|TYPE|Always' |grep -i cache)
+os=$(echo $full_status | grep -i os)
+status_data=RWBD
+status_cache=NRWBD
+status_os=RAWBC
+
+
+check_state()
+{
+if echo $full_status | grep -q Success 
+    then
+        if echo $full_status | grep -q 'RAID1\b'
+            then
+                check_state_raid1
+            else
+                check_state_raid10
+        fi        
+    else
+        echo "UNKNOWN: check permissions (run with sudo) or check controller state"
+        exit 3
+fi
+}
+
+check_state_raid1()
+{
+status=0
+print_data[1]="OK: VD DATA: `echo $status_data`"
+print_cache[1]="OK: VD CACHE: `echo $status_cache`"
+print_os[1]="OK: VD OS: `echo $status_os`"
+
+i=0
+for a in $data
+do 
+i=$[i+1] 
+	if `echo $a |grep -vq $status_data'\b'` 
+		then
+		print_data[$i]=$(echo -en "CRITICAL: VD:" `echo $a |grep -v $status_data'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_data") ")
+		status=2
+	fi
+done 
+
+
+i=0
+for b in $cache
+do	
+i=$[i+1]
+	if `echo $b | grep -vq $status_cache'\b'`
+		then       
+               	print_cache[$i]=$(echo -en "CRITICAL: VD:" `echo $b |grep -v $status_cache'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_cache") ")
+		status=2
+       	fi
+done
+
+
+i=0
+for c in $os
+do
+i=$[i+1]
+   	if `echo $c |grep -vq $status_os'\b'`
+               	then
+               	print_os[$i]=$(echo -en "CRITICAL: VD:" `echo $c |grep -v $status_os'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_os") ")
+		status=2
+       	fi
+done
+
+
+if [ "$status" = "2" ]
+	then
+	echo ${print_data[@]} ${print_cache[@]} ${print_os[@]}
+	exit $status
+	else
+	echo ${print_data[@]} ${print_cache[@]} ${print_os[@]}
+	exit $status
+fi
+
+}
+
+
+check_state_raid10()
+{
+status=0
+print_data[1]="OK: VD DATA: `echo $status_data`"
+print_cache[1]="OK: VD CACHE: `echo $status_cache`"
+
+i=0
+for a in $data
+do 
+i=$[i+1] 
+    if `echo $a |grep -vq $status_data'\b'` 
+        then
+        print_data[$i]=$(echo -en "CRITICAL: VD:" `echo $a |grep -v $status_data'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_data") ")
+        status=2
+    fi
+done 
+
+
+i=0
+for b in $cache
+do  
+i=$[i+1]
+    if `echo $b | grep -vq $status_cache'\b'`
+        then       
+                print_cache[$i]=$(echo -en "CRITICAL: VD:" `echo $b |grep -v $status_cache'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_cache") ")
+        status=2
+        fi
+done
+
+
+if [ "$status" = "2" ]
+    then
+    echo ${print_data[@]} ${print_cache[@]}
+    exit $status
+    else
+    echo ${print_data[@]} ${print_cache[@]}
+    exit $status
+fi
+
+}
+
+
+
+print_visable_data()
+{
+for a in $data
+do
+
+        if `echo $a |grep -vq $status_data'\b'`
+                then
+                echo "Chceck DG/VD nr" `echo $a |grep -v $status_data'\b' | awk '{print $1,"Cache state",$6,"is wrong"}'` "should be" $status_data
+                echo "DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name"
+                echo  $a |grep -v $status_data'\b'
+                else
+		        echo "DATA Status OK"
+	fi
+done
+}
+
+print_visable_cache()
+{
+for b in $cache
+do
+        if `echo $b | grep -vq $status_cache'\b'`
+                then       
+                echo "Chceck DG/VD nr" `echo $b |grep -v $status_cache'\b' | awk '{print $1,"Cache state",$6,"is wrong"}'` "should be" $status_cache
+                echo "DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name"
+                echo $b |grep -v $status_cache'\b'
+        		else
+                echo "Cache Status OK"
+        fi
+done
+}
+
+print_visable_os()
+{
+for c in $os
+do
+        if `echo $c |grep -vq $status_os'\b'`
+                then
+                echo "Chceck DG/VD nr" `echo $c |grep -v $status_os'\b' | awk '{print $1,"Cache state",$6,"is wrong"}'` "should be" $status_os
+		        echo "DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name"
+                echo $c |grep -v $status_os'\b'
+                else
+                echo "OS Status OK"
+        fi
+done
+
+}
+
+
+print_visable()
+{
+if echo $full_status | grep -q RAID1/b
+    then
+        print_visable_data
+        print_visable_cache
+        print_visable_osi
+        exit 0        
+    else
+        print_visable_cache
+        print_visable_data
+        exit 0
+fi
+}
+
+
+print_help()
+{
+
+    cat <<EOF
+
+	This plugin checks status of Cache in RAID1 and RAID10 using storcli.
+
+$0:
+        -h | --help             Print help
+        -v | --visable 		Show full output
+
+EOF
+
+    exit -1
+}
+
+## Parse parameters
+while [ $# -ge 0 ]; do
+    case "$1" in
+        -h | --help)
+            print_help
+            exit 0
+            ;;
+        -v | --visable)
+                print_visable
+                exit 0
+                ;;
+        *)
+            check_state
+            ;;
+        esac
+shift
+done
+
