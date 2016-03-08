@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.18) all; urgency=medium
+
+  * Fix for bugs in check_cache_raid_status #19697
+
+ -- Agata Nazar <agata.nazar@profitbricks.com>  Tue, 08 Mar 2016 18:05:37 +0100
+
 pb-monitoring-plugins (1.8.17) all; urgency=medium
 
   * add new plugin check_cache_raid_status #19697
