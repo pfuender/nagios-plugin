@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.8.19) all; urgency=medium
+
+  * Add sudo permission for new scripts check_backup_lvm_push,
+    check_cache_raid_status, and check_bgp_propagation (Redmine: #11233)
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Thu, 10 Mar 2016 11:47:12 +0100
+
 pb-monitoring-plugins (1.8.18) all; urgency=medium
 
   * Fix for bugs in check_cache_raid_status #19697
@@ -24,7 +31,7 @@ pb-monitoring-plugins (1.8.15) all; urgency=medium
 
   * ajust Output to one line and correct critical timestamp message - #20086
 
- -- Jan Hendrick Reiche <jhreiche@ws00824>  Wed, 10 Feb 2016 18:09:04 +0100
+ -- Jan Hendrick Reiche <jan-hendrick.reiche@profitbricks.com>  Wed, 10 Feb 2016 18:09:04 +0100
 
 pb-monitoring-plugins (1.8.14) all; urgency=medium
 
