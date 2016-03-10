@@ -16,3 +16,6 @@ nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_pb_consistence_s
 nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_smart_state
 nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_vg_free
 nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_vg_state
+nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_backup_lvm_push
+nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_cache_raid_status
+nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_bgp_propagation
