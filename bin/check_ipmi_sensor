@@ -668,6 +668,15 @@ MAIN: {
 		else{
 			print "IPMI Status: ";
 		}
+		#check for empty ipmioutput
+                if ($ipmioutput eq ""){
+                        # just add powerstate to output but don't look at the result
+                        my @powerstat = ('/usr/sbin/ipmipower', '-h', $ipmi_host, '--config-file', $ipmi_config_file, '--stat');
+                        run \@powerstat, '>&', \$ipmioutput;
+                        print "OK - Powerstatus: ", $ipmioutput;
+                        my $exit = 0;
+                        exit $exit;
+                }
 		#split at newlines, fetch array with lines of output
 		my @ipmioutput = split('\n', $ipmioutput);
 		
