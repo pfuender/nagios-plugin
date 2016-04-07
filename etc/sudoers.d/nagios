@@ -19,3 +19,4 @@ nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_vg_state
 nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_backup_lvm_push
 nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_cache_raid_status
 nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check_bgp_propagation
+nagios ALL=(ALL:ALL) NOPASSWD: /usr/lib/nagios/plugins/pb/check-multipath.pl
