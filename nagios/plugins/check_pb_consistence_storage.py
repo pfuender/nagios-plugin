@@ -586,7 +586,7 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
 
         storages = None
         try:
-            storages = self.api.vstorages(pstorage=self.hostname)
+            storages = self.api.vstorages(pstorage=self.hostname, contract_infos=False)
         except RestApiError as e:
             self.die(str(e))
         except Exception as e:

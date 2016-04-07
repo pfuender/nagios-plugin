@@ -1,8 +1,14 @@
-pb-monitoring-plugins (1.8.22) all; urgency=medium
+pb-monitoring-plugins (1.8.23) all; urgency=medium
 
   * Add check check-multipath.pl and sudo permission. #21113
 
  -- Agata Nazar <agata.nazar@profitbricks.com>  Thu, 07 Apr 2016 14:04:59 +0200
+
+pb-monitoring-plugins (1.8.22) all; urgency=low
+
+  * Don't fetch expensive contract data for storage consistency checks (redmine #21247)
+
+ -- Ingo Fischer <ingo.fischer@profitbricks.com>  Thu, 24 Mar 2016 16:03:50 +0100
 
 pb-monitoring-plugins (1.8.21) all; urgency=medium
 
