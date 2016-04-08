@@ -14,7 +14,7 @@
 # == IMPORTANT ==
 #
 # "sudo" must be configured to allow 'multipath -l' 
-# and/or 'multipath -ll' if you intend to use the option -ll
+# and/or 'multipathd show topology' if you intend to use the option -ll
 # (and also 'multipath -r', if you intend to use the --reload option)
 # for the NAGIOS-user without password
 #
@@ -478,7 +478,7 @@ $SIG{__WARN__} = sub { push @perl_warnings, [@_]; };
 
 # Commands with full path
 $SUDO                = '/usr/bin/sudo';
-$MULTIPATH_LIST_LONG = '/sbin/multipath -ll';
+$MULTIPATH_LIST_LONG = '/sbin/multipathd show topology';
 $MULTIPATH_LIST      = '/sbin/multipath -l';
 $MULTIPATH_RELOAD    = '/sbin/multipath -r';
 

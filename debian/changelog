@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.24) all; urgency=medium
+
+  * Change in check-multipath.pl multipathd handling #21113 
+
+ -- Agata Nazar <agata.nazar@profitbricks.com>  Fri, 08 Apr 2016 15:10:10 +0200
+
 pb-monitoring-plugins (1.8.23) all; urgency=medium
 
   * Add check check-multipath.pl and sudo permission. #21113
