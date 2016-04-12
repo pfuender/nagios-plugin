@@ -1,6 +1,6 @@
 pb-monitoring-plugins (1.8.24) all; urgency=medium
 
-  * Change in check-multipath.pl multipathd handling #21113 
+  * Change in check-multipath.pl multipathd handling #21113
 
  -- Agata Nazar <agata.nazar@profitbricks.com>  Fri, 08 Apr 2016 15:10:10 +0200
 
@@ -18,7 +18,7 @@ pb-monitoring-plugins (1.8.22) all; urgency=low
 
 pb-monitoring-plugins (1.8.21) all; urgency=medium
 
-  * fix in check_ipmi_sensor 
+  * fix in check_ipmi_sensor
 
  -- Agata Nazar <agata.nazar@profitbricks.com>  Fri, 18 Mar 2016 17:05:13 +0100
 
