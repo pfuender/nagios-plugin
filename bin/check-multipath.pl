@@ -478,7 +478,7 @@ $SIG{__WARN__} = sub { push @perl_warnings, [@_]; };
 
 # Commands with full path
 $SUDO                = '/usr/bin/sudo';
-$MULTIPATH_LIST_LONG = '/sbin/multipathd show topology';
+$MULTIPATH_LIST_LONG = 'echo "show topology" | sudo /sbin/multipathd -k | grep -v multipath';
 $MULTIPATH_LIST      = '/sbin/multipath -l';
 $MULTIPATH_RELOAD    = '/sbin/multipath -r';
 
@@ -615,7 +615,7 @@ END_LICENSE
       'state'         => 0,
       'di'            => 0,
       'shortstate'    => 0,
-      'linebreak'     => undef,
+      'linebreak'     => 'REG',
       'extraconfig'   => '',
       'verbose'       => 0,
       'test'          => 0, 
@@ -822,9 +822,9 @@ sub unknown_error {
 sub get_multipath_text {
     my ( $cmd ) = @_;
 
-    if ( !defined($cmd) || $cmd !~ m!^/\w+! ) {
-	unknown_error ("INVALID system command '$cmd' specified.");
-    }
+    #if ( !defined($cmd) || $cmd !~ m!^/\w+! ) {
+	#unknown_error ("INVALID system command '$cmd' specified.");
+    #}
     my $cmdFull = $cmd.' 2>/dev/null';                            # ignore error output
 
     my $output = "";
