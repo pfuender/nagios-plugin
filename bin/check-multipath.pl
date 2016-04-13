@@ -478,7 +478,7 @@ $SIG{__WARN__} = sub { push @perl_warnings, [@_]; };
 
 # Commands with full path
 $SUDO                = '/usr/bin/sudo';
-$MULTIPATH_LIST_LONG = 'echo "show topology" | sudo /sbin/multipathd -k | grep -v multipath';
+$MULTIPATH_LIST_LONG = '/sbin/multipathd show topology | sed "s/create\: //g"';
 $MULTIPATH_LIST      = '/sbin/multipath -l';
 $MULTIPATH_RELOAD    = '/sbin/multipath -r';
 
