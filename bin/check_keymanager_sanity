@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+"""
+@author: Gerald Hansen
+@contact: gerald.hansen@profitbricks.com
+@summary: This script checks the profitbricks ssh keymanager microservice
+          sanity functions for icinga
+"""
+
+import urllib2
+import json
+import argparse
+import sys
+import ssl
+
+CTX = ssl.create_default_context()
+CTX.check_hostname = False
+CTX.verify_mode = ssl.CERT_NONE
+
+PARSER = argparse.ArgumentParser()
+PARSER.add_argument("-s", "--server", default="ms01",
+                    help="server for ssh keymanager")
+ARGS = PARSER.parse_args()
+
+URL = "https://{0}:8444/keymanager/admin/healthcheck?pretty=true".format(
+    ARGS.server)
+
+CRITICAL = False
+WARNING = False
+MESSAGE = ""
+
+REQ = urllib2.Request(URL)
+REQ.add_header('Content-Type', 'application/json')
+try:
+    RESPONSE = urllib2.urlopen(REQ, context=CTX)
+    DATA = json.loads(RESPONSE.read())
+except urllib2.HTTPError, error:
+    RESPONSE = error.read()
+    DATA = json.loads(RESPONSE)
+except urllib2.URLError, error:
+    CRITICAL = True
+    print "CRITICAL ssh keymanager not running"
+    sys.exit(2)
+
+if DATA['deadlocks']['healthy'] == False:
+    WARNING = True
+    MESSAGE = "{0} DeadLocks {1}".format(MESSAGE, DATA['deadlocks']['message'])
+
+if DATA['postgresql']['healthy'] == False:
+    WARNING = True
+    MESSAGE = "{0} PostgresQL {1}".format(
+        MESSAGE, DATA['postgresql']['message'])
+
+if DATA['redis']['healthy'] == False:
+    WARNING = True
+    MESSAGE = "{0} Redis {1}".format(MESSAGE, DATA['redis']['message'])
+
+if CRITICAL:
+    print "CRITICAL {0}".format(MESSAGE)
+    sys.exit(2)
+elif WARNING:
+    print "WARNING {0}".format(MESSAGE)
+    sys.exit(1)
+else:
+    print "OK"
+    sys.exit(0)
