@@ -41,16 +41,16 @@ except urllib2.URLError, error:
     print "CRITICAL ssh keymanager not running"
     sys.exit(2)
 
-if DATA['deadlocks']['healthy'] == False:
+if not DATA['deadlocks']['healthy']:
     WARNING = True
     MESSAGE = "{0} DeadLocks {1}".format(MESSAGE, DATA['deadlocks']['message'])
 
-if DATA['postgresql']['healthy'] == False:
+if not DATA['postgresql']['healthy']:
     WARNING = True
     MESSAGE = "{0} PostgresQL {1}".format(
         MESSAGE, DATA['postgresql']['message'])
 
-if DATA['redis']['healthy'] == False:
+if not DATA['redis']['healthy']:
     WARNING = True
     MESSAGE = "{0} Redis {1}".format(MESSAGE, DATA['redis']['message'])
 
