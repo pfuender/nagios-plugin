@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+# vim: fileencoding=utf-8 filetype=python ts=4 et
 # -*- coding: utf-8 -*-
+# pylint: disable=fixme, line-too-long
 """
 @author: Thomas Kroll
 @contact: thomas.kroll@profitbricks.com
@@ -15,6 +17,7 @@ import sys
 import subprocess
 import re
 import argparse
+import shlex
 
 NAGIOS_CODES = {'OK': 0,
                 'WARNING': 1,
@@ -56,54 +59,78 @@ def nagios_return(code, response):
     sys.exit(NAGIOS_CODES[code])
 
 
+def run_command(command, pipe_command=''):
+    """
+    function to run shell commands
+    """
+    cmd = shlex.split(command)
+    pipe = pipe_command.encode(sys.stdout.encoding)
+
+    try:
+        prog = subprocess.Popen(cmd,
+                                stdout=subprocess.PIPE,
+                                stdin=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        (out, stderr_out) = prog.communicate(input=pipe)
+        if prog.returncode != 0:
+            return (
+                prog.returncode,
+                "{} returned error {}".format(cmd[0], stderr_out.decode(sys.stdout.encoding))
+            )
+        else:
+            return (
+                prog.returncode,
+                out.decode(sys.stdout.encoding)
+            )
+    except OSError:
+        return (
+            2,
+            "{} is not installed".format(cmd[0])
+        )
+
+
 def check_condition():
     """ check_condition do the comparision between birdc6
         output and vhost_gwconf
     """
-    command = ('birdc6', 'show', 'protocols')
-    try:
-        birdc6 = subprocess.check_output(
-            command,
-            shell=False,
-            stderr=subprocess.STDOUT)
-        l_birdc6 = len(re.findall('BGP.*Established', birdc6))
-    except (TypeError, OSError, subprocess.CalledProcessError):
+    (exit_code, birdc6_output) = run_command('birdc6 show route for ::0')
+    if exit_code != 0:
         return dict(
             code='UNKNOWN',
-            message='birdc6 failure'
+            message=birdc6_output
         )
+    birdc6_gw_count = len(re.findall(r'bgp\d{1}', birdc6_output))
 
-    command = ('cat', '/proc/ethoip6_vhost_gwconf')
     try:
-        gwconf = subprocess.check_output(
-            command,
-            shell=False,
-            stderr=subprocess.STDOUT)
-        l_gwconf = len(re.findall('add_gw_address', gwconf))
-    except (TypeError, OSError, subprocess.CalledProcessError):
+        gwconf_content = open('/proc/ethoip6_vhost_gwconf').read()
+    except IOError as err:
         return dict(
             code='UNKNOWN',
-            message='ethoip6_vhost_gwconf failure'
+            message=("I/O error {} while opening '{}': {}"
+                     .format(err.errno, err.filename, err.strerror))
         )
+    else:
+        gwconf_gw_count = len(re.findall('add_gw_address', gwconf_content))
 
-    if l_birdc6 == l_gwconf and l_birdc6 >= 2 and l_gwconf >= 2:
+    if birdc6_gw_count == gwconf_gw_count and birdc6_gw_count >= 2 and gwconf_gw_count >= 2:
         return dict(
             code='OK',
-            message='BGP propagation {} : {}'.format(l_birdc6, l_gwconf)
+            message=('BGP propagation BIRDC6={} : ETHOIP6={}'
+                     .format(birdc6_gw_count, gwconf_gw_count))
         )
-    elif l_birdc6 == 1 and l_gwconf == 1:
+    elif birdc6_gw_count == 1 and gwconf_gw_count == 1:
         return dict(
             code='WARNING',
-            message='BGP propagation low {} : {}'.format(l_birdc6, l_gwconf)
+            message=('BGP propagation low only one gateway left. BIRDC6={}, ETHOIP6={}'
+                     .format(birdc6_gw_count, gwconf_gw_count))
         )
-    elif l_birdc6 != l_gwconf or l_birdc6 == 0 or l_gwconf == 0:
+    elif birdc6_gw_count != gwconf_gw_count or birdc6_gw_count == 0 or gwconf_gw_count == 0:
         return dict(
             code='CRITICAL',
-            message='Mismatch in BGP propagation'
+            message=('Mismatch in BGP propagation between BIRDC6={} and ETHOIP6={}'
+                     .format(birdc6_gw_count, gwconf_gw_count))
         )
 
 
 if __name__ == '__main__':
     main()
-
-# vim: fileencoding=utf-8 filetype=python ts=4 et

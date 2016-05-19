@@ -36,6 +36,10 @@ override_dh_auto_build:
 	@echo "Building Python 3 stuff ..."
 	set -e && for pyvers in $(PYTHON3S); do python$$pyvers setup.py build; done
 
+overrride_dh_auto_test:
+	dh_auto_test
+	flake8 --max-line-length=99 bin/check_bgp_propagation
+
 override_dh_auto_install:
 	$(info )
 	$(info ########################)
