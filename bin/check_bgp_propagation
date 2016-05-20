@@ -99,7 +99,7 @@ def check_condition():
             code='UNKNOWN',
             message=birdc6_output
         )
-    birdc6_gw_count = len(re.findall(r'bgp\d{1}', birdc6_output))
+    birdc6_gw_count = len(re.findall(r'ib\d{1}\.dddd', birdc6_output))
 
     try:
         gwconf_content = open('/proc/ethoip6_vhost_gwconf').read()

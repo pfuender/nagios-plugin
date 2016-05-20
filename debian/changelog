@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.29) all; urgency=medium
+
+  * Change regexp for find birdc6 gw distribution
+
+ -- Thomas Kroll <thomas.kroll@profitbricks.com>  Fri, 20 May 2016 14:45:18 +0200
+
 pb-monitoring-plugins (1.8.28) all; urgency=medium
 
   * Change the way birdc6 is used and also fixed some minor issues. #18123
