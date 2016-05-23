@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.30) all; urgency=medium
+
+  * Change internal cmd_run to support output redirection
+
+ -- Thomas Kroll <thomas.kroll@profitbricks.com>  Mon, 23 May 2016 11:06:27 +0200
+
 pb-monitoring-plugins (1.8.29) all; urgency=medium
 
   * Change regexp for find birdc6 gw distribution

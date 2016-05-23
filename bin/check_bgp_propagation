@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 # vim: fileencoding=utf-8 filetype=python ts=4 et
 # -*- coding: utf-8 -*-
 # pylint: disable=fixme, line-too-long
@@ -59,41 +59,29 @@ def nagios_return(code, response):
     sys.exit(NAGIOS_CODES[code])
 
 
-def run_command(command, pipe_command=''):
-    """
-    function to run shell commands
-    """
-    cmd = shlex.split(command)
-    pipe = pipe_command.encode(sys.stdout.encoding)
+def cmd_run(command):
+    env = os.environ
+    env["LC_ALL"] = "C"
+
+    cmd_args = shlex.split(command)
 
     try:
-        prog = subprocess.Popen(cmd,
-                                stdout=subprocess.PIPE,
-                                stdin=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        (out, stderr_out) = prog.communicate(input=pipe)
-        if prog.returncode != 0:
-            return (
-                prog.returncode,
-                "{} returned error {}".format(cmd[0], stderr_out.decode(sys.stdout.encoding))
-            )
+        cmd = subprocess.Popen(cmd_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+        (out, stderr_out) = cmd.communicate()
+        if cmd.returncode != 0:
+            return cmd.returncode, "%s returned error %s" % (cmd_args[0], stderr_out)
         else:
-            return (
-                prog.returncode,
-                out.decode(sys.stdout.encoding)
-            )
+            return cmd.returncode, out
     except OSError:
-        return (
-            2,
-            "{} is not installed".format(cmd[0])
-        )
+        return 2, "%s is not installed" % cmd_args[0]
 
 
 def check_condition():
     """ check_condition do the comparision between birdc6
         output and vhost_gwconf
     """
-    (exit_code, birdc6_output) = run_command('birdc6 show route for ::0')
+    (exit_code, birdc6_output) = cmd_run('birdc6 show route for ::0')
+
     if exit_code != 0:
         return dict(
             code='UNKNOWN',
