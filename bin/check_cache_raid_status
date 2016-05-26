@@ -47,53 +47,48 @@ fi
 check_state_raid1()
 {
 status=0
-print_data[1]="OK: VD DATA: `echo $status_data`"
-print_cache[1]="OK: VD CACHE: `echo $status_cache`"
-print_os[1]="OK: VD OS: `echo $status_os`"
+print_data="OK: DATA status: `echo $status_data`"
+print_cache="OK: CACHE status: `echo $status_cache`"
+print_os="OK: OS status: `echo $status_os`"
 
-i=0
 for a in $data
-do 
-i=$[i+1] 
-	if `echo $a |grep -vq $status_data'\b'` 
-		then
-		print_data[$i]=$(echo -n "CRITICAL: VD:" `echo $a |grep -v $status_data'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_data") ")
-		status=2
-	fi
+    do
+        if `echo $a |grep -vq $status_data'\b'`
+            then
+	            print_data=$(echo -n "CRITICAL: " `echo $a |grep -vc $status_data'\b'` "VD\(\'s\) from DATA in " `echo $a |grep -v $status_data'\b'| awk '{print $6}'| uniq` "(it should be" $status_data") ")
+	            status=2
+                printst[0]=$(echo $print_data)
+        fi
 done 
 
-
-i=0
 for b in $cache
-do	
-i=$[i+1]
-	if `echo $b | grep -vq $status_cache'\b'`
-		then       
-               	print_cache[$i]=$(echo -n "CRITICAL: VD:" `echo $b |grep -v $status_cache'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_cache") ")
-		status=2
-       	fi
+    do	
+        if `echo $b | grep -vq $status_cache'\b'`
+            then
+                print_cache=$(echo -n "CRITICAL: " `echo $b |grep -vc $status_cache'\b'` "VD\(\'s\) from CACHE in " `echo $b |grep -v $status_cache'\b'| awk '{print $6}'| uniq` "(should be" $status_cache") ")
+	            status=2
+                printst[1]=$(echo $print_cache)	
+        fi
 done
 
-
-i=0
 for c in $os
-do
-i=$[i+1]
-   	if `echo $c |grep -vq $status_os'\b'`
-               	then
-               	print_os[$i]=$(echo -n "CRITICAL: VD:" `echo $c |grep -v $status_os'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_os") ")
-		status=2
-       	fi
+    do
+        if `echo $c |grep -vq $status_os'\b'`
+            then
+                print_os=$(echo -n "CRITICAL: " `echo $c |grep -vc $status_os'\b'` "VD\(\'s\) from OS in " `echo $c |grep -v $status_os'\b'| awk '{print $6}'| uniq` "(should be" $status_os") ")
+		        status=2
+                printst[2]=$(echo $print_os)
+        fi
 done
 
 
 if [ "$status" = "2" ]
 	then
-	echo -n ${print_data[@]} ${print_cache[@]} ${print_os[@]} | xargs
-	exit $status
+	    echo -n ${printst[@]} | xargs
+	    exit $status
 	else
-	echo -n ${print_data[@]} ${print_cache[@]} ${print_os[@]} | xargs
-	exit $status
+	    echo -n $print_data $print_cache $print_os | xargs
+	    exit $status
 fi
 
 }
@@ -102,40 +97,38 @@ fi
 check_state_raid10()
 {
 status=0
-print_data[1]="OK: VD DATA: `echo $status_data`"
-print_cache[1]="OK: VD CACHE: `echo $status_cache`"
+print_data[1]="OK: DATA status: `echo $status_data`"
+print_cache[1]="OK: CACHE status: `echo $status_cache`"
 
-i=0
 for a in $data
-do 
-i=$[i+1] 
-    if `echo $a |grep -vq $status_data'\b'` 
-        then
-        print_data[$i]=$(echo -n "CRITICAL: VD:" `echo $a |grep -v $status_data'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_data") ")
-        status=2
-    fi
+    do 
+        if `echo $a |grep -vq $status_data'\b'` 
+            then
+                print_data=$(echo -n "CRITICAL: " `echo $a |grep -vc $status_data'\b'` "VD\(\'s\) from DATA in " `echo $a |grep -v $status_data'\b'| awk '{print $6}'| uniq` "(it should be" $status_data") ")
+                status=2
+                printst[0]=$(echo $print_data)
+        fi
 done 
 
 
-i=0
 for b in $cache
-do  
-i=$[i+1]
-    if `echo $b | grep -vq $status_cache'\b'`
-        then       
-                print_cache[$i]=$(echo -n "CRITICAL: VD:" `echo $b |grep -v $status_cache'\b' | awk '{print $1,$11":",$6}'` "(should be" $status_cache") ")
-        status=2
+    do  
+        if `echo $b | grep -vq $status_cache'\b'`
+            then       
+                print_cache=$(echo -n "CRITICAL: " `echo $b |grep -vc $status_cache'\b'` "VD\(\'s\) from CACHE in " `echo $b |grep -v $status_cache'\b'| awk '{print $6}'| uniq` "(should be" $status_cache") ")
+                status=2
+                printst[1]=$(echo $print_cache) 
         fi
 done
 
 
 if [ "$status" = "2" ]
     then
-    echo -n ${print_data[@]} ${print_cache[@]} | xargs
-    exit $status
+        echo -n ${print_data[@]} ${print_cache[@]} | xargs
+        exit $status
     else
-    echo -n ${print_data[@]} ${print_cache[@]} | xargs
-    exit $status
+        echo -n ${print_data[@]} ${print_cache[@]} | xargs
+        exit $status
 fi
 
 }
@@ -145,33 +138,29 @@ fi
 print_visable_data()
 {
 for a in $data
-do
+    do
 
         if `echo $a |grep -vq $status_data'\b'`
-                then
+            then
                 echo "CRITICAL: DATA - correct status is" $status_data
-                echo "DG/VD nr:"
+                echo "DG/VD:"
                 echo $a |grep -v $status_data'\b' | awk '{print $1,"Cache state",$6,"is wrong"}'
-#                echo "DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name"
-#                echo $a |grep -v $status_data'\b'
-                else
+            else
 		        echo  "OK: DATA"
-	fi
+    	fi
 done
 }
 
 print_visable_cache()
 {
 for b in $cache
-do
+    do
         if `echo $b | grep -vq $status_cache'\b'`
-                then       
+            then       
                 echo "CRITICAL: Cache - correct status is" $status_cache
-                echo "DG/VD nr:"
+                echo "DG/VD:"
                 echo $b |grep -v $status_cache'\b' | awk '{print $1,"Cache state",$6,"is wrong"}'
-#                echo "DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name"
-#                echo $b |grep -v $status_cache'\b'
-        		else
+            else
                 echo "OK: Cache"
         fi
 done
@@ -180,19 +169,16 @@ done
 print_visable_os()
 {
 for c in $os
-do
+    do
         if `echo $c |grep -vq $status_os'\b'`
-                then
+            then
                 echo "CRITICAL: OS - correct status is" $status_os
-                echo "DG/VD nr:"
+                echo "DG/VD:"
                 echo $c |grep -v $status_os'\b' | awk '{print $1,"Cache state",$6,"is wrong"}'
-# 		        echo "DG/VD TYPE  State Access Consist Cache Cac sCC       Size Name"
-#               echo $c |grep -v $status_os'\b'
-                else
+            else
                 echo "OK: OS"
         fi
 done
-
 }
 
 
@@ -243,6 +229,6 @@ while [ $# -ge 0 ]; do
             check_state
             ;;
         esac
-shift
+    shift
 done
 
