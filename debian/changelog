@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.8.32) all; urgency=medium
+
+  * Change in cache configuration for OS VD in check "Cache RAID status"
+
+ -- Agata Nazar <agata.nazar@profitbricks.com>  Wed, 22 Jun 2016 10:53:19 +0200
+
 pb-monitoring-plugins (1.8.31) all; urgency=medium
 
   * Fix output for check "Cache RAID status"

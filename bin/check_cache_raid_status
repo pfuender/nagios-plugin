@@ -11,7 +11,7 @@ os=$(echo $full_status | grep -i os)
 os_n=$(echo $full_status | grep -ic os)
 status_data=RWBD
 status_cache=NRWBD
-status_os=RAWBC
+status_os=NRWTD
 
 
 check_state()
