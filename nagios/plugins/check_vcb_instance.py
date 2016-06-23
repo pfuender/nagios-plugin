@@ -8,7 +8,6 @@
 """
 
 # Standard modules
-import os
 import sys
 import re
 import logging
@@ -18,8 +17,6 @@ import time
 import select
 import signal
 
-from numbers import Number
-
 # Third party modules
 
 from pkg_resources import parse_version
@@ -27,19 +24,11 @@ from pkg_resources import parse_version
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
+from nagios.common import pp
 
 from nagios.plugin import NagiosPluginError
 
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
 #---------------------------------------------
