@@ -18,8 +18,7 @@ import select
 import signal
 
 # Third party modules
-
-from pkg_resources import parse_version
+import debian.debian_support
 
 # Own modules
 
@@ -508,10 +507,10 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                 state = self.max_state(state, nagios.state.warning)
                 result += ', no version found.'
             elif self.min_version is not None:
-                parsed_version_expected = parse_version(self.min_version)
+                parsed_version_expected = debian.debian_support.Version(self.min_version)
                 if self.verbose > 1:
                     log.debug("Expecting parsed version %r.", parsed_version_expected)
-                parsed_version_got = parse_version(got_version)
+                parsed_version_got = debian.debian_support.Version(got_version)
                 if self.verbose > 1:
                     log.debug("Got parsed version %r.", parsed_version_got)
                 if parsed_version_got < parsed_version_expected:

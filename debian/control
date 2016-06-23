@@ -9,6 +9,7 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-all (>= 2.6.5-2~),
                python-argparse,
                python-dcmanager-client (>= 0.9.2),
+               python-debian,
                python-docutils,
                python-epydoc,
                python-flake8,
@@ -28,6 +29,7 @@ Package: python-nagios-plugin
 Architecture: all
 Section: python
 Depends: python-argparse,
+         python-debian,
          python-pkg-resources,
          ${misc:Depends},
          ${python:Depends}
