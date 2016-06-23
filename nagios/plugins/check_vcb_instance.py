@@ -31,7 +31,6 @@ from nagios.plugin import NagiosPluginError
 
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
 # Some module variables
 
 __version__ = '0.2.0'
@@ -74,39 +73,34 @@ STATUS = {
 re_parse_result = re.compile(r'^([^,]+),(\d+),(\d+),(.*)$', re.DOTALL)
 
 # VCB_VERSION=8.6.29
-re_version = re.compile(r'^\s*VCB_VERSION\s*=\s*(\S+)',
-        re.IGNORECASE | re.MULTILINE)
+re_version = re.compile(r'^\s*VCB_VERSION\s*=\s*(\S+)', re.IGNORECASE | re.MULTILINE)
 
-#END_OF_DATA=TRUE
-re_end_of_data = re.compile(r'^\s*end_of_data\s*=\s*(\S+)',
-        re.IGNORECASE | re.MULTILINE)
+re_end_of_data = re.compile(r'^\s*end_of_data\s*=\s*(\S+)', re.IGNORECASE | re.MULTILINE)
 re_true = re.compile(r'^(?:true|yes|[1-9])', re.IGNORECASE)
 
-#==============================================================================
+
 class SocketTransportError(NagiosPluginError):
     pass
 
-#==============================================================================
+
 class SocketConnectTimeoutError(SocketTransportError):
     pass
 
-#==============================================================================
+
 class NoListeningError(SocketTransportError):
     pass
 
-#==============================================================================
+
 class RequestStatusError(NagiosPluginError):
     pass
 
-#==============================================================================
+
 class RequestStatus(object):
     """
     A class for handling status replies from provisioning daemon.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self, job_id = None, state = None,
-            error_code = None, message = None):
+    def __init__(self, job_id=None, state=None, error_code=None, message=None):
         """
         Constructor.
 
@@ -131,31 +125,26 @@ class RequestStatus(object):
 
         self._message = message
 
-    #------------------------------------------------------------
     @property
     def job_id(self):
         """The job ID of this reply."""
         return self._job_id
 
-    #------------------------------------------------------------
     @property
     def state(self):
         """The reply state (see VCB)."""
         return self._state
 
-    #------------------------------------------------------------
     @property
     def error_code(self):
         """The VDC error code (old unused trash from somewhere)."""
         return self._error_code
 
-    #------------------------------------------------------------
     @property
     def message(self):
         """The textual reply message."""
         return self._message
 
-    #--------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting function for translating object structure into a string.
@@ -183,7 +172,6 @@ class RequestStatus(object):
         s = "%s,%d,%d,%s" % (jid, st, ec, msg)
         return s
 
-    #--------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -194,7 +182,7 @@ class RequestStatus(object):
         """
 
         res = {
-           '__class_name__': self.__class__.__name__,
+            '__class_name__': self.__class__.__name__,
             'error_code': self.error_code,
             'job_id': self.job_id,
             'message': self.message,
@@ -203,14 +191,13 @@ class RequestStatus(object):
 
         return res
 
-#==============================================================================
+
 class CheckVcbInstancePlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking a running instance of VCB
     on a ProfitBricks physical server (pserver).
     """
 
-    #--------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckVcbInstancePlugin class.
@@ -227,9 +214,9 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         blurb += "Checks the state and version of a running VCB instance."
 
         super(CheckVcbInstancePlugin, self).__init__(
-                shortname = 'VCB_INSTANCE',
-                usage = usage, blurb = blurb,
-                timeout = DEFAULT_TIMEOUT,
+            shortname='VCB_INSTANCE',
+            usage=usage, blurb=blurb,
+            timeout=DEFAULT_TIMEOUT,
         )
 
         self._host_address = None
@@ -266,13 +253,11 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
     @property
     def host_address(self):
         """The DNS name or IP address of the host, running the VCB."""
         return self._host_address
 
-    #------------------------------------------------------------
     @property
     def vcb_port(self):
         """The TCP port of VCB on the host to check."""
@@ -284,23 +269,19 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         if v == 0:
             raise ValueError("The port must not be zero.")
         if v >= 2 ** 16:
-            raise ValueError("The port must not greater than %d." % (
-                    (2 ** 16 - 1)))
+            raise ValueError("The port must not greater than %d." % ((2 ** 16 - 1)))
         self._vcb_port = v
 
-    #------------------------------------------------------------
     @property
     def min_version(self):
         """The minimum version number of the running VCB."""
         return self._min_version
 
-    #------------------------------------------------------------
     @property
     def cancel_signal(self):
         """Which signal got the process to cancel it."""
         return self._cancel_signal
 
-    #------------------------------------------------------------
     @property
     def job_id(self):
         """The Job-Id to use in PJD to send to VCB."""
@@ -311,7 +292,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         v = int(value)
         self._job_id = abs(v)
 
-    #------------------------------------------------------------
     @property
     def timeout(self):
         """Seconds before plugin times out."""
@@ -319,7 +299,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             return DEFAULT_TIMEOUT
         return self.argparser.args.timeout
 
-    #------------------------------------------------------------
     @property
     def polling_interval(self):
         """The polling interval on network socket."""
@@ -332,7 +311,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             raise ValueError("The polling interval must not be zero.")
         self._polling_interval = abs(v)
 
-    #------------------------------------------------------------
     @property
     def buffer_size(self):
         """The size of the buffer for the socket operation."""
@@ -345,7 +323,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             raise ValueError("The buffer size must be greater than 512 bytes.")
         self._buffer_size = v
 
-    #------------------------------------------------------------
     @property
     def should_shutdown(self):
         """Should the current process shutdown by a signal from outside."""
@@ -355,7 +332,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
     def should_shutdown(self, value):
         self._should_shutdown = bool(value)
 
-    #--------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -379,62 +355,60 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                '-H', '--host-address', '--host',
-                metavar = 'ADDRESS',
-                dest = 'host_address',
-                required = True,
-                help = ("The DNS name or IP address of the host, " +
-                        "running the VCB (mandantory)."),
+            '-H', '--host-address', '--host',
+            metavar='ADDRESS',
+            dest='host_address',
+            required=True,
+            help=("The DNS name or IP address of the host, " +
+                  "running the VCB (mandantory)."),
         )
 
         self.add_arg(
-                '-P', '--port',
-                metavar = 'PORT',
-                dest = 'vcb_port',
-                type = int,
-                default = DEFAULT_VCB_PORT,
-                help = ("The TCP port of VCB on the host to check " +
-                        "(Default: %(default)d)."),
+            '-P', '--port',
+            metavar='PORT',
+            dest='vcb_port',
+            type=int,
+            default=DEFAULT_VCB_PORT,
+            help=("The TCP port of VCB on the host to check " +
+                  "(Default: %(default)d)."),
         )
 
         self.add_arg(
-                '--min-version',
-                metavar = 'VERSION',
-                dest = 'min_version',
-                help = ("The minimum version number of the running VCB. " +
-                        "If given and the VCB version is less then this, " +
-                        "a warning is generated."),
+            '--min-version',
+            metavar='VERSION',
+            dest='min_version',
+            help=("The minimum version number of the running VCB. " +
+                  "If given and the VCB version is less then this, " +
+                  "a warning is generated."),
         )
 
         self.add_arg(
-                '-J', '--job-id',
-                metavar = 'ID',
-                dest = 'job_id',
-                type = int,
-                default = DEFAULT_JOB_ID,
-                help = ("The Job-Id to use in PJD to send to VCB " +
-                        "(Default: %(default)d)."),
+            '-J', '--job-id',
+            metavar='ID',
+            dest='job_id',
+            type=int,
+            default=DEFAULT_JOB_ID,
+            help=("The Job-Id to use in PJD to send to VCB " +
+                  "(Default: %(default)d)."),
         )
 
         self.add_arg(
             '-b', '--buffer',
-            metavar = 'SIZE',
-            dest = 'buffer_size',
-            type = int,
-            default = DEFAULT_BUFFER_SIZE,
-            help = ("The size of the buffer for the socket operation in " +
-                    "bytes (Default: %(default)d)."),
+            metavar='SIZE',
+            dest='buffer_size',
+            type=int,
+            default=DEFAULT_BUFFER_SIZE,
+            help=("The size of the buffer for the socket operation in " +
+                  "bytes (Default: %(default)d)."),
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -456,7 +430,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         if self.argparser.args.buffer_size is not None:
             self.buffer_size = self.argparser.args.buffer_size
 
-    #--------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -466,12 +439,10 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         self.init_root_logger()
 
         state = nagios.state.ok
-        out = "VCB on %r port %d seems to be okay." % (
-                self.host_address, self.vcb_port)
+        out = "VCB on %r port %d seems to be okay." % (self.host_address, self.vcb_port)
 
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
-
 
         signal.signal(signal.SIGHUP, self.exit_signal_handler)
         signal.signal(signal.SIGINT, self.exit_signal_handler)
@@ -504,8 +475,8 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             state = nagios.state.critical
         except Exception as e:
             result = "Error %s on checking VCB on %r port %d: %s" % (
-                    e.__class__.__name__, self.host_address,
-                    self.vcb_port, e)
+                e.__class__.__name__, self.host_address,
+                self.vcb_port, e)
             state = nagios.state.critical
 
         if self.verbose > 1:
@@ -551,7 +522,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         self.exit(state, out)
 
-    #--------------------------------------------------------------------------
     def parse_for_version(self, msg):
         """
         Parses in the given message for a version string.
@@ -562,7 +532,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             return None
         return match.group(1)
 
-    #--------------------------------------------------------------------------
     def exit_signal_handler(self, signum, frame):
         """
         Handler as a callback function for getting a signal from somewhere.
@@ -574,7 +543,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         """
 
-        signame = "%d"  % (signum)
+        signame = "%d" % (signum)
         if signum in SIGNAL_NAMES:
             signame = SIGNAL_NAMES[signum]
 
@@ -589,7 +558,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         self.should_shutdown = True
 
-    #--------------------------------------------------------------------------
     def send(self, message):
         """
         Sends the message over network socket to the recipient.
@@ -626,7 +594,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
         s = None
         sa = None
         for res in socket.getaddrinfo(self.host_address, self.vcb_port,
-                socket.AF_UNSPEC, socket.SOCK_STREAM):
+                                      socket.AF_UNSPEC, socket.SOCK_STREAM):
 
             if self.verbose > 3:
                 log.debug("Socket address info: %r", res)
@@ -660,8 +628,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             break
 
         if s is None:
-            msg = "VCB seems not to listen on %r, port %d." % (
-                    self.host_address, self.vcb_port)
+            msg = "VCB seems not to listen on %r, port %d." % (self.host_address, self.vcb_port)
             raise NoListeningError(msg)
 
         if self.verbose > 3:
@@ -696,8 +663,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
                     break_on_timeout = True
                     break
 
-                rlist, wlist, elist = select.select(
-                        [s_fn], [], [], self.polling_interval)
+                rlist, _, _ = select.select([s_fn], [], [], self.polling_interval)
 
                 if s_fn in rlist:
                     data = s.recv(self.buffer_size)
@@ -729,7 +695,7 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             if e[0] == 4:
                 pass
             else:
-                log.error("Error in select(): "  + str(e))
+                log.error("Error in select(): " + str(e))
 
         s.close()
 
@@ -743,7 +709,6 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
 
         return result_line
 
-    #--------------------------------------------------------------------------
     def parse_result(self, message):
         """
         Parses the given string to get an instance of a RequestStatus object.
@@ -768,20 +733,10 @@ class CheckVcbInstancePlugin(ExtNagiosPlugin):
             raise RequestStatusError(msg)
 
         request_status = RequestStatus(
-            job_id = str(match.group(1)).strip(),
-            state = int(match.group(2)),
-            error_code = int(match.group(3)),
-            message = match.group(4),
+            job_id=str(match.group(1)).strip(),
+            state=int(match.group(2)),
+            error_code=int(match.group(3)),
+            message=match.group(4),
         )
 
         return request_status
-
-#==============================================================================
-
-if __name__ == "__main__":
-
-    pass
-
-#==============================================================================
-
-# vim: fileencoding=utf-8 filetype=python ts=4 et sw=4
