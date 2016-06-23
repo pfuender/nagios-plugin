@@ -9,12 +9,9 @@
 
 # Standard modules
 import os
-import sys
 import logging
 import textwrap
-import pwd
 import re
-import locale
 import stat
 
 from numbers import Number
@@ -24,26 +21,13 @@ from numbers import Number
 # Own modules
 
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
-
+from nagios.common import pp
 from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.argparser import default_timeout
-
 from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
 # Some module variables
-
 __version__ = '0.3.1'
 
 log = logging.getLogger(__name__)
@@ -52,14 +36,13 @@ DEFAULT_MEGARAID_PATH = '/opt/MegaRAID/MegaCli'
 DEFAULT_WARN_SECTORS = 4
 DEFAULT_CRIT_SECTORS = 10
 
-#==============================================================================
+
 class MegaCliExecTimeoutError(ExtNagiosPluginError, IOError):
     """
     Special error class indicating a timout error on
     executing MegaCli.
     """
 
-    #--------------------------------------------------------------------------
     def __init__(self, timeout, cmdline):
         """
         Constructor.
@@ -80,22 +63,19 @@ class MegaCliExecTimeoutError(ExtNagiosPluginError, IOError):
 
         self.cmdline = cmdline
 
-    #--------------------------------------------------------------------------
     def __str__(self):
 
-        msg = "Error executing: %s (timeout after %0.1f secs)" % (
-                self.cmdline, self.timeout)
+        msg = "Error executing: %s (timeout after %0.1f secs)" % (self.cmdline, self.timeout)
 
         return msg
 
-#==============================================================================
+
 class CheckSmartStatePlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking the SMART state of a physical
     hard drive.
     """
 
-    #--------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckSmartStatePlugin class.
@@ -112,8 +92,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         blurb += "Checks the SMART state of a physical hard drive."
 
         super(CheckSmartStatePlugin, self).__init__(
-                usage = usage, blurb = blurb,
-                append_searchpath = [DEFAULT_MEGARAID_PATH],
+            usage=usage, blurb=blurb,
+            append_searchpath=[DEFAULT_MEGARAID_PATH],
         )
 
         self._smartctl_cmd = self.get_command('smartctl')
@@ -137,13 +117,13 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         @type: bool
         """
 
-        self._warn_sectors = NagiosRange(start = 0, end = DEFAULT_WARN_SECTORS)
+        self._warn_sectors = NagiosRange(start=0, end=DEFAULT_WARN_SECTORS)
         """
         @ivar: number of grown defect sectors leading to a warning
         @type: NagiosRange
         """
 
-        self._crit_sectors = NagiosRange(start = 0, end = DEFAULT_CRIT_SECTORS)
+        self._crit_sectors = NagiosRange(start=0, end=DEFAULT_CRIT_SECTORS)
         """
         @ivar: number of grown defect sectors leading to a critical message
         @type: NagiosRange
@@ -177,19 +157,16 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
     @property
     def smartctl_cmd(self):
         """The absolute path to the OS command 'smartctl'."""
         return self._smartctl_cmd
 
-    #------------------------------------------------------------
     @property
     def megacli_cmd(self):
         """The absolute path to the OS command 'MegaCli'."""
         return self._megacli_cmd
 
-    #------------------------------------------------------------
     @property
     def megaraid(self):
         """Is the given device a PhysicalDrive on a MegaRaid adapter."""
@@ -199,43 +176,36 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
     def megaraid(self, value):
         self._megaraid = bool(value)
 
-    #------------------------------------------------------------
     @property
     def warn_sectors(self):
         """The number of grown defect sectors leading to a warning."""
         return self._warn_sectors
 
-    #------------------------------------------------------------
     @property
     def crit_sectors(self):
         """The number of grown defect sectors leading to a critical message."""
         return self._crit_sectors
 
-    #------------------------------------------------------------
     @property
     def device(self):
         """The device to check."""
         return self._device
 
-    #------------------------------------------------------------
     @property
     def device_id(self):
         """The MegaRaid Device Id of the PD on the MegaRAID controller."""
         return self._device_id
 
-    #------------------------------------------------------------
     @property
     def megaraid_slot(self):
         """The MegaRaid enclusure-Id/slot-Id pair to check."""
         return self._megaraid_slot
 
-    #------------------------------------------------------------
     @property
     def adapter_nr(self):
         """The number of the MegaRaid adapter (e.g. 0)."""
         return self._adapter_nr
 
-    #--------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -259,7 +229,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
     def _init_megacli_cmd(self):
         """
         Initializes self.megacli_cmd.
@@ -267,8 +236,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         self._megacli_cmd = self._get_megacli_cmd()
 
-    #--------------------------------------------------------------------------
-    def _get_megacli_cmd(self, given_path = None):
+    def _get_megacli_cmd(self, given_path=None):
         """
         Finding the executable 'MegaCli64', 'MegaCli' or 'megacli' under the
         search path or the given path.
@@ -289,20 +257,19 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         if given_path:
             # Normalize the given path, if it exists.
             if os.path.isabs(given_path):
-                if not is_exe(given_path):
+                if not self.is_exe(given_path):
                     return None
                 return os.path.realpath(given_path)
             exe_names = (given_path,)
 
         for exe_name in exe_names:
             log.debug("Searching for %r ...", exe_name)
-            exe_file = self.get_command(exe_name, quiet = True)
+            exe_file = self.get_command(exe_name, quiet=True)
             if exe_file:
                 return exe_file
 
         return None
 
-    #--------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
@@ -311,47 +278,45 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         arg_help = ('The number of grown defect sectors leading to a ' +
                     'warning (Default: %d).') % (DEFAULT_WARN_SECTORS)
         self.add_arg(
-                '-w', '--warning',
-                metavar = 'SECTORS',
-                dest = 'warning',
-                required = True,
-                type = int,
-                default = DEFAULT_WARN_SECTORS,
-                help = arg_help,
+            '-w', '--warning',
+            metavar='SECTORS',
+            dest='warning',
+            required=True,
+            type=int,
+            default=DEFAULT_WARN_SECTORS,
+            help=arg_help,
         )
 
         arg_help = ('The number of grown defect sectors leading to a ' +
                     'critical message (Default: %d).') % (DEFAULT_CRIT_SECTORS)
         self.add_arg(
-                '-c', '--critical',
-                metavar = 'SECTORS',
-                dest = 'critical',
-                required = True,
-                type = int,
-                default = DEFAULT_CRIT_SECTORS,
-                help = arg_help,
+            '-c', '--critical',
+            metavar='SECTORS',
+            dest='critical',
+            required=True,
+            type=int,
+            default=DEFAULT_CRIT_SECTORS,
+            help=arg_help,
         )
 
         self.add_arg(
-                '-m', '--megaraid',
-                metavar = 'DEVICE_ID',
-                dest = 'megaraid',
-                help = ('If given, check the device DEVICE_ID on a MegaRAID ' +
-                        'controller. The DEVICE_ID might be given as a single ' +
-                        'Device Id (integer) or as an <enclosure-id:slot-id> ' +
-                        'pair of the MegaRaid adapter.'),
+            '-m', '--megaraid',
+            metavar='DEVICE_ID',
+            dest='megaraid',
+            help=('If given, check the device DEVICE_ID on a MegaRAID '
+                  'controller. The DEVICE_ID might be given as a single '
+                  'Device Id (integer) or as an <enclosure-id:slot-id> '
+                  'pair of the MegaRaid adapter.'),
         )
 
         self.add_arg(
-                'device',
-                dest = 'device',
-                nargs = '?',
-                help = ("The device to check (given as 'sdX' or '/dev/sdX', " +
-                        "must exists)."),
+            'device',
+            dest='device',
+            nargs='?',
+            help="The device to check (given as 'sdX' or '/dev/sdX', must exists).",
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -365,13 +330,10 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         self.init_root_logger()
 
-        self._warn_sectors = NagiosRange(start = 0, end = self.argparser.args.warning)
-        self._crit_sectors = NagiosRange(start = 0, end = self.argparser.args.critical)
+        self._warn_sectors = NagiosRange(start=0, end=self.argparser.args.warning)
+        self._crit_sectors = NagiosRange(start=0, end=self.argparser.args.critical)
 
-        self.set_thresholds(
-                warning = self.warn_sectors,
-                critical = self.crit_sectors,
-        )
+        self.set_thresholds(warning=self.warn_sectors, critical=self.crit_sectors)
 
         if not self.argparser.args.device:
             self.die("No device to check given.")
@@ -396,8 +358,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         if self.argparser.args.megaraid:
             self._init_megacli_dev(self.argparser.args.megaraid)
 
-
-    #--------------------------------------------------------------------------
     def _init_megacli_dev(self, dev):
         """
         Initializes self.device_id and self.megaraid_slot in case of checking
@@ -430,14 +390,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         match = re_enc_slot.search(pair)
         if not match:
-            self.die("Ooops, pair %r didn't match pattern %r???" % (
-                    pair, re_enc_slot.pattern))
+            self.die("Ooops, pair %r didn't match pattern %r???" % (pair, re_enc_slot.pattern))
 
         self._megaraid_slot = (int(match.group(1)), int(match.group(2)))
 
         return self._init_megaraid_device_id()
 
-    #--------------------------------------------------------------------------
     def _init_megaraid_device_id(self):
         """
         Evaluates the Magaraid Device Id from the given Enclosure Id and
@@ -457,14 +415,13 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 break
 
         if dev_id is None:
-            self.die("No device Id found for PhysDrv [%d:%d] on the megaraid adapter." % 
-                self._megaraid_slot)
+            self.die("No device Id found for PhysDrv [%d:%d] on the megaraid adapter." %
+                     self._megaraid_slot)
 
         self._device_id = dev_id
         log.debug("Got a Device Id of %d." % (dev_id))
         return
 
-    #--------------------------------------------------------------------------
     def get_megaraid_pd_state(self):
         """
         Retrieves the state of the appropriate MegaRaid Physical Device, if
@@ -479,41 +436,38 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         if not self._megaraid_slot:
             self.die("Ooops, need Enclosure Id and Slot Id to retrieve " +
-                    "the state of the Magaraid Physical Device.")
+                     "the state of the Magaraid Physical Device.")
 
         if not self.megacli_cmd:
             self.die("Didn't found to MegaCli command to retrieve the " +
-                    "state of the Magaraid Physical Device.")
-
-        pd = '-PhysDrv[%d:%d]' % self._megaraid_slot
+                     "state of the Magaraid Physical Device.")
 
         cmd_list = [
-                self.megacli_cmd,
-                '-pdInfo',
-                ('-PhysDrv[%d:%d]' % self._megaraid_slot),
-                '-a', '0',
-                '-NoLog',
+            self.megacli_cmd,
+            '-pdInfo',
+            ('-PhysDrv[%d:%d]' % self._megaraid_slot),
+            '-a', '0',
+            '-NoLog',
         ]
 
         (ret, stdoutdata, stderrdata) = self.exec_cmd(cmd_list)
 
         re_no_adapter = re.compile(r'^\s*User\s+specified\s+controller\s+is\s+not\s+present',
-                re.IGNORECASE)
+                                   re.IGNORECASE)
         re_exit_code = re.compile(r'^\s*Exit\s*Code\s*:\s+0x([0-9a-f]+)', re.IGNORECASE)
         # Adapter 0: Device at Enclosure - 1, Slot - 22 is not found.
         re_not_found = re.compile(r'Device\s+at.*not\s+found\.', re.IGNORECASE)
 
         exit_code = ret
-        no_adapter_found = False
+        # no_adapter_found = False
         if stdoutdata:
             for line in stdoutdata.splitlines():
 
                 if re_no_adapter.search(line):
-                    self.die('The specified controller %d is not present.' % (
-                            self.adapter_nr))
+                    self.die('The specified controller %d is not present.' % (self.adapter_nr))
 
                 if re_not_found.search(line):
-                        self.die(line.strip())
+                    self.die(line.strip())
 
                 match = re_exit_code.search(line)
                 if match:
@@ -521,15 +475,17 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                     continue
 
         log.debug("Exitcode of '%s -pdInfo -PhysDrv[%d:%d] -a 0': %d.",
-                self.megacli_cmd, self._megaraid_slot[0],
-                self._megaraid_slot[1], exit_code)
+                  self.megacli_cmd, self._megaraid_slot[0],
+                  self._megaraid_slot[1], exit_code)
 
         if not stdoutdata:
+            cmd_str = cmd_list[0]
+            for arg in cmd_list[1:]:
+                cmd_str += ' ' + ("%r" % (arg))
             self.die('No ouput from: %s' % (cmd_str))
 
         return stdoutdata
 
-    #--------------------------------------------------------------------------
     def get_megaraid_pd_spin_state(self):
         """
         Retrieves the spin state of a Magaraid Physical Drive.
@@ -542,10 +498,8 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         stdoutdata = self.get_megaraid_pd_state()
 
         # The line of interest:
-        #Firmware state: Unconfigured(good), Spun down
-
-        re_fw_state = re.compile(r'^\s*Firmware\s+state:\s*(\S.*)',
-                re.IGNORECASE)
+        # Firmware state: Unconfigured(good), Spun down
+        re_fw_state = re.compile(r'^\s*Firmware\s+state:\s*(\S.*)', re.IGNORECASE)
         re_spin_state = re.compile(r'Spun\s+(Down|Up)', re.IGNORECASE)
         fw_state = None
 
@@ -556,24 +510,21 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                 break
 
         if fw_state is None:
-            log.debug(("Could not retrieve firmware state of Magaraid " +
-                    "Physical Device [%d:%d]."), self._megaraid_slot[0],
-                    self._megaraid_slot[1])
+            log.debug("Could not retrieve firmware state of Magaraid Physical Device [%d:%d].",
+                      self._megaraid_slot[0], self._megaraid_slot[1])
             return None
 
         log.debug("Got a firmware state of Magaraid Physical Device [%d:%d]: %s",
-                self._megaraid_slot[0], self._megaraid_slot[1], fw_state)
+                  self._megaraid_slot[0], self._megaraid_slot[1], fw_state)
 
         match = re_spin_state.search(fw_state)
         if not match:
-            log.debug(("Could not retrieve spin state of Magaraid " +
-                    "Physical Device [%d:%d] from %r."), self._megaraid_slot[0],
-                    self._megaraid_slot[1], fw_state)
+            log.debug("Could not retrieve spin state of Magaraid Physical Device [%d:%d] from %r.",
+                      self._megaraid_slot[0], self._megaraid_slot[1], fw_state)
             return None
 
         return match.group(1).lower()
 
-    #--------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -588,7 +539,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         out = "All seems to be ok."
 
         re_is_sas = re.compile(r'^\s*Transport\s+protocol\s*:\s*SAS.*$',
-                (re.IGNORECASE | re.MULTILINE))
+                               (re.IGNORECASE | re.MULTILINE))
 
         no_smart_patterns = (
             r'Device\s+does\s+not\s+support\s+SMART',
@@ -635,12 +586,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
             self.die(msg)
 
         self.disk_data = {
-                'model': None,
-                'serial': None,
-                'health_state': None,
-                'nr_grown_defects': 0,
-                'temperature': None,
-                'hours_on': None,
+            'model': None,
+            'serial': None,
+            'health_state': None,
+            'nr_grown_defects': 0,
+            'temperature': None,
+            'hours_on': None,
         }
 
         if is_sas:
@@ -669,37 +620,28 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         if is_sas:
             if self.disk_data['health_state'].lower() != 'ok':
                 state = self.max_state(state, nagios.state.critical)
-                err_msgs.append("SMART Health Status is %r." % (
-                        self.disk_data['health_state']))
+                err_msgs.append("SMART Health Status is %r." % (self.disk_data['health_state']))
         else:
             if self.disk_data['health_state'].lower() != 'passed':
                 state = self.max_state(state, nagios.state.critical)
-                err_msgs.append("SMART overall-health self-assessment test result is %r." % (
-                        self.disk_data['health_state']))
+                err_msgs.append("SMART overall-health self-assessment test result is %r." %
+                                (self.disk_data['health_state']))
 
         gd_count = self.disk_data['nr_grown_defects']
         if self.threshold:
             gd_state = self.threshold.get_status(gd_count)
             if gd_state != nagios.state.ok:
                 state = self.max_state(state, gd_state)
-                err_msgs.append("%d elements in list of grown defects." % (
-                        gd_count))
-            self.add_perfdata(
-                    label = 'gd_list',
-                    value = gd_count,
-                    threshold = self.threshold,
-            )
+                err_msgs.append("%d elements in list of grown defects." % (gd_count))
+            self.add_perfdata(label='gd_list', value=gd_count, threshold=self.threshold)
         else:
-            self.add_perfdata(
-                    label = 'gd_list',
-                    value = gd_count,
-            )
+            self.add_perfdata(label='gd_list', value=gd_count)
 
         if self.disk_data['temperature'] is not None:
             self.add_perfdata(
-                    label = 'temperature',
-                    value = self.disk_data['temperature'],
-                    uom = "C",
+                label='temperature',
+                value=self.disk_data['temperature'],
+                uom="C",
             )
 
         out = ""
@@ -725,36 +667,43 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         self.exit(state, out)
 
-    #--------------------------------------------------------------------------
     def _eval_sata_disk(self, smart_output):
 
-        re_health_state = re.compile(r'^SMART\s+overall-health\s+self-assessment\s+test\s+result\s*:\s*(\S.*)',
-                re.IGNORECASE)
+        re_health_state = re.compile(
+            r'^SMART\s+overall-health\s+self-assessment\s+test\s+result\s*:\s*(\S.*)',
+            re.IGNORECASE)
         re_model = re.compile(r'^Device\s+Model\s*:\s*(\S.*)', re.IGNORECASE)
         #   5 Reallocated_Sector_Ct   -O--CK   100   100   000    -    0
-        re_realloc = re.compile(r'^\d+\s+Reallocated_Sector_Ct\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+        re_realloc = re.compile(
+            r'^\d+\s+Reallocated_Sector_Ct\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+            re.IGNORECASE)
         # 187 Reported_Uncorrect      -O--CK   100   100   000    -    0
-        re_rep_uncorr = re.compile(r'^\d+\s+Reported_Uncorrect\s+(\S+)\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+        re_rep_uncorr = re.compile(
+            r'^\d+\s+Reported_Uncorrect\s+(\S+)\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+            re.IGNORECASE)
         # 197 Current_Pending_Sector  -O--CK   100   100   000    -    0
-        re_cur_pend_sect = re.compile(r'^\d+\s+Current_Pending_Sector\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+        re_cur_pend_sect = re.compile(
+            r'^\d+\s+Current_Pending_Sector\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+            re.IGNORECASE)
         # yxz Offline_Uncorrectable   -O--CK   100   100   000    -    0
-        re_offl_uncor = re.compile(r'^\d+\s+Offline_Uncorrectable\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+        re_offl_uncor = re.compile(
+            r'^\d+\s+Offline_Uncorrectable\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+            re.IGNORECASE)
         # xyz Reallocated_Event_Count -O--CK   100   100   000    -    0
-        re_realloc_evt = re.compile(r'^\d+\s+Reallocated_Event_Count\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+        re_realloc_evt = re.compile(
+            r'^\d+\s+Reallocated_Event_Count\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+            re.IGNORECASE)
         # zyx Erase_Fail_Count        -O--CK   100   100   000    -    0
-        re_erase_fail_count = re.compile(r'^\d+\s+Erase_Fail_Count\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+        re_erase_fail_count = re.compile(
+            r'^\d+\s+Erase_Fail_Count\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
+            re.IGNORECASE)
         # 194 Temperature_Celsius     -O---K   100   100   000    -    25
         re_temp = re.compile(r'^\d+\s+Temperature_Celsius\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+)',
-                re.IGNORECASE)
+                             re.IGNORECASE)
         #   9 Power_On_Hours          -O--CK   100   100   000    -    2139
-        re_hours = re.compile(r'^\d+\s+Power_On_Hours\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+(?:\.\d*)?)',
-                re.IGNORECASE)
+        re_hours = re.compile(
+            r'^\d+\s+Power_On_Hours\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+(?:\.\d*)?)',
+            re.IGNORECASE)
 
         use_uncorrect = True
 
@@ -829,25 +778,22 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
             self.disk_data['nr_grown_defects'] += self.disk_data['realloc_event_count']
         if 'erase_fail_count' in self.disk_data:
             self.disk_data['nr_grown_defects'] += self.disk_data['erase_fail_count']
-        
 
-    #--------------------------------------------------------------------------
     def _eval_sas_disk(self, smart_output):
 
-        re_health_state = re.compile(r'^SMART\s+Health\s+Status\s*:\s*(\S.*)',
-                re.IGNORECASE)
+        re_health_state = re.compile(r'^SMART\s+Health\s+Status\s*:\s*(\S.*)', re.IGNORECASE)
         re_el_gd_list = re.compile(r'^Elements\s+in\s+grown\s+defect\s+list\s*:\s*(\d+)',
-                re.IGNORECASE)
+                                   re.IGNORECASE)
         re_vendor = re.compile(r'^Vendor\s*:\s*(\S.*)', re.IGNORECASE)
         re_product = re.compile(r'^Product\s*:\s*(\S.*)', re.IGNORECASE)
         re_serial = re.compile(r'^Serial\s+number\s*:\s*(\S.*)', re.IGNORECASE)
         re_non_medium_errs = re.compile(r'^Non-medium\s+error\s+count\s*:\s*(\d+)',
-                re.IGNORECASE)
+                                        re.IGNORECASE)
         # Current Drive Temperature:     34 C
         re_temp = re.compile(r'^Current\s+Drive\s+Temperature\s*:\s*(\d+)(?:\s*([CF]))?',
-                re.IGNORECASE)
+                             re.IGNORECASE)
         re_hours = re.compile(r'^number\s+of\s+hours\s+powered\s+up\s*=\s*(\d+(?:\.\d*)?)',
-                re.IGNORECASE)
+                              re.IGNORECASE)
 
         for line in smart_output.splitlines():
             line = line.strip()
@@ -902,13 +848,12 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
         if 'vendor' in self.disk_data:
             if 'product' in self.disk_data:
                 self.disk_data['model'] = (self.disk_data['vendor'] + ' ' +
-                        self.disk_data['product'])
+                                           self.disk_data['product'])
             else:
                 self.disk_data['model'] = self.disk_data['vendor']
         elif 'product' in self.disk_data:
             self.disk_data['model'] = self.disk_data['product']
 
-    #--------------------------------------------------------------------------
     def _exec_smartctl(self):
         """
         Execute smartctl with all necessary parameters.
@@ -918,8 +863,7 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
 
         """
 
-        re_no_mega_sas = re.compile(r'failed:\s+SATA\s+device\s+detected,',
-             re.IGNORECASE)   
+        re_no_mega_sas = re.compile(r'failed:\s+SATA\s+device\s+detected,', re.IGNORECASE)
 
         cmd_list = [self.smartctl_cmd, '-x']
         dev_desc = self.device
@@ -951,17 +895,6 @@ class CheckSmartStatePlugin(ExtNagiosPlugin):
                     self.die("Got no output from smartctl %s is SATA attempt.")
 
         if self.verbose > 2:
-            log.debug("Got output from smartctl %s:\n%s" % (
-                    dev_desc, stdoutdata))
+            log.debug("Got output from smartctl %s:\n%s", dev_desc, stdoutdata)
 
         return stdoutdata
-
-#==============================================================================
-
-if __name__ == "__main__":
-
-    pass
-
-#==============================================================================
-
-# vim: fileencoding=utf-8 filetype=python ts=4 expandtab shiftwidth=4 softtabstop=4
