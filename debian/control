@@ -14,7 +14,6 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-epydoc,
                python-flake8,
                python-pb-base,
-               python-pkg-resources,
                python3-all,
                texlive-latex-base,
                texlive-latex-extra
@@ -30,7 +29,6 @@ Architecture: all
 Section: python
 Depends: python-argparse,
          python-debian,
-         python-pkg-resources,
          ${misc:Depends},
          ${python:Depends}
 Description: Base module for Nagios check plugins written in Python
@@ -57,7 +55,6 @@ Depends: libnet-snmp-perl,
          nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
-         python-pkg-resources,
          ${misc:Depends},
          ${perl:Depends},
          ${python:Depends}

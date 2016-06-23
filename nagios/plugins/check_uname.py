@@ -13,11 +13,9 @@ import logging
 import textwrap
 
 # Third party modules
-
-from pkg_resources import parse_version
+import debian.debian_support
 
 # Own modules
-
 import nagios
 
 from nagios.common import pp
@@ -224,11 +222,11 @@ class CheckUnamePlugin(ExtNagiosPlugin):
         if self.min_version is not None:
             cur_version = un[2]
 
-            parsed_version_expected = parse_version(self.min_version)
+            parsed_version_expected = debian.debian_support.Version(self.min_version)
             if self.verbose > 1:
                 log.debug("Expecting parsed version %r.", parsed_version_expected)
 
-            parsed_version_got = parse_version(cur_version)
+            parsed_version_got = debian.debian_support.Version(cur_version)
             if self.verbose > 1:
                 log.debug("Got parsed version %r.", parsed_version_got)
 
