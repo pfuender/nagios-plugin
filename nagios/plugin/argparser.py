@@ -634,7 +634,7 @@ class NagiosPluginArgparse(object):
         configs = []
         try:
             configs = cfg.read(cfg_file)
-        except NoConfigfileFound as e:
+        except NoConfigfileFound:
             # log.warn(str(e))
             return {}
 

@@ -9,11 +9,11 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-all (>= 2.6.5-2~),
                python-argparse,
                python-dcmanager-client (>= 0.9.2),
+               python-debian,
                python-docutils,
                python-epydoc,
                python-flake8,
                python-pb-base,
-               python-pkg-resources,
                python3-all,
                texlive-latex-base,
                texlive-latex-extra
@@ -28,7 +28,7 @@ Package: python-nagios-plugin
 Architecture: all
 Section: python
 Depends: python-argparse,
-         python-pkg-resources,
+         python-debian,
          ${misc:Depends},
          ${python:Depends}
 Description: Base module for Nagios check plugins written in Python
@@ -55,7 +55,6 @@ Depends: libnet-snmp-perl,
          nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
-         python-pkg-resources,
          ${misc:Depends},
          ${perl:Depends},
          ${python:Depends}

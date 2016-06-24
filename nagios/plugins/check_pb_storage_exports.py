@@ -19,18 +19,13 @@ import textwrap
 import uuid
 import glob
 
-# Third party modules
-
 # Own modules
-
 from pb_base.crc import crc64_digest
 
 import nagios
-
 from nagios.common import pp
 
 from nagios.plugin.range import NagiosRange
-
 from nagios.plugin.extended import CommandNotFoundError
 
 from nagios.plugins.base_dcm_client_check import DEFAULT_TIMEOUT
@@ -39,10 +34,8 @@ from nagios.plugins.base_dcm_client_check import BaseDcmClientPlugin
 
 from dcmanagerclient.client import RestApiError
 
-# --------------------------------------------
 # Some module variables
-
-__version__ = '0.4.1'
+__version__ = '0.3.1'
 __copyright__ = 'Copyright (c) 2015 Frank Brehm, Berlin.'
 
 DEFAULT_WARN_ERRORS = 0
@@ -59,7 +52,6 @@ DEFAULT_STORAGE_VG = 'storage'
 log = logging.getLogger(__name__)
 
 
-# =============================================================================
 class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
     """
     A special Nagios/Icinga plugin to check the correctness of exported
@@ -67,7 +59,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
     The target volumes and mappings from database are get via REST API calls.
     """
 
-    # -------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckPbStorageExportsPlugin class.
@@ -83,9 +74,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         usage += '\n       %(prog)s --help'
 
         blurb = __copyright__ + "\n\n"
-        blurb += (
-            "Checks correctness of exported and/or not exported volumes "
-            "on ProfitBricks storage servers.")
+        blurb += ("Checks correctness of exported and/or not exported volumes "
+                  "on ProfitBricks storage servers.")
 
         self._hostname = socket.gethostname()
         """
@@ -128,43 +118,36 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         if failed_commands:
             raise CommandNotFoundError(failed_commands)
 
-    # -----------------------------------------------------------
     @property
     def hostname(self):
         """The hostname of the current storage server."""
         return self._hostname
 
-    # -----------------------------------------------------------
     @property
     def warning(self):
         """The warning threshold of the test."""
         return self._warning
 
-    # -----------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold of the test."""
         return self._critical
 
-    # -----------------------------------------------------------
     @property
     def storage_vg(self):
         """The storage volume group."""
         return self._storage_vg
 
-    # -----------------------------------------------------------
     @property
     def current_cluster(self):
         """The cluster of the current storage server."""
         return self._current_cluster
 
-    # -----------------------------------------------------------
     @property
     def may_have_rw_img_exports(self):
         """Flag indicating, that image volumes may read/write exported."""
         return self._may_have_rw_img_exports
 
-    # -------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -185,15 +168,13 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         return d
 
-    # -------------------------------------------------------------------------
     def add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
-        msg_tpl = (
-            "Generate %s state if the sum of false or wrong exported "
-            "volumes is higher (Default: %%(default)d).")
+        msg_tpl = ("Generate %s state if the sum of false or wrong exported "
+                   "volumes is higher (Default: %%(default)d).")
 
         msg = msg_tpl % ('warning')
         self.add_arg(
@@ -229,7 +210,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         super(CheckPbStorageExportsPlugin, self).add_args()
 
-    # -------------------------------------------------------------------------
     def parse_args_second(self):
         """
         Evaluates comand line parameters after evaluating the configuration.
@@ -261,12 +241,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self._critical = NagiosRange(self.argparser.args.critical)
 
         # set thresholds
-        self.set_thresholds(
-            warning=self.warning,
-            critical=self.critical,
-        )
+        self.set_thresholds(warning=self.warning, critical=self.critical)
 
-    # -------------------------------------------------------------------------
     def read_config(self, cfg):
         """
         Read configuration from an already read in configuration file.
@@ -297,7 +273,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                     log.debug("Got a volume group from config: %r", vg)
                 self._pb_vg = vg
 
-    # -------------------------------------------------------------------------
     def run(self):
         """Main execution method."""
 
@@ -346,7 +321,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         self.exit(state, out)
 
-    # -------------------------------------------------------------------------
     def get_current_cluster(self):
 
         try:
@@ -359,7 +333,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         log.debug("Info about current storage server from API:\n%s", pp(storages))
 
         if not len(storages):
-            self.die("Could not find information about current storage server %r." % (self.hostname))
+            self.die("Could not find information about current storage server %r." %
+                     (self.hostname))
 
         key_cluster = 'cluster'
         if sys.version_info[0] <= 2:
@@ -370,7 +345,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         log.debug("Cluster of current storage server %r: %r", self.hostname, cluster)
         self._current_cluster = cluster
 
-    # -------------------------------------------------------------------------
     def get_cluster_pservers(self):
 
         if not self.current_cluster:
@@ -387,9 +361,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self.die("%s: %s" % (e.__class__.__name__, e))
 
         if self.verbose > 3:
-            log.debug(
-                "Info about pservers in current cluster %r from API:\n%s",
-                self.current_cluster, pp(pservers))
+            log.debug("Info about pservers in current cluster %r from API:\n%s",
+                      self.current_cluster, pp(pservers))
 
         key_name = 'name'
         key_zone = 'zone'
@@ -433,30 +406,26 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self.valid_pservers[pserver_name] = pserver_zone
 
         if self.verbose > 2:
-            log.debug(
-                "Found Pservers in current cluster %r from API:\n%s",
-                self.current_cluster, pp(self.valid_pservers))
+            log.debug("Found Pservers in current cluster %r from API:\n%s",
+                      self.current_cluster, pp(self.valid_pservers))
 
-    # -------------------------------------------------------------------------
     def check_exports(self):
 
         for storage_export in self.storage_exports:
             self.check_storage_export(storage_export)
             if not storage_export['checked']:
                 self.count['missing'] += 1
-                log.info(
-                    "Missing export of storage volume %s (%s) to %r.",
-                    storage_export['guid'], storage_export['uuid'],
-                    storage_export['pserver'])
+                log.info("Missing export of storage volume %s (%s) to %r.",
+                         storage_export['guid'], storage_export['uuid'],
+                         storage_export['pserver'])
 
         for image_export in self.image_exports:
             self.check_image_export(image_export)
             if not image_export['checked']:
                 self.count['missing'] += 1
-                log.info(
-                    "Missing export of image volume %s (%s) to %r.",
-                    image_export['guid'], image_export['uuid'],
-                    image_export['pserver'])
+                log.info("Missing export of image volume %s (%s) to %r.",
+                         image_export['guid'], image_export['uuid'],
+                         image_export['pserver'])
 
         for devname in self.existing_exports:
             export = self.existing_exports[devname]
@@ -467,16 +436,13 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                     else:
                         self.count['needless'] += 1
                         lun_id = export['luns'][ini_group]['id']
-                        log.info(
-                            "Needless export of %r (%s) to %r (LUN %s).",
-                            export['volume'], devname, ini_group, lun_id)
+                        log.info("Needless export of %r (%s) to %r (LUN %s).",
+                                 export['volume'], devname, ini_group, lun_id)
             else:
-                log.info(
-                    "Found SCST device %r (%s) without exported LUNs.",
-                    devname, export['volume'])
+                log.info("Found SCST device %r (%s) without exported LUNs.",
+                         devname, export['volume'])
                 self.count['needless'] += 1
 
-    # -------------------------------------------------------------------------
     def check_storage_export(self, storage_export):
 
         devname = storage_export['scst_devname']
@@ -490,15 +456,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 storage_export['checked'] = True
                 if export['read_only']:
                     self.count['error'] += 1
-                    log.info(
-                        "Export of storage volume %s (%s) must not be read_only.",
-                        export['guid'], uuid)
+                    log.info("Export of storage volume %s (%s) must not be read_only.",
+                             export['guid'], uuid)
                 if self.verbose > 2:
-                    log.debug(
-                        "Found export for storage volume %s (%s) to %r (LUN %s).",
-                        export['guid'], uuid, ini_group, lun_id)
+                    log.debug("Found export for storage volume %s (%s) to %r (LUN %s).",
+                              export['guid'], uuid, ini_group, lun_id)
 
-    # -------------------------------------------------------------------------
     def check_image_export(self, image_export):
 
         devname = image_export['scst_devname']
@@ -513,15 +476,12 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 if not export['read_only']:
                     if not self.may_have_rw_img_exports:
                         self.count['error'] += 1
-                    log.info(
-                        "Export of image volume %s (%s) must be read_only.",
-                        export['guid'], uuid)
+                    log.info("Export of image volume %s (%s) must be read_only.",
+                             export['guid'], uuid)
                 if self.verbose > 2:
-                    log.debug(
-                        "Found export for image volume %s (%s) to %r (LUN %s).",
-                        export['guid'], uuid, ini_group, lun_id)
+                    log.debug("Found export for image volume %s (%s) to %r (LUN %s).",
+                              export['guid'], uuid, ini_group, lun_id)
 
-    # -------------------------------------------------------------------------
     def get_api_storage_exports(self):
 
         self.storage_exports = []
@@ -689,16 +649,14 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self.storage_exports.append(m)
 
             if self.verbose > vl:
-                log.debug("Transformed storage mapping:\n%s",  pp(m))
+                log.debug("Transformed storage mapping:\n%s", pp(m))
 
             if first:
                 first = False
 
-        log.debug(
-            "Finished retrieving storage mappings from API, found %d mappings.",
-            len(self.storage_exports))
+        log.debug("Finished retrieving storage mappings from API, found %d mappings.",
+                  len(self.storage_exports))
 
-    # -------------------------------------------------------------------------
     def get_api_image_exports(self):
 
         self.image_exports = []
@@ -870,13 +828,11 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             self.image_exports.append(m)
 
             if self.verbose > vl:
-                log.debug("Transformed storage mapping:\n%s",  pp(m))
+                log.debug("Transformed storage mapping:\n%s", pp(m))
 
-        log.debug(
-            "Finished retrieving image mappings from API, found %d mappings.",
-            len(self.image_exports))
+        log.debug("Finished retrieving image mappings from API, found %d mappings.",
+                  len(self.image_exports))
 
-    # -------------------------------------------------------------------------
     def get_existing_exports(self):
         """ Result of descovering - dict of dicts in the form:
                 {   'devicename': '5ce99e968d67ded2',
@@ -893,9 +849,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         self.existing_exports = {}
         first = True
 
-        pb_lv_pattern = (
-            r'^' + os.sep + os.path.join('dev', self.storage_vg) +
-            os.sep + r'((?:[0-9a-f]{4}-){3}[0-9a-f]{12})$')
+        pb_lv_pattern = (r'^' + os.sep + os.path.join('dev', self.storage_vg) +
+                         os.sep + r'((?:[0-9a-f]{4}-){3}[0-9a-f]{12})$')
         if self.verbose > 2:
             log.debug("Search pattern for ProfiBricks volumes: %r", pb_lv_pattern)
         pb_lv = re.compile(pb_lv_pattern)
@@ -932,8 +887,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                     if os.path.isabs(link_target):
                         lun_dir = os.path.realpath(export_link)
                     else:
-                        lun_dir = os.path.realpath(
-                            os.path.relpath(link_target, os.path.dirname(export_link)))
+                        lun_dir = os.path.realpath(os.path.relpath(link_target,
+                                                                   os.path.dirname(export_link)))
                     ini_group = os.path.basename(os.path.dirname(os.path.dirname(lun_dir)))
                     lun_nr = os.path.basename(lun_dir)
                     luns[ini_group] = {'id': lun_nr, 'checked': False}
@@ -952,9 +907,8 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             match = pb_lv.search(export_filename)
             if not match:
                 if self.verbose > 2:
-                    log.debug(
-                        "Export %r for device %r is not a regular ProfitBricks volume.",
-                        devname, export_filename)
+                    log.debug("Export %r for device %r is not a regular ProfitBricks volume.",
+                              devname, export_filename)
                 self.count['alien'] += 1
                 continue
             short_guid = match.group(1)
@@ -967,18 +921,16 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             guid = '600144f0-' + short_guid
             digest = crc64_digest(guid)
             if not digest == devname:
-                log.info(
-                    "Found mismatch between volume name %r and SCST device name %r (should be %r).",
-                    export_filename, devname, digest)
+                log.info(("Found mismatch between volume name %r and SCST "
+                          "device name %r (should be %r)."), export_filename, devname, digest)
                 self.count['error'] += 1
                 continue
 
             fc_ph_id_expected = guid.replace('-', '')
             fc_ph_id_current = self.get_fc_ph_id(dev_dir)
             if fc_ph_id_expected != fc_ph_id_current:
-                log.info(
-                    "Export %r for device %r has wrong fc_ph_id %r.",
-                    devname, export_filename, fc_ph_id_current)
+                log.info("Export %r for device %r has wrong fc_ph_id %r.",
+                         devname, export_filename, fc_ph_id_current)
                 has_errors = True
 
             read_only = self.get_read_only(dev_dir)
@@ -1008,7 +960,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             if first:
                 first = False
 
-    # -------------------------------------------------------------------------
     def check_ini_groups(self):
 
         igroup_pattern = os.path.join(SCST_INI_GROUP_DIR, '*')
@@ -1022,8 +973,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 log.debug("Checking initiator group %r ...", ini_group)
 
             if ini_group not in self.valid_pservers:
-                log.info(
-                    "Initiator group %r is not a pserver from current cluster.", ini_group)
+                log.info("Initiator group %r is not a pserver from current cluster.", ini_group)
                 self.count['alien'] += 1
                 continue
 
@@ -1046,7 +996,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 log.info("Initiator group %r has no LUNs.", ini_group)
                 self.count['error'] += 1
 
-    # -------------------------------------------------------------------------
     def get_fc_ph_id(self, dev_dir):
 
         fc_ph_id_filename = os.path.join(dev_dir, 'fc_ph_id')
@@ -1055,13 +1004,11 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             return None
 
         if not os.path.isfile(fc_ph_id_filename):
-            log.error(
-                "File for pc_ph_id %r is not a regular file.", fc_ph_id_filename)
+            log.error("File for pc_ph_id %r is not a regular file.", fc_ph_id_filename)
             return None
 
         if not os.access(fc_ph_id_filename, os.R_OK):
-            log.error(
-                "No read access for file for pc_ph_id %r.", fc_ph_id_filename)
+            log.error("No read access for file for pc_ph_id %r.", fc_ph_id_filename)
             return None
 
         fc_ph_id = None
@@ -1080,7 +1027,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         return fc_ph_id
 
-    # -------------------------------------------------------------------------
     def get_read_only(self, dev_dir):
 
         read_only_filename = os.path.join(dev_dir, 'read_only')
@@ -1089,8 +1035,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             return None
 
         if not os.path.isfile(read_only_filename):
-            log.error(
-                "File for read_only %r is not a regular file.", read_only_filename)
+            log.error("File for read_only %r is not a regular file.", read_only_filename)
             return None
 
         if not os.access(read_only_filename, os.R_OK):
@@ -1113,7 +1058,6 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
 
         return read_only
 
-    # -------------------------------------------------------------------------
     def get_scst_export_filename(self, filename_file):
 
         if not os.path.exists(filename_file):
@@ -1143,13 +1087,3 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 fh = None
 
         return export_filename
-
-# =============================================================================
-
-if __name__ == "__main__":
-
-    pass
-
-# =============================================================================
-
-# vim: fileencoding=utf-8 filetype=python ts=4 et sw=4 softtabstop=4

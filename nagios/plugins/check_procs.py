@@ -9,12 +9,10 @@
 
 # Standard modules
 import os
-import sys
 import logging
 import textwrap
 import pwd
 import re
-import locale
 
 from numbers import Number
 
@@ -22,21 +20,12 @@ from numbers import Number
 
 # Own modules
 
-import nagios
-from nagios import BaseNagiosError
-
-from nagios.common import pp, caller_search_path
-
-from nagios.plugin import NagiosPluginError
+from nagios.common import pp
 
 from nagios.plugin.range import NagiosRange
 
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
 # Some module variables
 
 __version__ = '0.5.0'
@@ -48,28 +37,28 @@ PS_CMD = os.sep + os.path.join('bin', 'ps')
 PID_MAX_FILE = os.sep + os.path.join('proc', 'sys', 'kernel', 'pid_max')
 
 valid_metrics = {
-        'PROCS':   {'uom': '',       'label': 'procs'},
-        'VSZ':     {'uom': 'KiByte', 'label': 'vsz'},
-        'RSS':     {'uom': 'KiByte', 'label': 'rss'},
-        'CPU':     {'uom': '%',      'label': 'cpu'},
-        'ELAPSED': {'uom': 'sec',    'label': 'elapsed_time'},
+    'PROCS':   {'uom': '',       'label': 'procs'},
+    'VSZ':     {'uom': 'KiByte', 'label': 'vsz'},
+    'RSS':     {'uom': 'KiByte', 'label': 'rss'},
+    'CPU':     {'uom': '%',      'label': 'cpu'},
+    'ELAPSED': {'uom': 'sec',    'label': 'elapsed_time'},
 }
 
 # Valid process state codes, taken from the ps-manpage
 process_state = {
-        'D':    'uninterruptible sleep',
-        'R':    'running or runnable',
-        'S':    'interruptible sleep',
-        'T':    'stopped or being traced',
-        'W':    'paging',
-        'X':    'dead',
-        'Z':    'defunct ("zombie") process',
-        '<':    'high-priority',
-        'N':    'low-priority',
-        'L':    'has pages locked into memory',
-        's':    'is a session leader',
-        'l':    'is multi-threaded',
-        '+':    'is in the foreground process group',
+    'D': 'uninterruptible sleep',
+    'R': 'running or runnable',
+    'S': 'interruptible sleep',
+    'T': 'stopped or being traced',
+    'W': 'paging',
+    'X': 'dead',
+    'Z': 'defunct ("zombie") process',
+    '<': 'high-priority',
+    'N': 'low-priority',
+    'L': 'has pages locked into memory',
+    's': 'is a session leader',
+    'l': 'is multi-threaded',
+    '+': 'is in the foreground process group',
 }
 
 re_integer = re.compile(r'^\s*(\d+)\s*$')
@@ -98,15 +87,13 @@ re_time = re.compile(pattern_time)
 
 re_percent = re.compile(r'^\s*(\d+(?:\.\d*)?)\s*%\s*$')
 
-#==============================================================================
+
 class ProcessInfo(object):
     """
     A class capsulating process informations.
     """
 
-    #--------------------------------------------------------------------------
-    def __init__(self,
-            user, pid, ppid, state, pcpu, vsz, rss, time, comm, args):
+    def __init__(self, user, pid, ppid, state, pcpu, vsz, rss, time, comm, args):
         """
         Constructor.
 
@@ -161,7 +148,6 @@ class ProcessInfo(object):
         self._comm = str(comm)
         self._args = str(args)
 
-    #------------------------------------------------------------
     @property
     def user(self):
         """The effective user name."""
@@ -178,19 +164,17 @@ class ProcessInfo(object):
             uid = -1
             try:
                 uid = pwd.getpwnam(usr).pw_uid
-            except KeyError as e:
+            except KeyError:
                 log.debug("Invalid user name %r in process list.", usr)
                 uid = -1
             self._user = usr
             self._uid = uid
 
-    #------------------------------------------------------------
     @property
     def uid(self):
         """The UID of the effective user."""
         return self._uid
 
-    #------------------------------------------------------------
     @property
     def pid(self):
         """The process ID number of the process."""
@@ -200,7 +184,6 @@ class ProcessInfo(object):
     def pid(self, value):
         self._pid = int(value)
 
-    #------------------------------------------------------------
     @property
     def ppid(self):
         """The parent process ID number."""
@@ -210,7 +193,6 @@ class ProcessInfo(object):
     def ppid(self, value):
         self._ppid = int(value)
 
-    #------------------------------------------------------------
     @property
     def state(self):
         """The state of the process."""
@@ -222,7 +204,6 @@ class ProcessInfo(object):
         for char in value[:]:
             self._state.add(char)
 
-    #------------------------------------------------------------
     @property
     def state_desc(self):
         """Textual description of the process states."""
@@ -236,7 +217,6 @@ class ProcessInfo(object):
 
         return ', '.join(desc_list)
 
-    #------------------------------------------------------------
     @property
     def pcpu(self):
         """The cpu utilization of the process in percent."""
@@ -253,7 +233,6 @@ class ProcessInfo(object):
         if value and value != '-':
             self._pcpu = float(value.strip())
 
-    #------------------------------------------------------------
     @property
     def vsz(self):
         """The virtual memory size of the process in KiB."""
@@ -267,7 +246,6 @@ class ProcessInfo(object):
             return
         self._vsz = int(value.strip())
 
-    #------------------------------------------------------------
     @property
     def rss(self):
         """The resident set size of the process in KiB."""
@@ -281,7 +259,6 @@ class ProcessInfo(object):
             return
         self._rss = int(value.strip())
 
-    #------------------------------------------------------------
     @property
     def time(self):
         """The cumulative CPU time in seconds."""
@@ -305,7 +282,6 @@ class ProcessInfo(object):
         else:
             log.warn("Could not parse time description %r.", value)
 
-    #------------------------------------------------------------
     @property
     def time_desc(self):
         """Textual description of the cumulative CPU time."""
@@ -327,19 +303,16 @@ class ProcessInfo(object):
 
         return out
 
-    #------------------------------------------------------------
     @property
     def comm(self):
         """The command name (only the executable name)."""
         return self._comm
 
-    #------------------------------------------------------------
     @property
     def args(self):
         """The command with all its arguments."""
         return self._args
 
-    #--------------------------------------------------------------------------
     def as_dict(self):
         """Transforms the elements of the object into a dict."""
 
@@ -361,7 +334,6 @@ class ProcessInfo(object):
 
         return d
 
-    #--------------------------------------------------------------------------
     def __str__(self):
         """
         Typecasting function for translating object structure into a string.
@@ -369,7 +341,6 @@ class ProcessInfo(object):
 
         return pp(self.as_dict())
 
-    #--------------------------------------------------------------------------
     def __repr__(self):
         """Typecasting into a string for reproduction."""
 
@@ -392,13 +363,11 @@ class ProcessInfo(object):
         return out
 
 
-#==============================================================================
 class CheckProcsPlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking a running process.
     """
 
-    #--------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckProcsPlugin class.
@@ -423,9 +392,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         """
         blurb = textwrap.dedent(blurb).strip()
 
-        super(CheckProcsPlugin, self).__init__(
-                usage = usage, blurb = blurb,
-        )
+        super(CheckProcsPlugin, self).__init__(usage=usage, blurb=blurb)
 
         self._ps_cmd = PS_CMD
         """
@@ -465,31 +432,26 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
     @property
     def pid_max(self):
         """The maximum number of processes in the system, defaults to 32768."""
         return self._pid_max
 
-    #------------------------------------------------------------
     @property
     def warning(self):
         """The warning threshold of the test."""
         return self._warning
 
-    #------------------------------------------------------------
     @property
     def critical(self):
         """The critical threshold of the test."""
         return self._critical
 
-    #------------------------------------------------------------
     @property
     def ps_cmd(self):
         """The absolute path to the OS command 'ps'."""
         return self._ps_cmd
 
-    #------------------------------------------------------------
     @property
     def user(self):
         """Only scan for processes with user name or ID indicated."""
@@ -512,19 +474,18 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if uid is not None:
             try:
                 user = pwd.getpwuid(uid).pw_name
-            except KeyError as e:
+            except KeyError:
                 log.warn("Invalid UID %d.", uid)
                 return
         else:
             try:
                 uid = pwd.getpwnam(user).pw_uid
-            except KeyError as e:
+            except KeyError:
                 log.warn("Invalid user name %r.", user)
                 return
 
         self._user = user
 
-    #--------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -544,54 +505,53 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
-        msg_p  = "If given as a percentage, the range will taken as percent of "
-        msg_p += "the maximum number of processes of the system (taken from "
-        msg_p += "/proc/sys/kernel/pid_max)."
+        msg_p = ("If given as a percentage, the range will taken as percent of "
+                 "the maximum number of processes of the system (taken from "
+                 "/proc/sys/kernel/pid_max).")
 
         msg = "Generate warning state if metric is outside this range. " + msg_p
 
         self.add_arg(
-                '-w', '--warning',
-                metavar = 'RANGE',
-                dest = 'warning',
-                required = True,
-                help = msg,
+            '-w', '--warning',
+            metavar='RANGE',
+            dest='warning',
+            required=True,
+            help=msg,
         )
 
         msg = "Generate critical state if metric is outside this range. " + msg_p
 
         self.add_arg(
-                '-c', '--critical',
-                metavar = 'RANGE',
-                dest = 'critical',
-                required = True,
-                help = msg,
+            '-c', '--critical',
+            metavar='RANGE',
+            dest='critical',
+            required=True,
+            help=msg,
         )
 
         self.add_arg(
-                '-m', '--metric',
-                choices = sorted(valid_metrics.keys()),
-                dest = 'metric',
-                required = True,
-                default = 'PROCS',
-                help = "Check thresholds against metric (default: %(default)s).",
+            '-m', '--metric',
+            choices=sorted(valid_metrics.keys()),
+            dest='metric',
+            required=True,
+            default='PROCS',
+            help="Check thresholds against metric (default: %(default)s).",
         )
 
         default_ps = PS_CMD
         if self.ps_cmd:
             default_ps = self.ps_cmd
         self.add_arg(
-                '--ps-cmd',
-                dest = 'ps_cmd',
-                required = True,
-                default = default_ps,
-                help = "The ps-command (default: %(default)r).",
+            '--ps-cmd',
+            dest='ps_cmd',
+            required=True,
+            default=default_ps,
+            help="The ps-command (default: %(default)r).",
         )
 
         state_help = """\
@@ -602,78 +562,77 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         state_help = textwrap.dedent(state_help).strip()
 
         self.add_arg(
-                '-s', '--state',
-                metavar = 'STATE',
-                dest = 'state',
-                help = state_help
+            '-s', '--state',
+            metavar='STATE',
+            dest='state',
+            help=state_help
         )
 
         self.add_arg(
-                '-p', '--ppid',
-                type = int,
-                metavar = 'PID',
-                dest = 'ppid',
-                help = 'Only scan for children of the parent process ID indicated.',
+            '-p', '--ppid',
+            type=int,
+            metavar='PID',
+            dest='ppid',
+            help='Only scan for children of the parent process ID indicated.',
         )
 
         self.add_arg(
-                '-z', '--vsz',
-                type = int,
-                dest = 'vsz',
-                help = 'Only scan for processes with virtual size higher than indicated.',
+            '-z', '--vsz',
+            type=int,
+            dest='vsz',
+            help='Only scan for processes with virtual size higher than indicated.',
         )
 
         self.add_arg(
-                '-r', '--rss',
-                type = int,
-                dest = 'rss',
-                help = 'Only scan for processes with rss higher than indicated.',
+            '-r', '--rss',
+            type=int,
+            dest='rss',
+            help='Only scan for processes with rss higher than indicated.',
         )
 
         self.add_arg(
-                '-P', '--pcpu',
-                type = int,
-                dest = 'pcpu',
-                help = 'Only scan for processes with pcpu higher than indicated.',
+            '-P', '--pcpu',
+            type=int,
+            dest='pcpu',
+            help='Only scan for processes with pcpu higher than indicated.',
         )
 
         self.add_arg(
-                '-u', '--user',
-                dest = 'user',
-                help = 'Only scan for processes with user name or UID indicated.',
+            '-u', '--user',
+            dest='user',
+            help='Only scan for processes with user name or UID indicated.',
         )
 
         self.add_arg(
-                '-a', '--args',
-                metavar = 'STRING',
-                dest = 'args',
-                help = 'Only scan for processes with args that contain STRING.',
+            '-a', '--args',
+            metavar='STRING',
+            dest='args',
+            help='Only scan for processes with args that contain STRING.',
         )
 
-        #--ereg-argument-array=
+        # --ereg-argument-array=
         self.add_arg(
-                '--preg-argument-array', '--ereg-argument-array', '--regex',
-                metavar = 'STRING',
-                dest = 'regex',
-                help = ('Only scan for processes with args that contain ' +
-                        'the Perl regeular expression STRING.'),
-        )
-
-        self.add_arg(
-                '-C', '--command',
-                metavar = 'STRING',
-                dest = 'command',
-                help = 'Only scan for exact matches of STRING (without path).',
+            '--preg-argument-array', '--ereg-argument-array', '--regex',
+            metavar='STRING',
+            dest='regex',
+            help=('Only scan for processes with args that contain '
+                  'the Perl regeular expression STRING.'),
         )
 
         self.add_arg(
-                '-i', '--init',
-                action = 'store_true',
-                dest = 'init',
-                help = 'Only scan for processes, they are direct childs of init.',
+            '-C', '--command',
+            metavar='STRING',
+            dest='command',
+            help='Only scan for exact matches of STRING (without path).',
         )
 
-    #--------------------------------------------------------------------------
+        self.add_arg(
+            '-i', '--init',
+            action='store_true',
+            dest='init',
+            help='Only scan for processes, they are direct childs of init.',
+        )
+
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -692,7 +651,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         if os.path.exists(PID_MAX_FILE):
             log.debug("Reading %r ...", PID_MAX_FILE)
-            self._pid_max = int(self.read_file(PID_MAX_FILE, quiet = True))
+            self._pid_max = int(self.read_file(PID_MAX_FILE, quiet=True))
             log.debug("Got a pid_max value of %d processes.", self._pid_max)
             self._warning = NagiosRange(self.pid_max * 70 / 100)
             self._critical = NagiosRange(self.pid_max * 90 / 100)
@@ -700,8 +659,7 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         if self.argparser.args.user:
             self.user = self.argparser.args.user
             if self.user is None:
-                msg = "Invalid user name or UID %r given." % (
-                        self.argparser.args.user)
+                msg = "Invalid user name or UID %r given." % (self.argparser.args.user)
                 self.die(msg)
 
         match = re_percent.search(self.argparser.args.warning)
@@ -722,12 +680,9 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         if self.verbose > 1:
             log.debug("Got thresholds: warning: %s, critical: %s.",
-                    self.warning, self.critical)
+                      self.warning, self.critical)
 
-        self.set_thresholds(
-                warning = self.warning,
-                critical = self.critical,
-        )
+        self.set_thresholds(warning=self.warning, critical=self.critical)
 
         if self.verbose > 2:
             log.debug("Current object:\n%s", pp(self.as_dict()))
@@ -740,14 +695,14 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         count = len(found_processes)
 
         log.debug("Got a total value (by %s) of %d%s.",
-                self.argparser.args.metric, value_total, uom)
+                  self.argparser.args.metric, value_total, uom)
 
         state = self.threshold.get_status(value_total)
         self.add_perfdata(
-                label = label,
-                value = value_total,
-                uom = uom,
-                threshold = self.threshold,
+            label=label,
+            value=value_total,
+            uom=uom,
+            threshold=self.threshold,
         )
 
         plural = ''
@@ -760,7 +715,6 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         self.exit(state, out)
 
-    #--------------------------------------------------------------------------
     def get_filter_description(self):
         """Retrieves a description for the current filter of processes."""
 
@@ -789,7 +743,6 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         return ', '.join(decriptions)
 
-    #--------------------------------------------------------------------------
     def get_total_value(self, found_processes):
         """Computing the total value of the metric to check."""
 
@@ -813,14 +766,12 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         return value_total
 
-    #--------------------------------------------------------------------------
     def get_uom(self):
         """Returns the unit of measuring dependend of the metric to retrieve."""
 
         metric = self.argparser.args.metric
         return valid_metrics[metric]['uom']
 
-    #--------------------------------------------------------------------------
     def get_label(self):
         """Returns the label for the performance data dependend
         of the metric to retrieve."""
@@ -828,7 +779,6 @@ class CheckProcsPlugin(ExtNagiosPlugin):
         metric = self.argparser.args.metric
         return valid_metrics[metric]['label']
 
-    #--------------------------------------------------------------------------
     def collect_processes(self):
         """The main routine of this plugin."""
 
@@ -839,11 +789,10 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             try:
                 re_args = re.compile(args_pattern)
             except Exception as e:
-                msg = "Invalid search pattern %r for arguments: %s" % (
-                        self.argparser.args.args, str(e))
+                msg = ("Invalid search pattern %r for arguments: %s" %
+                       (self.argparser.args.args, str(e)))
                 self.die(msg)
-            log.debug("Searching for processes with pattern %r ...",
-                    args_pattern)
+            log.debug("Searching for processes with pattern %r ...", args_pattern)
 
         re_pattern = None
         re_regex = None
@@ -852,16 +801,13 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             try:
                 re_regex = re.compile(re_pattern)
             except Exception as e:
-                msg = "Invalid regular expression %r for arguments: %s" % (
-                        re_pattern, str(e))
+                msg = "Invalid regular expression %r for arguments: %s" % (re_pattern, str(e))
                 self.die(msg)
-            log.debug("Searching for processes with regular expression %r ...",
-                    re_pattern)
+            log.debug("Searching for processes with regular expression %r ...", re_pattern)
 
-        fields = ('user', 'pid', 'ppid', 'stat', 'pcpu', 'vsz', 'rss', 'time',
-                'comm', 'args')
+        fields = ('user', 'pid', 'ppid', 'stat', 'pcpu', 'vsz', 'rss', 'time', 'comm', 'args')
 
-        cmd = [self.ps_cmd, '-w', '-w' , '-e', '-o', ','.join(fields)]
+        cmd = [self.ps_cmd, '-w', '-w', '-e', '-o', ','.join(fields)]
         stdoutdata = ''
         stderrdata = ''
 
@@ -921,19 +867,16 @@ class CheckProcsPlugin(ExtNagiosPlugin):
                         break
                 if found:
                     if self.verbose > 2:
-                        log.debug("State %r found in %r (%d).", state,
-                                pinfo.state, pinfo.pid)
+                        log.debug("State %r found in %r (%d).", state, pinfo.state, pinfo.pid)
                 else:
                     if self.verbose > 3:
-                        log.debug("State %r not found in %r (%d).", state,
-                                pinfo.state, pinfo.pid)
+                        log.debug("State %r not found in %r (%d).", state, pinfo.state, pinfo.pid)
                     continue
 
             if self.user:
                 if pinfo.user != self.user:
                     if self.verbose > 2:
-                        log.debug("Ignoring process %d of user %r.",
-                            pinfo.pid, pinfo.user)
+                        log.debug("Ignoring process %d of user %r.", pinfo.pid, pinfo.user)
                     continue
 
             if self.argparser.args.command:
@@ -975,7 +918,6 @@ class CheckProcsPlugin(ExtNagiosPlugin):
 
         return found_processes
 
-    #--------------------------------------------------------------------------
     def _parse_process_line(self, line):
         """Parsing a line how given back from the ps command."""
 
@@ -990,13 +932,3 @@ class CheckProcsPlugin(ExtNagiosPlugin):
             log.debug("Got process info: %s", pinfo)
 
         return pinfo
-
-#==============================================================================
-
-if __name__ == "__main__":
-
-    pass
-
-#==============================================================================
-
-# vim: fileencoding=utf-8 filetype=python ts=4 et

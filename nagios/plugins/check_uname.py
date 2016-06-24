@@ -9,47 +9,31 @@
 
 # Standard modules
 import os
-import sys
 import logging
 import textwrap
 
 # Third party modules
-
-from pkg_resources import parse_version
+import debian.debian_support
 
 # Own modules
-
 import nagios
-from nagios import BaseNagiosError
 
-from nagios.common import pp, caller_search_path
+from nagios.common import pp
 
-from nagios.plugin import NagiosPluginError
-
-from nagios.plugin.range import NagiosRange
-
-from nagios.plugin.threshold import NagiosThreshold
-
-from nagios.plugin.extended import ExtNagiosPluginError
-from nagios.plugin.extended import ExecutionTimeoutError
-from nagios.plugin.extended import CommandNotFoundError
 from nagios.plugin.extended import ExtNagiosPlugin
 
-#---------------------------------------------
 # Some module variables
-
 __version__ = '0.1.0'
 
 log = logging.getLogger(__name__)
 
-#==============================================================================
+
 class CheckUnamePlugin(ExtNagiosPlugin):
     """
     A special NagiosPlugin class for checking a uname parameters, espcially
     the version of the current running kernel.
     """
 
-    #--------------------------------------------------------------------------
     def __init__(self):
         """
         Constructor of the CheckUnamePlugin class.
@@ -71,9 +55,7 @@ class CheckUnamePlugin(ExtNagiosPlugin):
         """
         blurb = textwrap.dedent(blurb).strip()
 
-        super(CheckUnamePlugin, self).__init__(
-                usage = usage, blurb = blurb,
-        )
+        super(CheckUnamePlugin, self).__init__(usage=usage, blurb=blurb)
 
         self._warning = False
         """
@@ -104,7 +86,6 @@ class CheckUnamePlugin(ExtNagiosPlugin):
 
         self._add_args()
 
-    #------------------------------------------------------------
     @property
     def warning(self):
         """
@@ -117,25 +98,21 @@ class CheckUnamePlugin(ExtNagiosPlugin):
     def warning(self, value):
         self._warning = bool(value)
 
-    #------------------------------------------------------------
     @property
     def min_version(self):
         """The minimum version number of the current running kernel."""
         return self._min_version
 
-    #------------------------------------------------------------
     @property
     def arch(self):
         """The architecture to check for, e.g. 'x86_64'."""
         return self._arch
 
-    #------------------------------------------------------------
     @property
     def os(self):
         """The operating system to check for, e.g. 'Linux'."""
         return self._os
 
-    #--------------------------------------------------------------------------
     def as_dict(self):
         """
         Typecasting into a dictionary.
@@ -154,43 +131,41 @@ class CheckUnamePlugin(ExtNagiosPlugin):
 
         return d
 
-    #--------------------------------------------------------------------------
     def _add_args(self):
         """
         Adding all necessary arguments to the commandline argument parser.
         """
 
         self.add_arg(
-                '-w', '--warning',
-                action = 'store_true',
-                dest = 'warning',
-                help = ('Return a warning instead of critical error, if the ' +
-                        'current kernel version is below the given kernel version.'),
+            '-w', '--warning',
+            action='store_true',
+            dest='warning',
+            help=('Return a warning instead of critical error, if the ' +
+                  'current kernel version is below the given kernel version.'),
         )
 
         self.add_arg(
-                '-a', '--arch',
-                metavar = 'ARCHITECTURE',
-                dest = 'arch',
-                help = "The architecture to check for, e.g. 'x86_64'.",
+            '-a', '--arch',
+            metavar='ARCHITECTURE',
+            dest='arch',
+            help="The architecture to check for, e.g. 'x86_64'.",
         )
 
         self.add_arg(
-                '-o', '--os',
-                metavar = 'OS',
-                dest = 'os',
-                help = "The operating system to check for, e.g. 'Linux'.",
+            '-o', '--os',
+            metavar='OS',
+            dest='os',
+            help="The operating system to check for, e.g. 'Linux'.",
         )
 
         self.add_arg(
-                '-m', '--min-version',
-                metavar = 'VERSION',
-                dest = 'min_version',
-                help = "The minimum version number of the current running kernel.",
+            '-m', '--min-version',
+            metavar='VERSION',
+            dest='min_version',
+            help="The minimum version number of the current running kernel.",
         )
 
-    #--------------------------------------------------------------------------
-    def parse_args(self, args = None):
+    def parse_args(self, args=None):
         """
         Executes self.argparser.parse_args().
 
@@ -214,11 +189,10 @@ class CheckUnamePlugin(ExtNagiosPlugin):
             self._os = self.argparser.args.os
 
         if self.min_version is None and self.arch is None and self.os is None:
-            msg = ("In minimum one of the arguments '--arch', '--os' or " +
-                    "'--min-version' must be given.")
+            msg = ("In minimum one of the arguments '--arch', '--os' or "
+                   "'--min-version' must be given.")
             self.die(msg)
 
-    #--------------------------------------------------------------------------
     def __call__(self):
         """
         Method to call the plugin directly.
@@ -248,11 +222,11 @@ class CheckUnamePlugin(ExtNagiosPlugin):
         if self.min_version is not None:
             cur_version = un[2]
 
-            parsed_version_expected = parse_version(self.min_version)
+            parsed_version_expected = debian.debian_support.Version(self.min_version)
             if self.verbose > 1:
                 log.debug("Expecting parsed version %r.", parsed_version_expected)
 
-            parsed_version_got = parse_version(cur_version)
+            parsed_version_got = debian.debian_support.Version(cur_version)
             if self.verbose > 1:
                 log.debug("Got parsed version %r.", parsed_version_got)
 
@@ -262,15 +236,5 @@ class CheckUnamePlugin(ExtNagiosPlugin):
                 else:
                     state = self.max_state(state, nagios.state.critical)
                 out += " Expected min. kernel version: %r." % (self.min_version)
-        
+
         self.exit(state, out)
-
-#==============================================================================
-
-if __name__ == "__main__":
-
-    pass
-
-#==============================================================================
-
-# vim: fileencoding=utf-8 filetype=python ts=4 et
