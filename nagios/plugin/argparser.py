@@ -35,7 +35,7 @@ from nagios.plugin.config import NagiosPluginConfig
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.5.3'
+__version__ = '0.5.4'
 
 log = logging.getLogger(__name__)
 
@@ -524,7 +524,7 @@ class NagiosPluginArgparse(object):
             if 'required' in arg['kwargs']:
                 required = arg['kwargs']['required']
                 if required:
-                    val = getattr(self.args, dest, None)
+                    # val = getattr(self.args, dest, None)
                     # log.debug(
                     #     "Checking for required argument %r, current value is %r.", dest, val)
                     if not hasattr(self.args, dest) or getattr(self.args, dest, None) is None:
@@ -635,7 +635,6 @@ class NagiosPluginArgparse(object):
         try:
             configs = cfg.read(cfg_file)
         except NoConfigfileFound:
-            # log.warn(str(e))
             return {}
 
         configs_str = str(configs)
@@ -645,8 +644,9 @@ class NagiosPluginArgparse(object):
             configs_str = '<None>'
 
         if section not in cfg.sections():
-            # log.debug(
-            #     "Section %r not found in ini-files %s.", section, configs_str)
+            if False:
+                log.debug(
+                    "Section %r not found in ini-files %s.", section, configs_str)
             return {}
 
         ini_opts = {}

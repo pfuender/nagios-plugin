@@ -203,7 +203,7 @@ def to_bool(value):
     if isinstance(value, str):
         v_str = value
         if sys.version_info[0] <= 2:
-            if isinstance(value, unicode):
+            if isinstance(value, unicode):                          # noqa
                 v_str = value.encode('utf-8')
     elif sys.version_info[0] > 2 and isinstance(value, bytes):
         v_str = value.decode('utf-8')
