@@ -33,7 +33,7 @@ from nagios.plugin.extended import ExtNagiosPlugin
 # --------------------------------------------
 # Some module variables
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 
 log = logging.getLogger(__name__)
 
@@ -564,9 +564,7 @@ class CheckSoftwareRaidPlugin(ExtNagiosPlugin):
         state = nagios.state.ok
         out = "MD devices seems to be ok."
 
-        for dev in sorted(
-            self.devices,
-                cmp=lambda x, y: cmp(int(x.replace('md', '')), int(y.replace('md', '')))):
+        for dev in sorted(self.devices, key=lambda x: int(x.replace('md', ''))):
             result = None
             try:
                 result = self.check_mddev(dev)
