@@ -7,7 +7,7 @@ import glob
 import pprint
 import inspect
 
-from distutils.core import setup, Command
+from distutils.core import setup
 
 # own modules:
 cur_dir = os.getcwd()
@@ -20,11 +20,12 @@ if os.path.exists(libdir) and os.path.isdir(libdir):
 del libdir
 del cur_dir
 
-import nagios
+import nagios  # noqa
 
 packet_version = nagios.__version__
 
 pp = pprint.PrettyPrinter(indent=4)
+
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -36,24 +37,23 @@ plugin_dir = os.path.join(global_lib_dir, 'nagios', 'plugins', 'pb')
 
 datafiles = []
 datafiles.append((plugin_dir, plugins))
-#print pp.pformat(datafiles)
 
 setup(
-    name = 'nagios',
-    version = packet_version,
-    description = 'Base module for Nagios check plugins written in Python.',
-    long_description = read('README.txt'),
-    author = 'Frank Brehm',
-    author_email = 'frank.brehm@profitbricks.com',
-    url = 'ssh://git.profitbricks.localdomain/srv/git/python/nagios-plugin.git',
-    license = 'LGPLv3+',
-    platforms = ['posix'],
-    packages = [
+    name='nagios',
+    version=packet_version,
+    description='Base module for Nagios check plugins written in Python.',
+    long_description=read('README.txt'),
+    author='Frank Brehm',
+    author_email='frank.brehm@profitbricks.com',
+    url='ssh://git.profitbricks.localdomain/srv/git/python/nagios-plugin.git',
+    license='LGPLv3+',
+    platforms=['posix'],
+    packages=[
         'nagios',
         'nagios.plugin',
         'nagios.plugins',
     ],
-    classifiers = [
+    classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -64,15 +64,8 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    data_files = datafiles,
-    requires = [
+    data_files=datafiles,
+    requires=[
         'pb_base (>= 0.5.4)',
     ]
 )
-
-
-
-
-#========================================================================
-
-# vim: fileencoding=utf-8 filetype=python ts=4 expandtab
