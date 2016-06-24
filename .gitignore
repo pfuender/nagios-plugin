@@ -14,3 +14,5 @@ trace
 /dist
 /Nagios-Plugin-*
 *.log
+/.tox
+/.cache
