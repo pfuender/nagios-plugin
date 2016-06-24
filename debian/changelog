@@ -1,3 +1,18 @@
+pb-monitoring-plugins (1.9.0) all; urgency=medium
+
+  [ Benjamin Drung ]
+  * Fix flake8 errors in many script (and fix some bugs found by flake8)
+  * check_vcb_instance and check_ppd_instance: Fix version comparison
+    (Redmine: #23796)
+  * check_uname: Also use Debian version comparison for kernel version
+  * Enforce flake8 check on build time
+
+  [ Frank Brehm ]
+  * Apply flake8 rules to check_pb_storage_exports.py and nagios/plugin/*.py
+  * check_softwareraid: Change sorting of found MD devices
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Fri, 24 Jun 2016 12:44:41 +0200
+
 pb-monitoring-plugins (1.8.32) all; urgency=medium
 
   * Change in cache configuration for OS VD in check "Cache RAID status"
