@@ -3,7 +3,7 @@
 """
 @author: Frank Brehm
 @contact: frank.brehm@profitbricks.com
-@copyright: © 2010 - 2015 by Frank Brehm, Berlin
+@copyright: © 2010 - 2016 by Frank Brehm, Berlin
 @summary: Module for CheckPbStorageExportsPlugin class for checking
           correctness of exported and/or not exported volumes
           on ProfitBricks storage servers
@@ -179,45 +179,32 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         msg = msg_tpl % ('warning')
         self.add_arg(
             '-w', '--warning',
-            metavar='NUMBER',
-            dest='warning',
-            required=True,
-            type=int,
-            default=DEFAULT_WARN_ERRORS,
-            help=msg,
+            metavar='NUMBER', dest='warning', required=True,
+            type=int, default=DEFAULT_WARN_ERRORS, help=msg,
         )
 
         msg = msg_tpl % ('critical')
         self.add_arg(
             '-c', '--critical',
-            metavar='NUMBER',
-            dest='critical',
-            type=int,
-            required=True,
-            default=DEFAULT_CRIT_ERRORS,
-            help=msg,
+            metavar='NUMBER', dest='critical', type=int, required=True,
+            default=DEFAULT_CRIT_ERRORS, help=msg,
         )
 
         self.add_arg(
             '-H', '--hostname', '--host',
-            metavar='NAME',
-            dest='hostname',
-            help=(("The hostname of the current storage server " +
-                   "(Default: %r).") % (self.hostname)),
+            metavar='NAME', dest='hostname',
+            help="The hostname of the current storage server (Default: %r)." % (self.hostname),
         )
 
         self.add_arg(
             '--vg',
-            metavar='VOLUME_GROUP',
-            dest='storage_vg',
-            default=self.storage_vg,
+            metavar='VOLUME_GROUP', dest='storage_vg', default=self.storage_vg,
             help="The storage volume group (default %(default)r.",
         )
 
         self.add_arg(
             '--rw-image-exports',
-            dest='may_have_rw_img_exports',
-            action='store_true',
+            dest='may_have_rw_img_exports', action='store_true',
             help="May image volumes read/write exported?.",
         )
 
@@ -326,8 +313,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
             out = "There are %d errors on exported or not exported volumes." % (total_errors)
 
         # generate performance data (except number of dummy volumes)
-        self.add_perfdata(label='total_errors', value=total_errors,
-                          threshold=self.threshold)
+        self.add_perfdata(label='total_errors', value=total_errors, threshold=self.threshold)
         for key in self.count:
             if key == 'dummy':
                 continue
@@ -709,8 +695,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
         for img in images:
 
             """
-            {   'absolute_path': 'ftp://getimgs:oahohthaeV5yuozahWos@imageserver/3111/iso-images/'
-                                 'windows-VirtIO-driver-0.1.30.iso',
+            {   'absolute_path': 'ftp://getimgs:XXX@imageserver/3111/iso-images/XYZ.iso',
                 'contract': 31720930,
                 'creation_date': '2014-02-06T14:55:19.333',
                 'image_type': 'CDROM',
@@ -898,10 +883,9 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                 nr_exports = 0
                 for export_link in exports:
                     nr_exports += 1
-                    exp_name = os.path.basename(export_link)
                     link_target = os.readlink(export_link)
                     if os.path.isabs(link_target):
-                        lun_dir = os.path.realpath(lun_dir)
+                        lun_dir = os.path.realpath(export_link)
                     else:
                         lun_dir = os.path.realpath(os.path.relpath(link_target,
                                                                    os.path.dirname(export_link)))
@@ -911,7 +895,7 @@ class CheckPbStorageExportsPlugin(BaseDcmClientPlugin):
                     self.count['exported_luns'] += 1
 
                 # if nr_exports > 1:
-                #    vl = 2
+                #     vl = 2
 
             devname = os.path.basename(dev_dir)
             export_filename = self.get_scst_export_filename(filename_file)
