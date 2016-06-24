@@ -38,7 +38,7 @@ override_dh_auto_build:
 
 overrride_dh_auto_test:
 	dh_auto_test
-	flake8 --max-line-length=99 bin/check_bgp_propagation
+	flake8 --max-line-length=99 bin bin/check_bgp_propagation nagios setup.py
 
 override_dh_auto_install:
 	$(info )
