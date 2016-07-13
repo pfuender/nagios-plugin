@@ -68,32 +68,21 @@ fi
 MESSAGE_STRING+=", vg compared:"
 if [[ -r "${LVM_BACKUP_DIR}" ]]; then
     for FILE in $(ls -1 ${LVM_BACKUP_DIR}); do
-        # get mtime
-        if [[ -r "${LVM_BACKUP_DIR}/${FILE}" ]]; then
-            FILE_LVM_BACKUP_MTIME=$(stat -c %Y ${LVM_BACKUP_DIR}/${FILE} 2>&1)
-        else
+
+        #check if both files are readable
+        if ! [[ -r "${LVM_BACKUP_DIR}/${FILE}" ]]; then
             warning "${LVM_BACKUP_DIR}/${FILE} is not readable"
         fi
-        if [[ -r "${GIT_DIR}/${FILE}" ]]; then
-            FILE_GIT_DIR_MTIME=$(stat -c %Y ${GIT_DIR}/${FILE} 2>&1)
-        else
+        if ! [[ -r "${GIT_DIR}/${FILE}" ]]; then
             warning "${GIT_DIR}/${FILE} is not readable"
         fi
-        # semantic check both mtime values
-        if ! [[ "${FILE_LVM_BACKUP_MTIME}" =~ ^[0-9]+$ ]]; then
-            warning "modified time of ${LVM_BACKUP_DIR}/${FILE} could not be evaluated"
-        fi
-        if ! [[ "${FILE_GIT_DIR_MTIME}" =~ ^[0-9]+$ ]]; then
-            warning "modified time of ${GIT_DIR}/${FILE} could not be evaluated"
-        fi
-        # compare both timestamps
-        if [[ ${FILE_GIT_DIR_MTIME} != ${FILE_LVM_BACKUP_MTIME} ]]; then
-            critical "Timestamps of ${LVM_BACKUP_DIR}/${FILE} (${FILE_LVM_BACKUP_MTIME}) and ${GIT_DIR}/${FILE} (${FILE_GIT_DIR_MTIME}) differ"
+        if ! cmp --quiet "${LVM_BACKUP_DIR}/${FILE}" "${GIT_DIR}/${FILE}"; then
+            critical "${LVM_BACKUP_DIR}/${FILE} and ${GIT_DIR}/${FILE} differ"
         else
             MESSAGE_STRING+=" ${FILE} "
         fi
     done
 fi
 
-echo "OK - ${MESSAGE_STRING}"
+echo "OK - ${MESSAGE_STRING} : successfully"
 exit 0
