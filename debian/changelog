@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.9.1) all; urgency=medium
+
+  * check_backup_lvm_push: Fix check alerts "Timestamps differ"
+    (Redmine: #24503)
+
+ -- Jan Hendrick Reiche <jan-hendrick.reiche@profitbricks.com>  Wed, 13 Jul 2016 16:12:05 +0200
+
 pb-monitoring-plugins (1.9.0) all; urgency=medium
 
   [ Benjamin Drung ]
