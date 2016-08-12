@@ -1,3 +1,10 @@
+pb-monitoring-plugins (1.9.2) all; urgency=medium
+
+  * pb-monitoring-plugins: Depend on libswitch-perl (required by
+    check-multipath.pl)
+
+ -- Benjamin Drung <benjamin.drung@profitbricks.com>  Fri, 12 Aug 2016 18:57:42 +0200
+
 pb-monitoring-plugins (1.9.1) all; urgency=medium
 
   * check_backup_lvm_push: Fix check alerts "Timestamps differ"
