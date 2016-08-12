@@ -52,6 +52,7 @@ Description: Base module for Nagios check plugins written in Python 3
 Package: pb-monitoring-plugins
 Architecture: all
 Depends: libnet-snmp-perl,
+         libswitch-perl,
          nagios-plugins-basic | monitoring-plugins-basic,
          python-argparse,
          python-nagios-plugin (= ${binary:Version}),
@@ -69,6 +70,8 @@ Conflicts: pb-config-nagios-nrpe-server
 Replaces: pb-config-nagios-nrpe-server, pb-nagios-plugins (<< 1.7.0~)
 Description: Additional Nagios plugins for usage by ProfitBricks
  This package contains additinoal monitoring plugins used by ProfitBricks.
+ .
+ check-multipath.pl requires libswitch-perl
 
 Package: pb-nagios-plugins
 Architecture: all
