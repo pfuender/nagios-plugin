@@ -12,7 +12,7 @@ from sys import exit
 
 ### START: Variables ###
 DEFAULT_TIMEOUT_API = 30
-DEFAULT_API_URL = 'http://graylog.pb.local:12900/system/notifications'
+DEFAULT_API_URL = 'http://graylog.pb.local/api/system/notifications'
 ### END: Variables ###
 
 ### START: DEFs ###
