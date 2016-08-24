@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.9.3) all; urgency=medium
+
+  * check_ssd_lifetime: fix check for controller bus number (#20486)
+
+ -- Agata Nazar <agata.nazar@profitbricks.com>  Wed, 24 Aug 2016 14:09:17 +0200
+
 pb-monitoring-plugins (1.9.2) all; urgency=medium
 
   * pb-monitoring-plugins: Depend on libswitch-perl (required by

@@ -15,6 +15,7 @@ fi
 megaraid=false
 verbose=0
 device=''
+bus_nr=''
 warning_percentage=90
 critical_percentage=95
 
@@ -178,7 +179,8 @@ if [[ ${device} =~ ^[0-9]*$ ]]; then
         echo "UNKNOWN: Device '${device}' is not a SSD"
         exit ${STATE_UNKNOWN}
     fi
-    device='/dev/bus/0'
+    bus_nr=`lsscsi -H | awk '$2 ~ /^megaraid_sas$/ {gsub ( /\[/, "" ); gsub ( /\]/, "" ); print $1}'`
+    device='/dev/bus/'${bus_nr}
 elif [[ ${device} =~ ^[0-9]+:[0-9]+$ ]]; then
     megaraid=true
     # a (megaraid) device "enclosure:slot" was given
@@ -194,7 +196,8 @@ elif [[ ${device} =~ ^[0-9]+:[0-9]+$ ]]; then
         echo "UNKNOWN: Device '${device}' is not a SSD"
         exit ${STATE_UNKNOWN}
     fi
-    device='/dev/bus/0'
+    bus_nr=`lsscsi -H | awk '$2 ~ /^megaraid_sas$/ {gsub ( /\[/, "" ); gsub ( /\]/, "" ); print $1}'`
+    device='/dev/bus/'${bus_nr}
 elif ! [[ ${device} =~ ^/dev/ ]]; then
     # "normal" block was given
     device="/dev/${device}"
