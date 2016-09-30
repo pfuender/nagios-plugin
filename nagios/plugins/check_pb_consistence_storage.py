@@ -335,6 +335,10 @@ class CheckPbConsistenceStoragePlugin(BaseDcmClientPlugin):
     def run(self):
         """Main execution method."""
 
+        if os.geteuid():
+            log.error("You must be root to execute this.")
+            sys.exit(1)
+
         state = nagios.state.ok
         out = "Storage volumes on %r seems to be okay." % (
             self.hostname)
