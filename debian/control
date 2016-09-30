@@ -71,7 +71,10 @@ Replaces: pb-config-nagios-nrpe-server, pb-nagios-plugins (<< 1.7.0~)
 Description: Additional Nagios plugins for usage by ProfitBricks
  This package contains additinoal monitoring plugins used by ProfitBricks.
  .
- check-multipath.pl requires libswitch-perl
+ Script which needs recommended packages:
+ .
+ * check_ipmi_sensor: freeipmi-tools (for ipmimonitoring)
+ * check-multipath.pl: libswitch-perl
 
 Package: pb-nagios-plugins
 Architecture: all
