@@ -226,7 +226,9 @@ fi
 
 # get data
 # User Capacity:    80,026,361,856 bytes [80.0 GB]
-device_size=$(grep ^'User Capacity:' <<< "${smartctl_output}" | awk '{print $3}' | sed 's/,//g')
+# or
+# User Capacity:    80.026.361.856 bytes [80.0 GB]
+device_size=$(grep ^'User Capacity:' <<< "${smartctl_output}" | awk '{print $3}' | sed 's/[,\.]//g')
 if ! [[ ${device_size} =~ ^[0-9]+$ ]]; then
     echo "device_size '${device_size}' is not a number!"
     exit ${STATE_UNKNOWN}
@@ -244,11 +246,11 @@ current_wear=$((${host_writes_32mib} * 32 * 1024 * 1024))
 current_wear_percentage=$(echo "100 * ${current_wear} / ${max_wear}" | bc)
 
 # check the thresholds
-if [[ ${current_wear_percentage} > ${critical_percentage} ]]; then
-    message="CRITICAL: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+if [[ ${current_wear_percentage} -ge ${critical_percentage} ]]; then
+    echo "CRITICAL: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
     exit ${STATE_CRITICAL}
-elif [[ ${current_wear_percentage} > ${warning_percentage} ]]; then
-    message="WARNING: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+elif [[ ${current_wear_percentage} -ge ${warning_percentage} ]]; then
+    echo "WARNING: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
     exit ${STATE_WARNING}
 fi
 
