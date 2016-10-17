@@ -1,8 +1,10 @@
 #!/bin/bash
 
+shopt -s extglob
+
 PROGNAME="${0##*/}"
 PROGPATH="${0%/*}"
-REVISION="0.1.0"
+REVISION="0.1.2"
 
 # ProfitBricks checks are in /usr/lib/nagios/plugins/pb
 UTILS="${PROGPATH}/pb_utils.sh"
@@ -16,18 +18,18 @@ megaraid=false
 verbose=0
 device=''
 bus_nr=''
-warning_percentage=90
-critical_percentage=95
+warning_level=10
+critical_level=5
 
 # some funcions
 print_usage() {
     echo "Usage: ${PROGNAME} -d DEVICE"
-    echo "       [-w|--warning WARNING_PERCENTAGE] [-c|--critical CRITICAL_PERCENTAGE] -d DEVICE"
+    echo "       [-w|--warning WARNING_LEVEL] [-c|--critical CRITICAL_LEVEL] -d DEVICE"
     echo "       [-v|--verbose]"
     echo ""
-    echo "  DEVICE                device to be checked, e.g. sda"
-    echo "  WARNING_PERCENTAGE    default: ${warning_percentage}"
-    echo "  CRITICAL_PERCENTAGE   default: ${critical_percentage}"
+    echo "  DEVICE           device to be checked, e.g. sda"
+    echo "  WARNING_LEVEL    default: ${warning_level}"
+    echo "  CRITICAL_LEVEL   default: ${critical_level}"
 }
 
 print_help() {
@@ -35,7 +37,8 @@ print_help() {
     echo ""
     print_usage
     echo ""
-    echo "This plugin checks the wear level (lifetime) of the disk."
+    echo "This plugin checks the wear level (lifetime) indicated by the"
+    echo "smart value of \"233 Media_Wearout_Indicator\" of the disk."
     echo ""
     support
     exit ${STATE_OK}
@@ -66,7 +69,7 @@ while [[ $# -ne 0 ]]; do
             ;;
         -w|--warning)
             if [[ -n $2 ]]; then
-                warning_percentage=$2
+                warning_level=$2
                 shift
             else
                 echo "Missing WARNING value!"
@@ -74,7 +77,7 @@ while [[ $# -ne 0 ]]; do
             fi
             ;;
         --warning=?*)
-            warning_percentage=${1#*=}
+            warning_level=${1#*=}
             ;;
         --warning=)
             echo "Missing WARNING value!"
@@ -82,7 +85,7 @@ while [[ $# -ne 0 ]]; do
             ;;
         -c|--critical)
             if [[ -n $2 ]]; then
-                critical_percentage=$2
+                critical_level=$2
                 shift
             else
                 echo "Missing CRITICAL value!"
@@ -90,7 +93,7 @@ while [[ $# -ne 0 ]]; do
             fi
             ;;
         --critical=?*)
-            critical_percentage=${1#*=}
+            critical_level=${1#*=}
             ;;
         --critical=)
             echo "Missing CRITICAL value!"
@@ -135,37 +138,33 @@ while [[ $# -ne 0 ]]; do
 done
 
 # check prerequisites
-if ! which bc >/dev/null; then
-    echo "UNKNOWN: Command 'bc' not found!"
-    exit ${STATE_UNKNOWN}
-fi
 if ! which smartctl >/dev/null; then
     echo "UNKNOWN: Command 'smartctl' not found!"
     exit ${STATE_UNKNOWN}
 fi
 
 # do some argument checking
-if ! [[ ${warning_percentage} =~ ^[1-9][0-9]?$|^100$ ]]; then
-#if ! [[ ${warning_percentage} =~ ^[1-9][0-9]?$ ]]; then
-    echo "UNKNOWN: WARNING_PERCENTAGE is not in range 1..100!"
+if ! [[ ${warning_level} =~ ^[1-9][0-9]?$|^100$ ]]; then
+#if ! [[ ${warning_level} =~ ^[1-9][0-9]?$ ]]; then
+    echo "UNKNOWN: WARNING_level is not in range 1..100!"
     exit ${STATE_UNKNOWN}
 fi
-if ! [[ ${critical_percentage} =~ ^[1-9][0-9]?$|^100$ ]]; then
-#if ! [[ ${critical_percentage} =~ ^[1-9][0-9]$ ]]; then
-    echo "UNKNOWN: CRITICAL_PERCENTAGE is not in range 1..100!"
+if ! [[ ${critical_level} =~ ^[1-9][0-9]?$|^100$ ]]; then
+#if ! [[ ${critical_level} =~ ^[1-9][0-9]$ ]]; then
+    echo "UNKNOWN: CRITICAL_level is not in range 1..100!"
     exit ${STATE_UNKNOWN}
 fi
-if [[ ${warning_percentage} -gt 100 ]]; then
-    echo "UNKNOWN: WARNING_PERCENTAGE >100 (%)!" >&2
+if [[ ${warning_level} -gt 100 ]]; then
+    echo "UNKNOWN: WARNING_level >100!" >&2
     exit ${STATE_UNKNOWN}
 fi
-if [[ ${critical_percentage} -gt 100 ]]; then
-    echo "UNKNOWN: CRITICAL_PERCENTAGE >100 (%)!" >&2
+if [[ ${critical_level} -gt 100 ]]; then
+    echo "UNKNOWN: CRITICAL_level >100!" >&2
     exit ${STATE_UNKNOWN}
 fi
 
-if [[ ${warning_percentage} -gt ${critical_percentage} ]]; then
-    echo "UNKNOWN: Warning threshold (${warning_percentage} is greater than critical (${critical_percentage})!"
+if [[ ${warning_level} -lt ${critical_level} ]]; then
+    echo "UNKNOWN: Warning threshold (${warning_level} is less than critical (${critical_level})!"
     exit ${STATE_UNKNOWN}
 fi
 
@@ -211,51 +210,35 @@ fi
 # check if device is a virtual drive
 if ! ${megaraid}; then
     read disk_model < /sys/block/${device##*/}/device/model
-    if [[ ${disk_model} =~ ^LSI ]]; then
+    if [[ ${disk_model} =~ ^LSI ]] || [[ ${disk_model} =~ ^AVAGO ]]; then
         echo "UNKNOWN: Device '${device}' is a megaraid virtual drive!"
         exit ${STATE_UNKNOWN}
     fi
 fi
 
 # build smartctl command
+# relevant output looks like (without first line):
+# ID# ATTRIBUTE_NAME          FLAG     VALUE WORST THRESH TYPE      UPDATED  WHEN_FAILED RAW_VALUE
+# 233 Media_Wearout_Indicator 0x0032   082   082   000    Old_age   Always       -       0
 if ${megaraid}; then
-    smartctl_output=$(smartctl -a -d megaraid,${megaraid_did} ${device})
+    cwi=$(smartctl -a -d megaraid,${megaraid_did} ${device} | grep ^233 | awk '{print $4}')
 else
-    smartctl_output=$(smartctl -a ${device})
+    cwi=$(smartctl -a ${device} | grep ^233 | awk '{print $4}')
 fi
-
-# get data
-# User Capacity:    80,026,361,856 bytes [80.0 GB]
-# or
-# User Capacity:    80.026.361.856 bytes [80.0 GB]
-device_size=$(grep ^'User Capacity:' <<< "${smartctl_output}" | awk '{print $3}' | sed 's/[,\.]//g')
-if ! [[ ${device_size} =~ ^[0-9]+$ ]]; then
-    echo "device_size '${device_size}' is not a number!"
-    exit ${STATE_UNKNOWN}
-fi
-# maximum wear in bytes
-max_wear=$((${device_size} * 3 * 365 * 5))
-# 241 Host_Writes_32MiB       0x0032   100   100   000    Old_age   Always       -       18734
-host_writes_32mib=$(grep ^241 <<< "${smartctl_output}" | awk '{print $NF}')
-if ! [[ ${host_writes_32mib} =~ ^[0-9]+$ ]]; then
-    echo "host_writes_32mib '${host_writes_32mib}' is not a number!"
-    exit ${STATE_UNKNOWN}
-fi
-# current wear (needs to be converted to bytes)
-current_wear=$((${host_writes_32mib} * 32 * 1024 * 1024))
-current_wear_percentage=$(echo "100 * ${current_wear} / ${max_wear}" | bc)
+# remove leading zeros
+current_wearout_indicator=${cwi##+(0)}
 
 # check the thresholds
-if [[ ${current_wear_percentage} -ge ${critical_percentage} ]]; then
-    echo "CRITICAL: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+if [[ ${current_wearout_indicator} -le ${critical_level} ]]; then
+    echo "CRITICAL: current wear level: ${current_wearout_indicator} | wear_level=${current_wearout_indicator};${warning_level};${critical_level};100;0"
     exit ${STATE_CRITICAL}
-elif [[ ${current_wear_percentage} -ge ${warning_percentage} ]]; then
-    echo "WARNING: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+elif [[ ${current_wearout_indicator} -le ${warning_level} ]]; then
+    echo "WARNING: current wear level: ${current_wearout_indicator} | wear_level=${current_wearout_indicator};${warning_level};${critical_level};100;0"
     exit ${STATE_WARNING}
 fi
 
 # display message and exit
-echo "OK: current wear level: ${current_wear_percentage}% | wear_level=${current_wear_percentage}%;${warning_percentage};${critical_percentage}"
+echo "OK: current wear level: ${current_wearout_indicator} | wear_level=${current_wearout_indicator};${warning_level};${critical_level};100;0"
 exit ${STATE_OK}
 
 # vim: ts=4 sw=4 et filetype=sh
