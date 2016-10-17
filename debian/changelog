@@ -1,3 +1,12 @@
+pb-monitoring-plugins (1.9.5) all; urgency=medium
+
+  * check_ssd_lifetime: some fixes (Redmine: #27096)
+    - fix for threshold comparision
+    - fix for parsing smartctl output with , and . with us and de language
+    - fix for echoing message when state is warning or critical
+
+ -- Thomas Moericke <thomas.moericke@profitbricks.com>  Fri, 14 Oct 2016 15:01:34 +0200
+
 pb-monitoring-plugins (1.9.4) all; urgency=medium
 
   * check_pb_consistence_storage: enforce root permissions (Redmine: #26775)
