@@ -163,10 +163,13 @@ if [[ ${critical_level} -gt 100 ]]; then
     exit ${STATE_UNKNOWN}
 fi
 
-if [[ ${warning_level} -lt ${critical_level} ]]; then
-    echo "UNKNOWN: Warning threshold (${warning_level} is less than critical (${critical_level})!"
-    exit ${STATE_UNKNOWN}
-fi
+# deactivate temporarily because this makes updating easier
+# until now we had percentage thresholds so warning threshold was less
+# then critical
+#if [[ ${warning_level} -lt ${critical_level} ]]; then
+#    echo "UNKNOWN: Warning threshold (${warning_level} is less than critical (${critical_level})!"
+#    exit ${STATE_UNKNOWN}
+#fi
 
 # check for megaraid device
 if [[ ${device} =~ ^[0-9]*$ ]]; then
