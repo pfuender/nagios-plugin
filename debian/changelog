@@ -1,3 +1,9 @@
+pb-monitoring-plugins (1.9.6) all; urgency=medium
+
+  * check_ssd_lifetime: use S.M.A.R.T value 233 (Redmine: #27096)
+
+ -- Tobias von der Krone <tobias.vonderkrone@profitbricks.com>  Wed, 19 Oct 2016 11:39:22 +0200
+
 pb-monitoring-plugins (1.9.5) all; urgency=medium
 
   * check_ssd_lifetime: some fixes (Redmine: #27096)
