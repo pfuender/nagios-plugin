@@ -66,7 +66,7 @@ OPTIONS:
    -C, --community     SNMP community string
    -P, --protocol      SNMP protocol version
    --port              SNMP port number
-   -p, --perfdata      Ouput performance data
+   -p, --perfdata      Output performance data
    -t, --timeout       Plugin timeout in seconds
    -i, --info          Prefix any alerts with the service tag
    -e, --extinfo       Append system info to alerts
